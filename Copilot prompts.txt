@@ -1,0 +1,93 @@
+Create a monorepo structure for a full-stack eCommerce site using:
+- Frontend: Next.js + TypeScript + TailwindCSS + NextAuth.js
+- Backend: NestJS + Prisma + PostgreSQL
+- Shared folder for common types 
+
+Include folders:
+- frontend/
+- backend/
+- prisma/
+- docs/
+
+Inside the `frontend/` folder:
+- Initialize a new Next.js project with TypeScript
+- Install and configure TailwindCSS
+- Install and configure NextAuth.js with email and Google login
+- Create layout: Header, Footer, ProductGrid, ProductCard components
+
+Inside the `backend/` folder:
+- Initialize a NestJS app with TypeScript
+- Install Prisma and create a `prisma/schema.prisma` file
+- Install @nestjs/jwt and setup JWT-based authentication
+- Create models for User, Product, Order with appropriate fields
+- Create REST endpoints for: /auth, /products, /cart, /orders
+
+postgres suuser : postgres password
+CREATE USER myappuser WITH PASSWORD 'securepassword955';
+CREATE DATABASE myappdb OWNER myappuser;
+ALTER USER myappuser CREATEDB;
+
+Generate Prisma schema with:
+- User: id, email, password (hashed), role (admin/user), orders
+- Product: id, name, price, category, description, imageUrl, inStock
+- Order: id, userId, products (JSON), total, status
+
+Run migration command to apply to a local PostgreSQL DB
+
+In the NestJS backend:
+- Implement JWT authentication with access & refresh tokens
+- Create login and register routes
+- Hash passwords using bcrypt
+- Add guards to protect authenticated routes
+
+In NestJS backend:
+- Create endpoints to get all products, single product, filter by category, price
+- Add pagination and sorting (e.g., ?sort=price&order=asc)
+- Create admin-only routes for adding/editing/deleting products
+
+- Create endpoints for: add to cart, remove from cart, update cart
+- Create order placement endpoint: POST /orders
+- Save order with reference to user and product list (as JSON)
+- Add status field for orders: pending, shipped, delivered
+
+Integrate Stripe (or Razorpay) for payments:
+- Create a backend route to create a payment intent
+- Handle payment success/failure via webhooks
+- On success, store the order in DB with payment status = completed
+
+In the Next.js frontend:
+- Connect to the backend API using Axios
+- Use React Context or Redux to manage cart state
+- Implement login/logout flow with NextAuth + backend tokens
+- Implement:
+  - Product listing page
+  - Product detail page
+  - Add to cart
+  - Checkout flow
+  - Order history page
+Generate tests:
+- Unit tests in NestJS using Jest for services and controllers
+- Frontend tests in Next.js using Jest + React Testing Library
+- E2E tests using Cypress for login, add to cart, checkout
+Create a .gitlab-ci.yml file with these stages:
+- install dependencies for frontend and backend
+- run unit and integration tests
+- build frontend and backend
+
+Create deployment instructions: // TO-DO
+- Deploy frontend (Next.js) to Vercel
+- Deploy backend (NestJS) to Render or Railway
+- Use Railway for PostgreSQL database
+- Set environment variables for API keys, DB URIs, JWT secrets
+
+Generate documentation inside the /docs folder:
+- API endpoints and schema
+- Tech stack used
+- Folder structure
+- How to run locally
+- How to deploy
+- How to contribute
+
+
+
+
