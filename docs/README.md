@@ -164,3 +164,70 @@ prisma/
 5. Open a pull request.
 
 We welcome contributions from the community!
+
+//Deploy script
+name: Myntra Clone CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies for frontend
+        run: |
+          cd frontend
+          npm install
+
+      - name: Install dependencies for backend
+        run: |
+          cd backend
+          npm install
+
+      - name: Install dependencies for Prisma
+        run: |
+          cd prisma
+          npm install
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm test
+
+      - name: Run backend tests
+        run: |
+          cd backend
+          npm test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [setup, test]
+    steps:
+      - name: Deploy frontend to Vercel
+        run: |
+          cd frontend
+          npm run build
+          # Add Vercel deployment commands here
+
+      - name: Deploy backend to Render
+        run: |
+          cd backend
+          npm run build
+          # Add Render deployment commands here
