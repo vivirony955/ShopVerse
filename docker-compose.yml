@@ -10,8 +10,7 @@ services:
       - NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
     volumes:
       - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev
+    command: npm install && npm run dev
     depends_on:
       - backend
 
@@ -25,8 +24,7 @@ services:
       - JWT_SECRET=your_jwt_secret
     volumes:
       - ./backend:/app
-      - /app/node_modules
-    command: npm run start:dev
+    command: ["sh", "-c", "npm install && npm run start:dev"]
     depends_on:
       - db
 
@@ -41,6 +39,38 @@ services:
       POSTGRES_DB: myntra_clone
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  test-backend:
+    build:
+      context: ./backend
+    command: ["npm", "run", "test"]
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=test
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  test-frontend:
+    build:
+      context: ./frontend
+    command: ["npx", "cypress", "run"]
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - frontend
+    environment:
+      - NODE_ENV=test
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:
