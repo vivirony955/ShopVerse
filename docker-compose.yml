@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/myntra_clone
+      - JWT_SECRET=your_jwt_secret
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run start:dev
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: myntra_clone
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
