@@ -1,0 +1,43 @@
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { BlogService } from './blog.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles, Role } from '../auth/roles.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
+
+@Controller('blog')
+export class BlogController {
+  constructor(private readonly svc: BlogService) {}
+
+  @Get()
+  findAll(@Query('all') all?: string) {
+    return this.svc.findAll(all !== 'true');
+  }
+
+  @Get(':slug')
+  findBySlug(@Param('slug') slug: string) {
+    return this.svc.findBySlug(slug);
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.MERCH)
+  create(@CurrentUser() user: any, @Body() dto: any) {
+    return this.svc.create(user.id, dto);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.MERCH)
+  update(@CurrentUser() user: any, @Param('id', ParseIntPipe) id: number, @Body() dto: any) {
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user.role);
+    return this.svc.update(id, user.id, isAdmin, dto);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  delete(@Param('id', ParseIntPipe) id: number) {
+    return this.svc.delete(id);
+  }
+}

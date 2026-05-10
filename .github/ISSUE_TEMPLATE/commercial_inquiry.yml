@@ -1,0 +1,65 @@
+name: Commercial License Inquiry
+description: Inquire about a commercial license for ShopVerse
+labels: ["commercial"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for your interest in ShopVerse for commercial use.
+
+        You can also email directly: **vivironycrazy@gmail.com**
+
+        See [COMMERCIAL_USAGE.md](../COMMERCIAL_USAGE.md) for pricing tiers and usage definitions.
+
+  - type: input
+    id: company
+    attributes:
+      label: Company or Individual Name
+    validations:
+      required: true
+
+  - type: dropdown
+    id: use-case
+    attributes:
+      label: Primary Use Case
+      options:
+        - Revenue-generating online store
+        - Agency / freelancer (client deployments)
+        - SaaS / managed ecommerce hosting
+        - Internal company store
+        - White-label product
+        - Other commercial use
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe Your Use Case
+      description: Brief description of what you're building and how ShopVerse fits.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Which license tier are you interested in?
+      options:
+        - Startup (ARR ≤ ₹1 Crore, 1 deployment)
+        - Growth (ARR ≤ ₹10 Crore, up to 5 deployments)
+        - Agency (per-client deployment pricing)
+        - Enterprise (unlimited + white-label)
+        - Not sure — need guidance
+    validations:
+      required: true
+
+  - type: input
+    id: timeline
+    attributes:
+      label: Desired Start Date
+      placeholder: "e.g., June 2026"
+
+  - type: markdown
+    attributes:
+      value: |
+        **Note:** This issue is public. Do not include sensitive business information here. We will follow up via email.

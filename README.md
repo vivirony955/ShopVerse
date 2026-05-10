@@ -1,11 +1,20 @@
 # ShopVerse
 
-**Production-grade Indian D2C ecommerce platform** — open source, commercially licensable.
+**Production-grade ecommerce infrastructure for India — warehouse-driven, financially invariant, battle-tested.**
+
+[![CI](https://github.com/vivironycrazy/shopverse/actions/workflows/ci.yml/badge.svg)](https://github.com/vivironycrazy/shopverse/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/tests-638%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-~80%25-yellow)
+![License](https://img.shields.io/badge/license-Elastic--2.0-blue)
+![NestJS](https://img.shields.io/badge/NestJS-11-red)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 
 NestJS 11 · Next.js 15 · PostgreSQL 16 · Prisma 6 · React 19 · Stripe · Tailwind CSS
 
-> Free to use, study, and contribute. Commercial deployment requires a commercial license.  
-> See [LICENSE](LICENSE) and [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md).
+> **Not a Shopify clone. Not a demo.** ShopVerse is the operational infrastructure layer for warehouse-driven ecommerce — the difference between a storefront and an order management system.
+
+> Source available under [Elastic License 2.0](LICENSE). Free for non-commercial use. Commercial use requires a [paid license](COMMERCIAL_USAGE.md).
 
 ---
 
@@ -202,6 +211,25 @@ It is not a toy. The backend has 38 modules, 54+ database models, and 638 integr
 
 Full architecture: [SYSTEM_DESIGN_FINAL.md](SYSTEM_DESIGN_FINAL.md) (33 sections — state machines, invariants, API contracts, data model, security threat model).
 
+### Order Lifecycle
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> PLACED
+    PLACED --> CONFIRMED : payment intent created
+    CONFIRMED --> PACKED : warehouse picks
+    PACKED --> SHIPPED : carrier collected
+    SHIPPED --> DELIVERED : delivery confirmed
+    PLACED --> CANCELLED : cancelled before payment
+    CONFIRMED --> CANCELLING : cancel requested
+    CANCELLING --> CANCELLED : refund processed
+    DELIVERED --> RETURN_REQUESTED : return initiated
+    RETURN_REQUESTED --> RETURN_APPROVED : admin approves
+    RETURN_APPROVED --> RETURN_RECEIVED : warehouse receives
+    RETURN_RECEIVED --> RETURN_RESTOCKED : inventory restored
+```
+
 ---
 
 ## Tech Stack
@@ -233,7 +261,7 @@ Full architecture: [SYSTEM_DESIGN_FINAL.md](SYSTEM_DESIGN_FINAL.md) (33 sections
 ### Install
 
 ```bash
-git clone https://github.com/your-username/shopverse.git
+git clone https://github.com/vivironycrazy/shopverse.git
 cd shopverse
 
 cd backend && npm install
@@ -388,11 +416,34 @@ Quick start: fork → branch → code → `cd backend && npx tsc --noEmit` → P
 
 ---
 
+## Documentation
+
+| Document | Purpose |
+|---|---|
+| [QUICKSTART.md](QUICKSTART.md) | Get running in 10 minutes |
+| [SYSTEM_DESIGN_FINAL.md](SYSTEM_DESIGN_FINAL.md) | Full architecture reference (state machines, invariants, threat model) |
+| [MASTER_TRACKER.md](MASTER_TRACKER.md) | Implementation status and launch readiness |
+| [ROADMAP.md](ROADMAP.md) | What's coming next |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contributor guide |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting |
+| [GOVERNANCE.md](GOVERNANCE.md) | Decision-making and maintainers |
+| [COMMERCIAL_USAGE.md](COMMERCIAL_USAGE.md) | What counts as commercial use |
+
+---
+
 ## License
 
-ShopVerse is dual-licensed:
+ShopVerse is **source available** under the [Elastic License 2.0 (ELv2)](LICENSE).
 
-- **Open source** (non-commercial): [GNU Affero General Public License v3.0](LICENSE) — free to use, study, modify, and contribute. If you use ShopVerse in a network-accessible service, you must make your source available under AGPL-3.0.
-- **Commercial**: A paid commercial license is available for businesses that need to keep their source proprietary. See [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) or email **vivironycrazy@gmail.com**.
+| Use | License Required |
+|---|---|
+| Learning, studying, personal projects | ✅ Free under ELv2 |
+| Non-commercial self-hosting | ✅ Free under ELv2 |
+| Open source contributions | ✅ Free under ELv2 |
+| Revenue-generating store | 💳 [Commercial license](COMMERCIAL_USAGE.md) |
+| Agency / client deployments | 💳 [Commercial license](COMMERCIAL_USAGE.md) |
+| SaaS / managed hosting for others | 💳 [Commercial license](COMMERCIAL_USAGE.md) |
 
-Copyright © 2026 Vivek Negi.
+Commercial licensing: **vivironycrazy@gmail.com** · See [COMMERCIAL_USAGE.md](COMMERCIAL_USAGE.md) for pricing.
+
+Copyright © 2026 Vivek Negi. All rights reserved.

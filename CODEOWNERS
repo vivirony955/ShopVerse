@@ -1,0 +1,31 @@
+# CODEOWNERS — ShopVerse
+# Maintainer review required for all listed paths.
+# GitHub/GitLab will automatically request review from the owner.
+
+# Financial code — highest risk, mandatory maintainer review
+/backend/src/wallet/        @vivironycrazy
+/backend/src/orders/        @vivironycrazy
+/backend/src/payments/      @vivironycrazy
+/backend/src/inventory/     @vivironycrazy
+/backend/src/refunds/       @vivironycrazy
+
+# Security-sensitive code
+/backend/src/auth/          @vivironycrazy
+/backend/src/fraud/         @vivironycrazy
+/backend/src/admin/         @vivironycrazy
+
+# Schema — any change affects all services
+/prisma/schema.prisma       @vivironycrazy
+/prisma/migrations/         @vivironycrazy
+
+# Architecture and governance documents
+/SYSTEM_DESIGN_FINAL.md    @vivironycrazy
+/ARCHITECTURE.md            @vivironycrazy
+/GOVERNANCE.md              @vivironycrazy
+/LICENSE                    @vivironycrazy
+/COMMERCIAL_LICENSE.md      @vivironycrazy
+/COMMERCIAL_USAGE.md        @vivironycrazy
+
+# CI/CD pipeline
+/.github/workflows/         @vivironycrazy
+/.gitlab-ci.yml             @vivironycrazy

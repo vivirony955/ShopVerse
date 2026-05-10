@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "src/app/cartContext.tsx",
+    "src/app/CheckoutPage.tsx",
+    "src/app/OrderHistoryPage.tsx",
+    "src/app/ProductDetailPage.tsx",
+    "src/app/ProductListingPage.tsx",
+    "src/app/Footer.tsx",
+    "src/app/Header.tsx",
+    "src/app/ProductCard.tsx",
+    "src/app/ProductGrid.tsx",
+    "src/app/__tests__",
+    "src/app/api/axiosInstance.ts"
+  ]
+}
