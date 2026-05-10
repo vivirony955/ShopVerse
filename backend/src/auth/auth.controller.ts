@@ -16,6 +16,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { AuthenticatedRequest } from '../common/types';
 
 @Controller('auth')
 export class AuthController {
@@ -53,7 +54,7 @@ export class AuthController {
   @Post('change-password')
   @HttpCode(200)
   async changePassword(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: { currentPassword: string; newPassword: string },
   ) {
     return this.authService.changePassword(

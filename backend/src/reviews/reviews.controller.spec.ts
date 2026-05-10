@@ -6,6 +6,7 @@ import { ReviewsController } from './reviews.controller';
 import { ReviewsService } from './reviews.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
+import { AuthenticatedRequest } from '../common/types';
 
 describe('ReviewsController', () => {
   let controller: ReviewsController;
@@ -17,8 +18,12 @@ describe('ReviewsController', () => {
     deleteReview: jest.fn(),
   };
 
-  const mockReq = { user: { id: 1, role: 'USER' } };
-  const adminReq = { user: { id: 1, role: 'ADMIN' } };
+  const mockReq = {
+    user: { id: 1, role: 'USER' },
+  } as unknown as AuthenticatedRequest;
+  const adminReq = {
+    user: { id: 1, role: 'ADMIN' },
+  } as unknown as AuthenticatedRequest;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

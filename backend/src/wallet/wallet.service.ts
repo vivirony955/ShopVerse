@@ -267,14 +267,14 @@ export class WalletService {
           gatewayAmount: order.total,
           internalAmount: order.total,
           discrepancy: 0,
-          status: 'MATCHED' as any,
+          status: ReconcileStatus.MATCHED,
         },
-        update: { status: 'MATCHED' as any },
+        update: { status: ReconcileStatus.MATCHED },
       });
 
       await tx.ledgerEntry.create({
         data: {
-          type: 'ORDER_PAYMENT' as any,
+          type: LedgerType.ORDER_PAYMENT,
           creditAmount: order.total,
           reference: ref,
           description: agentNote ?? `COD confirmed for order #${orderId}`,

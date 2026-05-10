@@ -81,7 +81,20 @@ export class UsersService {
     return this.prisma.address.create({ data: { ...data, userId } });
   }
 
-  async updateAddress(userId: number, addressId: number, data: any) {
+  async updateAddress(
+    userId: number,
+    addressId: number,
+    data: Partial<{
+      fullName: string;
+      line1: string;
+      line2: string;
+      city: string;
+      state: string;
+      pincode: string;
+      phone: string;
+      isDefault: boolean;
+    }>,
+  ) {
     const addr = await this.prisma.address.findFirst({
       where: { id: addressId, userId },
     });

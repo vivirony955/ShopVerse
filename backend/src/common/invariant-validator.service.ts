@@ -62,7 +62,7 @@ export class InvariantValidatorService {
           `[INVARIANT_ALERT] validator=${name} violations=${violationCount}`,
         );
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       this.heartbeats.set(name, {
         lastRunAt: new Date(),
         lastStatus: 'ERROR',
@@ -70,8 +70,8 @@ export class InvariantValidatorService {
       });
       // ERROR level — the cron itself failed. Ops must investigate.
       this.logger.error(
-        `[INVARIANT_ALERT] validator=${name} status=ERROR reason=${e?.message ?? e}`,
-        e?.stack,
+        `[INVARIANT_ALERT] validator=${name} status=ERROR reason=${e instanceof Error ? e.message : String(e)}`,
+        e instanceof Error ? e.stack : undefined,
       );
     }
   }

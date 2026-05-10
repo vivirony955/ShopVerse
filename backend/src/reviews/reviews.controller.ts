@@ -17,6 +17,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '../auth/roles.decorator';
 import { ReviewsService } from './reviews.service';
+import { AuthenticatedRequest } from '../common/types';
 import { CreateReviewDto, UpdateReviewDto } from './dto/review.dto';
 
 @Controller('reviews')
@@ -39,7 +40,7 @@ export class ReviewsController {
   @UseGuards(JwtAuthGuard)
   @Post('product/:productId')
   createReview(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('productId', ParseIntPipe) productId: number,
     @Body() dto: CreateReviewDto,
   ) {
@@ -49,7 +50,7 @@ export class ReviewsController {
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   updateReview(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateReviewDto,
   ) {
@@ -58,7 +59,10 @@ export class ReviewsController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  deleteReview(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+  deleteReview(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     const isAdmin = req.user.role === Role.ADMIN;
     return this.reviewsService.deleteReview(req.user.id, id, isAdmin);
   }
@@ -67,7 +71,7 @@ export class ReviewsController {
   @UseGuards(JwtAuthGuard)
   @Post(':id/vote')
   voteReview(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body('isHelpful') isHelpful: boolean,
   ) {

@@ -6,7 +6,10 @@
 jest.mock('@prisma/client', () => ({
   // Use a regular function (not arrow) so 'this' refers to the new instance.
   // Returning nothing preserves the prototype chain of the PrismaService subclass.
-  PrismaClient: jest.fn().mockImplementation(function (this: any) {
+  PrismaClient: jest.fn().mockImplementation(function (this: {
+    $connect: jest.Mock;
+    $disconnect: jest.Mock;
+  }) {
     this.$connect = jest.fn().mockResolvedValue(undefined);
     this.$disconnect = jest.fn().mockResolvedValue(undefined);
   }),

@@ -76,7 +76,7 @@ export class AnalyticsService {
     const agg = await this.prisma.order.aggregate({
       _sum: { total: true },
       where: {
-        status: { in: AnalyticsService.GMV_STATUSES as any },
+        status: { in: [...AnalyticsService.GMV_STATUSES] },
         createdAt: { gte: since, lt: until },
       },
     });
@@ -174,7 +174,7 @@ export class AnalyticsService {
                COUNT(id) AS orders
         FROM "Order"
         WHERE "createdAt" >= ${since}
-          AND status = ANY(${AnalyticsService.GMV_STATUSES as any}::text[])
+          AND status = ANY(${[...AnalyticsService.GMV_STATUSES]}::text[])
         GROUP BY DATE("createdAt")
         ORDER BY date ASC
       `);
@@ -291,14 +291,14 @@ export class AnalyticsService {
       this.prisma.order.count({
         where: {
           createdAt: { gte: oneHourAgo },
-          status: { in: AnalyticsService.GMV_STATUSES as any },
+          status: { in: [...AnalyticsService.GMV_STATUSES] },
         },
       }),
       this.prisma.order.aggregate({
         _sum: { total: true },
         where: {
           createdAt: { gte: oneHourAgo },
-          status: { in: AnalyticsService.GMV_STATUSES as any },
+          status: { in: [...AnalyticsService.GMV_STATUSES] },
         },
       }),
       this.prisma.user.count({ where: { createdAt: { gte: oneHourAgo } } }),

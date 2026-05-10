@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles, Role } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../common/types';
 
 @Controller('qa')
 export class QaController {
@@ -30,7 +31,7 @@ export class QaController {
   @Post('products/:productId')
   @UseGuards(JwtAuthGuard)
   ask(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('productId', ParseIntPipe) productId: number,
     @Body('question') question: string,
   ) {
@@ -41,7 +42,7 @@ export class QaController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.CS_AGENT)
   answer(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
     @Body('answer') answer: string,
   ) {
@@ -64,7 +65,7 @@ export class QaController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  delete(@CurrentUser() user: any, @Param('id', ParseIntPipe) id: number) {
+  delete(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
     const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user.role);
     return this.svc.deleteQuestion(id, user.id, isAdmin);
   }

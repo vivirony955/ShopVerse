@@ -22,6 +22,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../common/types';
 
 @Controller('experience')
 @UseGuards(JwtAuthGuard)
@@ -30,18 +31,18 @@ export class ExperienceController {
 
   // Save for later
   @Post('saved')
-  save(@CurrentUser() user: any, @Body() dto: SaveForLaterDto) {
+  save(@CurrentUser() user: AuthUser, @Body() dto: SaveForLaterDto) {
     return this.svc.saveForLater(user.id, dto);
   }
 
   @Get('saved')
-  getSaved(@CurrentUser() user: any) {
+  getSaved(@CurrentUser() user: AuthUser) {
     return this.svc.getSavedForLater(user.id);
   }
 
   @Delete('saved/:variantId')
   removeSaved(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('variantId', ParseIntPipe) variantId: number,
   ) {
     return this.svc.removeSavedForLater(user.id, variantId);
@@ -49,7 +50,7 @@ export class ExperienceController {
 
   @Post('saved/:variantId/move-to-cart')
   moveToCart(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('variantId', ParseIntPipe) variantId: number,
   ) {
     return this.svc.moveToCart(user.id, variantId);
@@ -57,7 +58,7 @@ export class ExperienceController {
 
   // Recently purchased
   @Get('recently-purchased')
-  recentlyPurchased(@CurrentUser() user: any) {
+  recentlyPurchased(@CurrentUser() user: AuthUser) {
     return this.svc.recentlyPurchased(user.id);
   }
 
@@ -94,21 +95,21 @@ export class ExperienceController {
   // F1-04: Recently viewed
   @Post('recently-viewed/:productId')
   trackView(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('productId', ParseIntPipe) productId: number,
   ) {
     return this.svc.trackRecentlyViewed(user.id, productId);
   }
 
   @Get('recently-viewed')
-  getRecentlyViewed(@CurrentUser() user: any) {
+  getRecentlyViewed(@CurrentUser() user: AuthUser) {
     return this.svc.getRecentlyViewed(user.id);
   }
 
   // F2-13: Delivery rating
   @Post('delivery-rating/:orderId')
   rateDelivery(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('orderId', ParseIntPipe) orderId: number,
     @Body() dto: { rating: number; comment?: string },
   ) {

@@ -12,6 +12,7 @@ import {
 import { ReferralService } from './referral.service';
 import { IsString } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthenticatedRequest } from '../common/types';
 
 class ApplyReferralDto {
   @IsString() code: string;
@@ -23,12 +24,12 @@ export class ReferralController {
   constructor(private readonly referralService: ReferralService) {}
 
   @Get('my-code')
-  getMyCode(@Request() req: any) {
-    return this.referralService.getMyCode(req.user.userId);
+  getMyCode(@Request() req: AuthenticatedRequest) {
+    return this.referralService.getMyCode(req.user.id);
   }
 
   @Post('apply')
-  apply(@Request() req: any, @Body() dto: ApplyReferralDto) {
-    return this.referralService.applyReferral(req.user.userId, dto.code);
+  apply(@Request() req: AuthenticatedRequest, @Body() dto: ApplyReferralDto) {
+    return this.referralService.applyReferral(req.user.id, dto.code);
   }
 }

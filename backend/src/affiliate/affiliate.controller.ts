@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../common/types';
 
 @Controller('affiliate')
 @UseGuards(JwtAuthGuard)
@@ -24,7 +25,7 @@ export class AffiliateController {
   constructor(private readonly svc: AffiliateService) {}
 
   @Get('me')
-  myAccount(@CurrentUser() user: any) {
+  myAccount(@CurrentUser() user: AuthUser) {
     return this.svc.getAccount(user.id);
   }
 
@@ -63,7 +64,7 @@ export class AffiliateController {
   }
 
   @Get('me/payout')
-  myPayoutSummary(@CurrentUser() user: any) {
+  myPayoutSummary(@CurrentUser() user: AuthUser) {
     return this.svc.getPayoutSummary(user.id);
   }
 

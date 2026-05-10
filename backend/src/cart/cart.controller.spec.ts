@@ -6,6 +6,7 @@ import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
 import { CartReservationService } from './cart-reservation.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthenticatedRequest } from '../common/types';
 
 describe('CartController', () => {
   let controller: CartController;
@@ -18,7 +19,7 @@ describe('CartController', () => {
     clearCart: jest.fn(),
   };
 
-  const mockReq = { user: { id: 1 } };
+  const mockReq = { user: { id: 1 } } as unknown as AuthenticatedRequest;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

@@ -61,9 +61,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       // health check
       await this.client.ping();
       this.healthy = true;
-    } catch (e: any) {
+    } catch (e: unknown) {
       this.logger.warn(
-        `Redis init failed, falling back to no-op: ${e?.message ?? e}`,
+        `Redis init failed, falling back to no-op: ${e instanceof Error ? e.message : String(e)}`,
       );
       this.healthy = false;
     }
@@ -86,8 +86,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     try {
       const raw = await this.client!.get(key);
       return raw ? (JSON.parse(raw) as T) : null;
-    } catch (e: any) {
-      this.logger.debug(`redis.get(${key}) failed: ${e?.message ?? e}`);
+    } catch (e: unknown) {
+      this.logger.debug(
+        `redis.get(${key}) failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
       return null;
     }
   }
@@ -139,8 +141,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     if (!this.isEnabled()) return;
     try {
       await this.client!.set(key, JSON.stringify(value), 'EX', ttlSeconds);
-    } catch (e: any) {
-      this.logger.debug(`redis.set(${key}) failed: ${e?.message ?? e}`);
+    } catch (e: unknown) {
+      this.logger.debug(
+        `redis.set(${key}) failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
 
@@ -148,8 +152,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     if (!this.isEnabled() || keys.length === 0) return;
     try {
       await this.client!.del(...keys);
-    } catch (e: any) {
-      this.logger.debug(`redis.del failed: ${e?.message ?? e}`);
+    } catch (e: unknown) {
+      this.logger.debug(
+        `redis.del failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
 
@@ -184,8 +190,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       if (result === -2) return null; // key missing → caller handles
       if (result === -1) return false; // insufficient — gate rejects
       return true;
-    } catch (e: any) {
-      this.logger.debug(`tryReserveGate(${key}) failed: ${e?.message ?? e}`);
+    } catch (e: unknown) {
+      this.logger.debug(
+        `tryReserveGate(${key}) failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
       return null; // on error, fall through — Redis is advisory, not authoritative
     }
   }
@@ -205,9 +213,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         return 0
       `;
       await this.client!.eval(script, 1, key, String(qty));
-    } catch (e: any) {
+    } catch (e: unknown) {
       this.logger.debug(
-        `releaseReserveGate(${key}) failed: ${e?.message ?? e}`,
+        `releaseReserveGate(${key}) failed: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
   }
@@ -221,8 +229,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     if (!this.isEnabled()) return;
     try {
       await this.client!.set(key, String(initialValue), 'EX', ttlSeconds, 'NX');
-    } catch (e: any) {
-      this.logger.debug(`initReserveGate(${key}) failed: ${e?.message ?? e}`);
+    } catch (e: unknown) {
+      this.logger.debug(
+        `initReserveGate(${key}) failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
 
@@ -240,9 +250,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         }
       }
       if (pending > 0) await pipeline.exec();
-    } catch (e: any) {
+    } catch (e: unknown) {
       this.logger.debug(
-        `redis.delByPattern(${pattern}) failed: ${e?.message ?? e}`,
+        `redis.delByPattern(${pattern}) failed: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
   }

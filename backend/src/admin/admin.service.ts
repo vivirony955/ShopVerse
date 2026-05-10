@@ -14,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { CronLockService } from '../common/cron-lock.service';
 import { WalletService } from '../wallet/wallet.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
@@ -43,7 +44,7 @@ export class AdminService {
       this.prisma.product.count({ where: { isActive: true } }),
       this.prisma.order.aggregate({
         _sum: { total: true },
-        where: { status: { in: AnalyticsService.GMV_STATUSES as any } },
+        where: { status: { in: [...AnalyticsService.GMV_STATUSES] } },
       }),
       this.prisma.order.findMany({
         take: 5,
@@ -253,7 +254,7 @@ export class AdminService {
       `,
 
       // Average LTV across all paying customers
-      this.prisma.$queryRaw<{ avg_ltv: number }[]>`
+      this.prisma.$queryRaw<{ avg_ltv: string }[]>`
         SELECT AVG(total_spend) as avg_ltv FROM (
           SELECT "userId", SUM(total) as total_spend
           FROM "Order" WHERE "paymentStatus" = 'PAID'
@@ -338,12 +339,15 @@ export class AdminService {
       }
     }
 
+    // $queryRaw returns unknown[]; casts are safe — SQL projection matches these fields
+    type CountRow = { count: bigint };
+    type LtvRow = { avg_ltv: string };
     return {
       overview: {
         totalCustomers,
-        newCustomers30d: Number((newCustomers30d[0] as any)?.count ?? 0),
-        repeatCustomers: Number((repeatCount[0] as any)?.count ?? 0),
-        avgLtv: Number((avgLtv[0] as any)?.avg_ltv ?? 0),
+        newCustomers30d: Number((newCustomers30d as CountRow[])[0]?.count ?? 0),
+        repeatCustomers: Number((repeatCount as CountRow[])[0]?.count ?? 0),
+        avgLtv: Number((avgLtv as LtvRow[])[0]?.avg_ltv ?? 0),
       },
       segments,
       topCustomers: topCustomers.map((c) => ({
@@ -358,7 +362,7 @@ export class AdminService {
   updateOrderStatus(orderId: number, status: string) {
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { status: status as any },
+      data: { status: status as Prisma.OrderCreateInput['status'] },
     });
   }
 
@@ -373,8 +377,8 @@ export class AdminService {
     // H2-07: hard cap at 100 rows per request — prevents full-table silent exfiltration
     const limit = Math.min(Number(filters.limit ?? 30), 100);
     const skip = (Number(page) - 1) * limit;
-    const where: any = {};
-    if (status) where.status = status;
+    const where: Prisma.OrderWhereInput = {};
+    if (status) where.status = status as Prisma.EnumOrderStatusFilter;
 
     // H2-08: audit every export for insider threat detection (T-AD04 fix)
     await this.prisma.adminAuditLog.create({
@@ -413,7 +417,7 @@ export class AdminService {
     // H2-07: hard cap at 100 rows per request
     const limit = Math.min(Number(filters.limit ?? 30), 100);
     const skip = (Number(page) - 1) * limit;
-    const where: any = { role: 'USER' };
+    const where: Prisma.UserWhereInput = { role: 'USER' };
     if (search) {
       where.OR = [
         { email: { contains: search, mode: 'insensitive' } },
@@ -487,7 +491,7 @@ export class AdminService {
         this.prisma.order.count({
           where: {
             createdAt: { gte: since },
-            status: { in: AnalyticsService.GMV_STATUSES as any },
+            status: { in: [...AnalyticsService.GMV_STATUSES] },
           },
         }),
         // Revenue-recognized (delivered)

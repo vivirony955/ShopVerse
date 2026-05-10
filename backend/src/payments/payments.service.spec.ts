@@ -182,6 +182,7 @@ describe('PaymentsService', () => {
       await service.handleWebhook(rawBody, signature);
       expect(prisma.order.update).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({
             paymentStatus: 'PAID',
             status: 'CONFIRMED',

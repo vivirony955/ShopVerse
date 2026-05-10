@@ -14,6 +14,7 @@ import {
 import { PriceAlertsService } from './price-alerts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../common/types';
 
 @Controller('price-alerts')
 @UseGuards(JwtAuthGuard)
@@ -22,20 +23,20 @@ export class PriceAlertsController {
 
   @Post()
   set(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Body() dto: { productId: number; targetPrice: number },
   ) {
     return this.svc.set(user.id, dto.productId, dto.targetPrice);
   }
 
   @Get()
-  getAll(@CurrentUser() user: any) {
+  getAll(@CurrentUser() user: AuthUser) {
     return this.svc.getForUser(user.id);
   }
 
   @Delete(':productId')
   delete(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('productId', ParseIntPipe) productId: number,
   ) {
     return this.svc.delete(user.id, productId);

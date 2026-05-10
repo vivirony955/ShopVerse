@@ -13,6 +13,7 @@ import {
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../common/types';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
@@ -20,27 +21,30 @@ export class NotificationsController {
   constructor(private readonly svc: NotificationsService) {}
 
   @Get()
-  getAll(@CurrentUser() user: any) {
+  getAll(@CurrentUser() user: AuthUser) {
     return this.svc.getForUser(user.id);
   }
 
   @Get('unread-count')
-  unreadCount(@CurrentUser() user: any) {
+  unreadCount(@CurrentUser() user: AuthUser) {
     return this.svc.getUnreadCount(user.id);
   }
 
   @Patch(':id/read')
-  markRead(@CurrentUser() user: any, @Param('id', ParseIntPipe) id: number) {
+  markRead(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.svc.markRead(user.id, id);
   }
 
   @Patch('read-all')
-  markAllRead(@CurrentUser() user: any) {
+  markAllRead(@CurrentUser() user: AuthUser) {
     return this.svc.markAllRead(user.id);
   }
 
   @Delete(':id')
-  delete(@CurrentUser() user: any, @Param('id', ParseIntPipe) id: number) {
+  delete(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
     return this.svc.deleteNotification(user.id, id);
   }
 }

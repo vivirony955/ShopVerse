@@ -48,9 +48,9 @@ export class EmailService {
         .then(() => {
           this.logger.log(`Email connected to ${host}:${port}`);
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           this.logger.error(
-            `Email connection failed (${host}:${port}): ${err.message}. Check SMTP credentials.`,
+            `Email connection failed (${host}:${port}): ${err instanceof Error ? err.message : String(err)}. Check SMTP credentials.`,
           );
         });
     }
@@ -70,9 +70,11 @@ export class EmailService {
     try {
       await this.transporter.sendMail({ from, to, subject, html });
       this.logger.debug(`Email sent to ${to}: ${subject}`);
-    } catch (err) {
+    } catch (err: unknown) {
       // Log but never throw — email failures must not break the order flow
-      this.logger.warn(`Failed to send email to ${to}: ${err?.message}`);
+      this.logger.warn(
+        `Failed to send email to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -83,15 +85,15 @@ export class EmailService {
    */
   private async enqueue(
     type: EmailJobData['type'],
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): Promise<void> {
     if (this.emailQueue) {
       try {
         await this.emailQueue.add(type, { type, payload });
         return;
-      } catch (err) {
+      } catch (err: unknown) {
         this.logger.warn(
-          `Email queue unavailable, falling back to sync send: ${err?.message}`,
+          `Email queue unavailable, falling back to sync send: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

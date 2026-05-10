@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles, Role } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../common/types';
 
 @Controller('exchange')
 @UseGuards(JwtAuthGuard)
@@ -24,7 +25,7 @@ export class ExchangeController {
 
   @Post()
   request(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Body()
     dto: {
       orderId: number;
@@ -38,7 +39,7 @@ export class ExchangeController {
 
   @Get('order/:orderId')
   getForOrder(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('orderId', ParseIntPipe) orderId: number,
   ) {
     return this.svc.getForOrder(user.id, orderId);

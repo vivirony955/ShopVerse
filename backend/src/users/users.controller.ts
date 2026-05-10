@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from './users.service';
+import { AuthenticatedRequest } from '../common/types';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 
@@ -24,30 +25,33 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  getProfile(@Req() req: any) {
+  getProfile(@Req() req: AuthenticatedRequest) {
     return this.usersService.findById(req.user.id);
   }
 
   @Patch('me')
-  updateProfile(@Req() req: any, @Body() dto: UpdateProfileDto) {
+  updateProfile(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: UpdateProfileDto,
+  ) {
     return this.usersService.updateProfile(req.user.id, dto);
   }
 
   // ─── Addresses ─────────────────────────────────────────────────────────────
 
   @Get('me/addresses')
-  getAddresses(@Req() req: any) {
+  getAddresses(@Req() req: AuthenticatedRequest) {
     return this.usersService.getAddresses(req.user.id);
   }
 
   @Post('me/addresses')
-  addAddress(@Req() req: any, @Body() dto: CreateAddressDto) {
+  addAddress(@Req() req: AuthenticatedRequest, @Body() dto: CreateAddressDto) {
     return this.usersService.addAddress(req.user.id, dto);
   }
 
   @Patch('me/addresses/:id')
   updateAddress(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAddressDto,
   ) {
@@ -55,12 +59,18 @@ export class UsersController {
   }
 
   @Delete('me/addresses/:id')
-  deleteAddress(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+  deleteAddress(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.usersService.deleteAddress(req.user.id, id);
   }
 
   @Patch('me/addresses/:id/default')
-  setDefaultAddress(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+  setDefaultAddress(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.usersService.setDefaultAddress(req.user.id, id);
   }
 }

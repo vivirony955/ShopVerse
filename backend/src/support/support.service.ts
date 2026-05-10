@@ -2,7 +2,7 @@
 // See LICENSE in the project root for license information.
 
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { TicketStatus } from '@prisma/client';
+import { Prisma, TicketStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AddNoteDto,
@@ -58,7 +58,7 @@ export class SupportService {
   }
 
   async updateTicket(id: number, dto: UpdateTicketDto) {
-    const data: any = { ...dto };
+    const data: Prisma.SupportTicketUpdateInput = { ...dto };
     if (dto.status === TicketStatus.RESOLVED) {
       data.resolvedAt = new Date();
     }

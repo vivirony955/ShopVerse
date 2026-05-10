@@ -37,6 +37,7 @@ export class CreateCouponDto {
   @IsNumber()
   @Min(0)
   // T-C03 FIX: cap PERCENTAGE at 100 — FIXED has no upper cap (large FIXED discounts are intentional)
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   @ValidateIf((o) => o.discountType === 'PERCENTAGE')
   @Max(100)
   discountValue: number;
@@ -69,6 +70,7 @@ export class UpdateCouponDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   @ValidateIf((o) => o.discountType === 'PERCENTAGE')
   @Max(100)
   discountValue?: number;

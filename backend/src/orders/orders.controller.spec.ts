@@ -6,6 +6,7 @@ import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
+import { AuthenticatedRequest } from '../common/types';
 
 describe('OrdersController', () => {
   let controller: OrdersController;
@@ -24,7 +25,7 @@ describe('OrdersController', () => {
     user: { id: 1, role: 'USER' },
     ip: '127.0.0.1',
     headers: {},
-  };
+  } as unknown as AuthenticatedRequest;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

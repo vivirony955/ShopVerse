@@ -72,6 +72,7 @@ export class WebhooksService {
         data: {
           endpointId: ep.id,
           event,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           payload: payload as any,
           attempts: 0,
         },
@@ -107,11 +108,13 @@ export class WebhooksService {
           nextRetryAt: null,
         },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       const delivery = await this.prisma.webhookDelivery.update({
         where: { id: deliveryId },
         data: {
-          responseCode: err?.response?.status ?? null,
+          responseCode:
+            (err as { response?: { status?: number } })?.response?.status ??
+            null,
           attempts: { increment: 1 },
           success: false,
         },

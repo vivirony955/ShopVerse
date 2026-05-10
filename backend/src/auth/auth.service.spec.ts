@@ -57,7 +57,7 @@ describe('AuthService', () => {
         password: hashed,
         role: 'USER',
       });
-      const result = await service.validateUser(
+      const result: unknown = await service.validateUser(
         'user@example.com',
         'secret123',
       );
@@ -76,13 +76,19 @@ describe('AuthService', () => {
         email: 'user@example.com',
         password: hashed,
       });
-      const result = await service.validateUser('user@example.com', 'wrong');
+      const result: unknown = await service.validateUser(
+        'user@example.com',
+        'wrong',
+      );
       expect(result).toBeNull();
     });
 
     it('returns null when user does not exist', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue(null);
-      const result = await service.validateUser('nobody@example.com', 'pass');
+      const result: unknown = await service.validateUser(
+        'nobody@example.com',
+        'pass',
+      );
       expect(result).toBeNull();
     });
   });

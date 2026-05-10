@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WishlistController } from './wishlist.controller';
 import { WishlistService } from './wishlist.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthenticatedRequest } from '../common/types';
 
 describe('WishlistController', () => {
   let controller: WishlistController;
@@ -15,7 +16,7 @@ describe('WishlistController', () => {
     removeFromWishlist: jest.fn(),
   };
 
-  const mockReq = { user: { id: 1 } };
+  const mockReq = { user: { id: 1 } } as unknown as AuthenticatedRequest;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

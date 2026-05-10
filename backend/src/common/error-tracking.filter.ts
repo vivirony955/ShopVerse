@@ -9,8 +9,9 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ErrorTrackingService } from './error-tracking.service';
+import { AuthenticatedRequest } from './types';
 
 @Catch()
 export class ErrorTrackingFilter implements ExceptionFilter {
@@ -20,7 +21,7 @@ export class ErrorTrackingFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const req = ctx.getRequest<Request>();
+    const req = ctx.getRequest<AuthenticatedRequest>();
     const res = ctx.getResponse<Response>();
 
     const status =
@@ -28,9 +29,11 @@ export class ErrorTrackingFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    const rawResponse =
+      exception instanceof HttpException ? exception.getResponse() : null;
     const message =
       exception instanceof HttpException
-        ? ((exception.getResponse() as any)?.message ?? exception.message)
+        ? ((rawResponse as { message?: string })?.message ?? exception.message)
         : exception instanceof Error
           ? exception.message
           : 'Internal server error';
@@ -48,8 +51,9 @@ export class ErrorTrackingFilter implements ExceptionFilter {
           stack,
           method: req.method,
           url: req.url,
-          userId: (req as any).user?.id,
+          userId: req.user?.id,
           statusCode: status,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           metadata: { body: req.body, params: req.params },
         })
         .catch(() => null);

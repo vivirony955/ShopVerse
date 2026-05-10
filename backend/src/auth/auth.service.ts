@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+import { AuthUser, JwtPayload } from '../common/types';
 
 @Injectable()
 export class AuthService {
@@ -39,7 +40,10 @@ export class AuthService {
     return result;
   }
 
-  async validateUser(email: string, pass: string): Promise<any> {
+  async validateUser(
+    email: string,
+    pass: string,
+  ): Promise<(Omit<AuthUser, 'id'> & { id: number }) | null> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) return null;
 
@@ -81,7 +85,7 @@ export class AuthService {
     return result;
   }
 
-  async login(user: any) {
+  async login(user: AuthUser) {
     // V-10 FIX: include tokenVersion in payload so refresh tokens are tied to a
     // specific password epoch. When password changes, tokenVersion increments and
     // all previously issued refresh tokens become invalid.
@@ -98,7 +102,7 @@ export class AuthService {
 
   async refreshToken(token: string) {
     try {
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify<JwtPayload>(token);
       // V-10 FIX: validate tokenVersion against DB — if password changed since
       // this refresh token was issued, payload.tv will be stale → reject.
       const user = await this.prisma.user.findUnique({

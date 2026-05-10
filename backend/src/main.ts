@@ -4,7 +4,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
-import express from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { LoggingInterceptor } from './common/logging.interceptor';
@@ -37,14 +37,14 @@ async function bootstrap() {
     logger: ['log', 'error', 'warn'],
   });
 
-  const expressApp = app.getHttpAdapter().getInstance();
+  const expressApp = app.getHttpAdapter().getInstance() as Application;
 
   // V-04: trust proxy so req.ip reflects real client IP behind Nginx
   expressApp.set('trust proxy', 1);
 
   // H2-02: body size limits — prevent memory exhaustion from oversized payloads.
   // Webhook route gets its own raw limit; all other routes capped at 100kb.
-  expressApp.use((req: any, res: any, next: any) => {
+  expressApp.use((req: Request, res: Response, next: NextFunction) => {
     if (req.path === '/api/payments/webhook') return next();
     express.json({ limit: '100kb' })(req, res, next);
   });

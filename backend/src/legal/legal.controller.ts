@@ -17,7 +17,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PolicyType } from '@prisma/client';
-import { Request } from 'express';
+import { AuthUser, AuthenticatedRequest } from '../common/types';
 
 @Controller('legal')
 export class LegalController {
@@ -48,15 +48,18 @@ export class LegalController {
   }
 
   @Post('consent/cookies')
-  cookieConsent(@Req() req: Request, @Body() dto: CookieConsentDto) {
-    const userId = (req as any).user?.id;
+  cookieConsent(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CookieConsentDto,
+  ) {
+    const userId = req.user?.id;
     const ip = req.ip ?? '';
     return this.svc.recordCookieConsent(userId, ip, dto);
   }
 
   @Get('consent/cookies/me')
   @UseGuards(JwtAuthGuard)
-  myConsent(@CurrentUser() user: any) {
+  myConsent(@CurrentUser() user: AuthUser) {
     return this.svc.getLatestConsent(user.id);
   }
 }

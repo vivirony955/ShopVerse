@@ -14,6 +14,7 @@ import {
   UpdateFlashSaleDto,
   AddFlashSaleProductDto,
 } from './dto/flash-sale.dto';
+import { FlashSaleStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class FlashSalesService {
@@ -73,7 +74,7 @@ export class FlashSalesService {
         discountPct: dto.discountPct,
         startsAt: start,
         endsAt: end,
-        status: status as any,
+        status: status as FlashSaleStatus,
       },
       include: this.includeProducts,
     });
@@ -82,7 +83,10 @@ export class FlashSalesService {
   async update(id: number, dto: UpdateFlashSaleDto) {
     const sale = await this.prisma.flashSale.findUnique({ where: { id } });
     if (!sale) throw new NotFoundException('Flash sale not found');
-    return this.prisma.flashSale.update({ where: { id }, data: dto as any });
+    return this.prisma.flashSale.update({
+      where: { id },
+      data: dto as Prisma.FlashSaleUpdateInput,
+    });
   }
 
   async remove(id: number) {

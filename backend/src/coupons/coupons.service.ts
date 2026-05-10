@@ -7,6 +7,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Coupon, DiscountType } from '@prisma/client';
 
 @Injectable()
 export class CouponsService {
@@ -65,7 +66,7 @@ export class CouponsService {
     return this.calcDiscount(coupon, orderAmount);
   }
 
-  private calcDiscount(coupon: any, amount: number): number {
+  private calcDiscount(coupon: Coupon, amount: number): number {
     // CASHBACK type: discount = 0 upfront (wallet is credited post-order by orders.service)
     if (coupon.discountType === 'CASHBACK') return 0;
     if (coupon.discountType === 'PERCENTAGE') {
@@ -75,7 +76,7 @@ export class CouponsService {
   }
 
   /** Returns cashback amount for CASHBACK-type coupons (percentage of order amount) */
-  calcCashback(coupon: any, amount: number): number {
+  calcCashback(coupon: Coupon, amount: number): number {
     if (coupon.discountType !== 'CASHBACK') return 0;
     // discountValue is a percentage, e.g. 5 means 5% cashback
     return Math.min((amount * coupon.discountValue) / 100, amount);
@@ -101,10 +102,20 @@ export class CouponsService {
     });
   }
 
-  async update(id: number, data: any) {
+  async update(
+    id: number,
+    data: Partial<{
+      discountType: DiscountType;
+      discountValue: number;
+      minOrderAmount: number;
+      maxUses: number | null;
+      expiresAt: string | Date;
+      isActive: boolean;
+    }>,
+  ) {
     const coupon = await this.prisma.coupon.findUnique({ where: { id } });
     if (!coupon) throw new NotFoundException('Coupon not found');
-    if (data.expiresAt) data.expiresAt = new Date(data.expiresAt);
+    if (data.expiresAt) data.expiresAt = new Date(data.expiresAt as string);
     return this.prisma.coupon.update({ where: { id }, data });
   }
 

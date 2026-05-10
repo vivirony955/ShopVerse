@@ -23,6 +23,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../common/types';
 import { TicketStatus } from '@prisma/client';
 
 @Controller('support')
@@ -31,12 +32,12 @@ export class SupportController {
   constructor(private readonly svc: SupportService) {}
 
   @Post('tickets')
-  createTicket(@CurrentUser() user: any, @Body() dto: CreateTicketDto) {
+  createTicket(@CurrentUser() user: AuthUser, @Body() dto: CreateTicketDto) {
     return this.svc.createTicket(user.id, dto);
   }
 
   @Get('tickets/my')
-  myTickets(@CurrentUser() user: any) {
+  myTickets(@CurrentUser() user: AuthUser) {
     return this.svc.getMyTickets(user.id);
   }
 
@@ -48,7 +49,7 @@ export class SupportController {
   @Post('tickets/:id/notes')
   addNote(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Body() dto: AddNoteDto,
   ) {
     return this.svc.addNote(id, user.id, dto);
@@ -75,7 +76,7 @@ export class SupportController {
   @Post('admin/notes')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  adminNote(@CurrentUser() user: any, @Body() dto: AdminNoteDto) {
+  adminNote(@CurrentUser() user: AuthUser, @Body() dto: AdminNoteDto) {
     return this.svc.addAdminNote(user.id, dto);
   }
 

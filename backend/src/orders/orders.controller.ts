@@ -22,11 +22,13 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles, Role } from '../auth/roles.decorator';
 import { OrdersService } from './orders.service';
+import { AuthenticatedRequest } from '../common/types';
 import {
   PlaceOrderDto,
   UpdateOrderStatusDto,
   PlaceGuestOrderDto,
 } from './dto/order.dto';
+import { RefundReason } from '@prisma/client';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -59,22 +61,26 @@ export class OrdersController {
   // ─── User routes ─────────────────────────────────────────────────────────────
 
   @Get()
-  getUserOrders(@Req() req: any) {
+  getUserOrders(@Req() req: AuthenticatedRequest) {
     return this.ordersService.getUserOrders(req.user.id);
   }
 
   @Get(':id')
-  getOrder(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+  getOrder(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.ordersService.getOrderById(req.user.id, id);
   }
 
   @Post()
   placeOrder(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: PlaceOrderDto,
     @Headers('x-device-fingerprint') fingerprint?: string,
   ) {
-    const ip = req.ip ?? req.headers['x-forwarded-for'];
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip = req.ip ?? (Array.isArray(forwarded) ? forwarded[0] : forwarded);
     return this.ordersService.placeOrder(req.user.id, dto, {
       ip,
       deviceFingerprint: fingerprint,
@@ -82,19 +88,25 @@ export class OrdersController {
   }
 
   @Patch(':id/cancel')
-  cancelOrder(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+  cancelOrder(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.ordersService.cancelOrder(req.user.id, id);
   }
 
   @Patch(':id/return')
-  requestReturn(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+  requestReturn(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.ordersService.requestReturn(req.user.id, id);
   }
 
   // Partial cancellation — user cancels a single item
   @Patch(':id/items/:itemId/cancel')
   cancelItem(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) orderId: number,
     @Param('itemId', ParseIntPipe) itemId: number,
   ) {
@@ -113,7 +125,7 @@ export class OrdersController {
     return this.ordersService.refundOrderItem(
       orderId,
       itemId,
-      body.reason as any,
+      body.reason as RefundReason | undefined,
     );
   }
 

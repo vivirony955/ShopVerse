@@ -47,7 +47,8 @@ describe('WalletService', () => {
   describe('credit', () => {
     it('credits wallet and creates ledger entry', async () => {
       prisma.walletTransaction.findFirst.mockResolvedValue(null); // no existing idempotency hit
-      prisma.$transaction.mockImplementation((cb: any) =>
+
+      prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) =>
         cb({
           wallet: {
             upsert: jest
@@ -114,7 +115,10 @@ describe('WalletService', () => {
         },
         ledgerEntry: { create: jest.fn() },
       };
-      prisma.$transaction.mockImplementation((cb: any) => cb(txMock));
+
+      prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) =>
+        cb(txMock),
+      );
 
       const result = await service.debit({ userId: 1, amount: 100 });
       expect(result.type).toBe(WalletTxType.DEBIT);
@@ -130,7 +134,10 @@ describe('WalletService', () => {
           updateMany: jest.fn().mockResolvedValue({ count: 0 }),
         },
       };
-      prisma.$transaction.mockImplementation((cb: any) => cb(txMock));
+
+      prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) =>
+        cb(txMock),
+      );
 
       await expect(service.debit({ userId: 1, amount: 200 })).rejects.toThrow(
         BadRequestException,
@@ -141,7 +148,10 @@ describe('WalletService', () => {
       const txMock = {
         wallet: { findUnique: jest.fn().mockResolvedValue(null) },
       };
-      prisma.$transaction.mockImplementation((cb: any) => cb(txMock));
+
+      prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) =>
+        cb(txMock),
+      );
 
       await expect(service.debit({ userId: 1, amount: 50 })).rejects.toThrow(
         NotFoundException,
@@ -154,7 +164,8 @@ describe('WalletService', () => {
   describe('refundToWallet', () => {
     it('credits wallet with order-scoped reference', async () => {
       prisma.walletTransaction.findFirst.mockResolvedValue(null);
-      prisma.$transaction.mockImplementation((cb: any) =>
+
+      prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) =>
         cb({
           wallet: { upsert: jest.fn().mockResolvedValue(mockWallet) },
           walletTransaction: {

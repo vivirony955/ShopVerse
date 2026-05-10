@@ -2,10 +2,11 @@
 // See LICENSE in the project root for license information.
 
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { AuthUser, AuthenticatedRequest } from '../common/types';
 
 export const CurrentUser = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
+  (_data: unknown, ctx: ExecutionContext): AuthUser => {
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
     return request.user;
   },
 );

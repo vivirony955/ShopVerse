@@ -12,7 +12,7 @@ import {
   CreateWarehouseDto,
   UpdateInventoryDto,
 } from './dto/create-warehouse.dto';
-import { ShipmentStatus } from '@prisma/client';
+import { Prisma, ShipmentStatus, OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class WarehouseService {
@@ -68,7 +68,10 @@ export class WarehouseService {
    * from the sum of WarehouseInventory rows. Called inside every inventory-mutating
    * transaction so the cache invariant (I-1) holds.
    */
-  private async syncVariantCache(tx: any, variantId: number): Promise<void> {
+  private async syncVariantCache(
+    tx: Prisma.TransactionClient,
+    variantId: number,
+  ): Promise<void> {
     await tx.$executeRaw`
       UPDATE "Variant" SET
         "stock" = COALESCE((SELECT SUM("stock")::int FROM "WarehouseInventory" WHERE "variantId" = ${variantId}), 0),
@@ -145,7 +148,7 @@ export class WarehouseService {
       }
     }
 
-    const shipments: any[] = [];
+    const shipments: Awaited<ReturnType<typeof this.createShipment>>[] = [];
     for (const [whId, items] of assignments.entries()) {
       shipments.push(await this.createShipment(orderId, whId, items));
     }
@@ -251,12 +254,12 @@ export class WarehouseService {
         // Mark order as RTO so ops team can act
         await tx.order.update({
           where: { id: shipment.orderId },
-          data: { status: 'RETURN_REQUESTED' as any },
+          data: { status: OrderStatus.RETURN_REQUESTED },
         });
         await tx.trackingEvent.create({
           data: {
             orderId: shipment.orderId,
-            status: 'RETURN_REQUESTED' as any,
+            status: OrderStatus.RETURN_REQUESTED,
             note: `RTO: shipment #${shipmentId} returned to warehouse. Stock restored.`,
           },
         });
@@ -334,10 +337,11 @@ export class WarehouseService {
 
     if (warehouseItems.size <= 1) {
       // No split needed — single warehouse can fulfill
+      const [firstWarehouseId] = warehouseItems.keys();
       return [
         {
           orderId,
-          warehouseId: warehouseItems.keys().next().value,
+          warehouseId: firstWarehouseId,
           split: false,
         },
       ];
@@ -357,11 +361,11 @@ export class WarehouseService {
           data: {
             userId: order.userId,
             guestEmail: order.guestEmail,
-            addressSnapshot: order.addressSnapshot as any,
+            addressSnapshot: order.addressSnapshot ?? Prisma.JsonNull,
             subtotal,
             discountAmount: 0,
             total: subtotal,
-            status: 'CONFIRMED' as any,
+            status: OrderStatus.CONFIRMED,
             paymentStatus: order.paymentStatus,
             parentOrderId: orderId,
             items: { create: items },
@@ -397,7 +401,7 @@ export class WarehouseService {
       // Mark original order as split/processing
       await tx.order.update({
         where: { id: orderId },
-        data: { status: 'PROCESSING' as any },
+        data: { status: OrderStatus.PROCESSING },
       });
     });
 

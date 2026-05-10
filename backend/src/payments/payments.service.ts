@@ -7,7 +7,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
@@ -138,8 +138,10 @@ export class PaymentsService {
         signature,
         process.env.STRIPE_WEBHOOK_SECRET!,
       );
-    } catch (err) {
-      throw new BadRequestException(`Webhook Error: ${err.message}`);
+    } catch (err: unknown) {
+      throw new BadRequestException(
+        `Webhook Error: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     switch (event.type) {
@@ -190,7 +192,7 @@ export class PaymentsService {
             await tx.trackingEvent.create({
               data: {
                 orderId,
-                status: 'CONFIRMED' as any,
+                status: OrderStatus.CONFIRMED,
                 note: `Payment confirmed via Stripe (${pi.id})`,
               },
             });
@@ -213,12 +215,12 @@ export class PaymentsService {
           // Side effects only fire for the winning webhook delivery.
           this.invoicesService
             .createInvoiceRecord(orderId)
-            .catch((e) =>
+            .catch((e: unknown) =>
               this.logger.error(
-                `Invoice creation failed for order #${orderId}: ${e?.message}`,
+                `Invoice creation failed for order #${orderId}: ${e instanceof Error ? e.message : String(e)}`,
               ),
             );
-          this.emailService.sendOrderConfirmation(order as any).catch(() => {});
+          this.emailService.sendOrderConfirmation(order).catch(() => {});
           this.webhooksService
             .dispatch('order.paid', {
               orderId,
@@ -244,7 +246,7 @@ export class PaymentsService {
         await this.prisma.trackingEvent.create({
           data: {
             orderId,
-            status: 'PENDING' as any,
+            status: OrderStatus.PENDING,
             note: `Payment failed: ${pi.last_payment_error?.message ?? 'unknown error'}`,
           },
         });
@@ -297,9 +299,9 @@ export class PaymentsService {
                 reference: `refund:order:${o.id}:chargeback`,
                 description: `Chargeback clawback for dispute ${dispute.id}`,
               });
-            } catch (e: any) {
+            } catch (e: unknown) {
               this.logger.warn(
-                `[CHARGEBACK_ALERT] Failed to claw back wallet credit for order #${o.id}: ${e?.message ?? e}`,
+                `[CHARGEBACK_ALERT] Failed to claw back wallet credit for order #${o.id}: ${e instanceof Error ? e.message : String(e)}`,
               );
             }
           }
@@ -313,7 +315,7 @@ export class PaymentsService {
             .create({
               data: {
                 orderId: o.id,
-                status: 'CANCELLING' as any,
+                status: OrderStatus.CANCELLING,
                 note: `Chargeback dispute opened (${dispute.id}): ${dispute.reason}. Manual review required.`,
               },
             })
@@ -325,7 +327,10 @@ export class PaymentsService {
       case 'charge.refunded': {
         const charge = event.data.object as Stripe.Charge;
         if (!charge.payment_intent) break;
-        const paymentIntentId = charge.payment_intent.toString();
+        const paymentIntentId =
+          typeof charge.payment_intent === 'string'
+            ? charge.payment_intent
+            : charge.payment_intent.id;
 
         // FINAL §25.7 webhook idempotency: conditional update makes replay a no-op.
         // We only transition UNPAID/PAID → REFUNDED; a second delivery finds REFUNDED
@@ -340,7 +345,7 @@ export class PaymentsService {
           const updated = await this.prisma.$transaction(async (tx) => {
             const res = await tx.order.updateMany({
               where: { id: order.id, paymentStatus: { not: 'REFUNDED' } },
-              data: { paymentStatus: 'REFUNDED', status: 'REFUNDED' as any },
+              data: { paymentStatus: 'REFUNDED', status: OrderStatus.REFUNDED },
             });
             if (res.count === 1) {
               await tx.paymentReconciliation.updateMany({
@@ -443,13 +448,14 @@ export class PaymentsService {
       await this.prisma.trackingEvent.create({
         data: {
           orderId,
-          status: 'CANCELLING' as any,
+          status: OrderStatus.CANCELLING,
           note: `Refund initiated with Stripe (${refund.id}) — awaiting webhook confirmation`,
         },
       });
       // Final state transition (CANCELLING → REFUNDED) happens in the charge.refunded webhook.
       return { refundId: refund.id, status: refund.status };
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const eMsg = e instanceof Error ? e.message : 'gateway error';
       // Roll the state back so the admin can retry or escalate.
       await this.prisma.order.updateMany({
         where: { id: orderId, status: 'CANCELLING' },
@@ -459,15 +465,11 @@ export class PaymentsService {
         where: { id: refundRequest.id },
         data: {
           status: 'FAILED',
-          failureReason: String(e?.message ?? 'gateway error'),
+          failureReason: eMsg,
         },
       });
-      this.logger.error(
-        `Stripe refund failed for order #${orderId}: ${e?.message ?? e}`,
-      );
-      throw new BadRequestException(
-        `Refund failed: ${e?.message ?? 'gateway error'}`,
-      );
+      this.logger.error(`Stripe refund failed for order #${orderId}: ${eMsg}`);
+      throw new BadRequestException(`Refund failed: ${eMsg}`);
     }
   }
 }

@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles, Role } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../common/types';
 
 @Controller('blog')
 export class BlogController {
@@ -36,7 +37,19 @@ export class BlogController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.MERCH)
-  create(@CurrentUser() user: any, @Body() dto: any) {
+  create(
+    @CurrentUser() user: AuthUser,
+    @Body()
+    dto: {
+      title: string;
+      slug: string;
+      content: string;
+      excerpt?: string;
+      coverImage?: string;
+      tags?: string[];
+      isPublished?: boolean;
+    },
+  ) {
     return this.svc.create(user.id, dto);
   }
 
@@ -44,9 +57,17 @@ export class BlogController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.MERCH)
   update(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: any,
+    @Body()
+    dto: Partial<{
+      title: string;
+      content: string;
+      excerpt: string;
+      coverImage: string;
+      tags: string[];
+      isPublished: boolean;
+    }>,
   ) {
     const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user.role);
     return this.svc.update(id, user.id, isAdmin, dto);

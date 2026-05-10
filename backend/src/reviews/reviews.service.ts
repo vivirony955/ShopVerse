@@ -85,7 +85,7 @@ export class ReviewsService {
           data: { userId, productId, isVerifiedPurchase, ...data },
         })
         .catch((e) => {
-          if (e?.code === 'P2002')
+          if ((e as { code?: string })?.code === 'P2002')
             throw new ConflictException(
               'You have already reviewed this product',
             );

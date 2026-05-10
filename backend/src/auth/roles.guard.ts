@@ -4,6 +4,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY, Role } from './roles.decorator';
+import { AuthenticatedRequest } from '../common/types';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -15,7 +16,8 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
     if (!requiredRoles) return true;
-    const { user } = context.switchToHttp().getRequest();
-    return requiredRoles.includes(user?.role);
+    const { user } = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    // AuthUser.role (Prisma Role) and decorator Role share identical string values
+    return requiredRoles.includes(user?.role as Role);
   }
 }

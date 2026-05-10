@@ -132,7 +132,9 @@ describe('WebhooksService', () => {
         mockEndpoint.url,
         expect.stringContaining('order.created'),
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           headers: expect.objectContaining({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             'X-Webhook-Signature': expect.any(String),
           }),
         }),
@@ -187,6 +189,7 @@ describe('WebhooksService', () => {
       // delivery update should set nextRetryAt
       expect(prisma.webhookDelivery.update).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({ nextRetryAt: expect.any(Date) }),
         }),
       );

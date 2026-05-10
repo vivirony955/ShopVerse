@@ -80,23 +80,25 @@ describe('LegalService', () => {
 
   describe('getAllPolicies', () => {
     it('returns active policy summary for each type', async () => {
-      prisma.policyDocument.findFirst.mockImplementation(({ where }: any) => {
-        if (where.type === PolicyType.TERMS_AND_CONDITIONS) {
-          return Promise.resolve({
-            id: 1,
-            type: PolicyType.TERMS_AND_CONDITIONS,
-            version: '2.0',
-            publishedAt: new Date(),
-          });
-        }
-        return Promise.resolve(null);
-      });
+      prisma.policyDocument.findFirst.mockImplementation(
+        ({ where }: { where: { type?: string } }) => {
+          if (where.type === PolicyType.TERMS_AND_CONDITIONS) {
+            return Promise.resolve({
+              id: 1,
+              type: PolicyType.TERMS_AND_CONDITIONS,
+              version: '2.0',
+              publishedAt: new Date(),
+            });
+          }
+          return Promise.resolve(null);
+        },
+      );
 
       const result = await service.getAllPolicies();
       // Only non-null results
       expect(result.length).toBeGreaterThan(0);
       const tos = result.find(
-        (p: any) => p?.type === PolicyType.TERMS_AND_CONDITIONS,
+        (p) => p?.type === PolicyType.TERMS_AND_CONDITIONS,
       );
       expect(tos).toBeDefined();
     });

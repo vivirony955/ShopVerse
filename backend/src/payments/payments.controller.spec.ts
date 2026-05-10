@@ -5,6 +5,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthenticatedRequest } from '../common/types';
+import { RawBodyRequest } from '@nestjs/common';
+import { Request } from 'express';
 
 describe('PaymentsController', () => {
   let controller: PaymentsController;
@@ -14,7 +17,11 @@ describe('PaymentsController', () => {
     handleWebhook: jest.fn(),
   };
 
-  const mockReq = { user: { id: 1 }, rawBody: Buffer.from('{}') };
+  const rawBody = Buffer.from('{}');
+  const mockReq = {
+    user: { id: 1 },
+    rawBody,
+  } as unknown as AuthenticatedRequest;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -67,13 +74,11 @@ describe('PaymentsController', () => {
   describe('handleWebhook', () => {
     it('forwards raw body and signature to service', async () => {
       mockPaymentsService.handleWebhook.mockResolvedValue({ received: true });
-      const result = await controller.handleWebhook(
-        mockReq as any,
-        'whsec_sig',
-      );
+      const webhookReq = { rawBody } as unknown as RawBodyRequest<Request>;
+      const result = await controller.handleWebhook(webhookReq, 'whsec_sig');
       expect(result).toEqual({ received: true });
       expect(mockPaymentsService.handleWebhook).toHaveBeenCalledWith(
-        mockReq.rawBody,
+        rawBody,
         'whsec_sig',
       );
     });

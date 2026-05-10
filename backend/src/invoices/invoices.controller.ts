@@ -13,6 +13,7 @@ import {
 import { Response } from 'express';
 import { InvoicesService } from './invoices.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthenticatedRequest } from '../common/types';
 
 @Controller('invoices')
 @UseGuards(JwtAuthGuard)
@@ -22,7 +23,7 @@ export class InvoicesController {
   @Get(':orderId')
   async download(
     @Param('orderId', ParseIntPipe) orderId: number,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Res() res: Response,
   ) {
     const buffer = await this.invoicesService.generateInvoice(

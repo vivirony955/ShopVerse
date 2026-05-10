@@ -21,6 +21,7 @@ import { ErrorTrackingService } from '../common/error-tracking.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
+import { AuthenticatedRequest } from '../common/types';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -77,7 +78,9 @@ export class AdminController {
       // report is an object — flatten keys
       rows.push('metric,value');
       for (const [k, v] of Object.entries(report as Record<string, unknown>)) {
-        rows.push(`"${k}","${String(v ?? '')}"`);
+        rows.push(
+          `"${k}","${v === null || v === undefined ? '' : typeof v === 'object' || typeof v === 'symbol' ? JSON.stringify(v) : String(v as string | number | boolean)}"`,
+        );
       }
     }
     const csv = rows.join('\n');
@@ -118,7 +121,7 @@ export class AdminController {
 
   @Get('orders')
   getAllOrders(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('status') status?: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(30), ParseIntPipe) limit?: number,
@@ -142,7 +145,7 @@ export class AdminController {
 
   @Get('users')
   getAllUsers(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('search') search?: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(30), ParseIntPipe) limit?: number,
@@ -193,7 +196,7 @@ export class AdminController {
   @Roles(Role.ADMIN, Role.CS_AGENT, Role.SUPER_ADMIN)
   requestHighValueRefund(
     @Body() body: { orderId: number; amount: number; reason: string },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.adminService.requestHighValueRefund(
       body.orderId,
@@ -213,7 +216,10 @@ export class AdminController {
   /** FINANCE: approve a high-value refund. */
   @Patch('refund-approvals/:id/approve')
   @Roles(Role.ADMIN, Role.FINANCE, Role.SUPER_ADMIN)
-  approveRefundRequest(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  approveRefundRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.adminService.approveRefundRequest(id, req.user.id);
   }
 
@@ -223,7 +229,7 @@ export class AdminController {
   rejectRefundRequest(
     @Param('id', ParseIntPipe) id: number,
     @Body('reason') reason: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.adminService.rejectRefundRequest(id, req.user.id, reason);
   }

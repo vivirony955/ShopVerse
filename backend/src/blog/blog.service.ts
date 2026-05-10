@@ -7,6 +7,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BlogService {
@@ -78,7 +79,7 @@ export class BlogService {
     if (!post) throw new NotFoundException();
     if (!isAdmin && post.authorId !== authorId) throw new ForbiddenException();
 
-    const data: any = { ...dto };
+    const data: Prisma.BlogPostUpdateInput = { ...dto };
     if (dto.isPublished && !post.publishedAt) data.publishedAt = new Date();
 
     return this.prisma.blogPost.update({ where: { id }, data });

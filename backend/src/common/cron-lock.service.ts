@@ -77,9 +77,9 @@ export class CronLockService {
     try {
       return await fn();
     } finally {
-      await this.release(name).catch((err) =>
+      await this.release(name).catch((err: unknown) =>
         this.logger.warn(
-          `failed to release cron lock '${name}': ${err?.message ?? err}`,
+          `failed to release cron lock '${name}': ${err instanceof Error ? err.message : String(err)}`,
         ),
       );
     }

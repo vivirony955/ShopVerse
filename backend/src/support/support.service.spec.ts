@@ -49,6 +49,7 @@ describe('SupportService', () => {
       });
       expect(prisma.supportTicket.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({ userId: 1 }),
         }),
       );
@@ -147,6 +148,7 @@ describe('SupportService', () => {
       expect(result.resolvedAt).toBeDefined();
       expect(prisma.supportTicket.update).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({ resolvedAt: expect.any(Date) }),
         }),
       );

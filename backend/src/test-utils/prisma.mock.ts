@@ -6,7 +6,21 @@
  * Import this factory in any service spec: const prisma = createPrismaMock();
  */
 
-const delegate = () => ({
+type MockDelegate = {
+  findMany: jest.Mock;
+  findUnique: jest.Mock;
+  findFirst: jest.Mock;
+  create: jest.Mock;
+  update: jest.Mock;
+  updateMany: jest.Mock;
+  delete: jest.Mock;
+  deleteMany: jest.Mock;
+  count: jest.Mock;
+  aggregate: jest.Mock;
+  upsert: jest.Mock;
+};
+
+const delegate = (): MockDelegate => ({
   findMany: jest.fn(),
   findUnique: jest.fn(),
   findFirst: jest.fn(),
@@ -20,8 +34,69 @@ const delegate = () => ({
   upsert: jest.fn(),
 });
 
-export const createPrismaMock = () => {
-  const mock: any = {
+export type MockPrisma = {
+  user: MockDelegate;
+  address: MockDelegate;
+  category: MockDelegate;
+  brand: MockDelegate;
+  product: MockDelegate;
+  variant: MockDelegate;
+  cart: MockDelegate;
+  cartItem: MockDelegate;
+  wishlist: MockDelegate;
+  order: MockDelegate;
+  orderItem: MockDelegate;
+  review: MockDelegate;
+  coupon: MockDelegate;
+  couponUsage: MockDelegate;
+  trackingEvent: MockDelegate;
+  returnRequest: MockDelegate;
+  returnItem: MockDelegate;
+  refundRequest: MockDelegate;
+  invoice: MockDelegate;
+  productFaq: MockDelegate;
+  pincodeServiceability: MockDelegate;
+  flashSale: MockDelegate;
+  flashSaleProduct: MockDelegate;
+  loyaltyTransaction: MockDelegate;
+  abandonedCart: MockDelegate;
+  referralCredit: MockDelegate;
+  warehouse: MockDelegate;
+  warehouseInventory: MockDelegate;
+  shipment: MockDelegate;
+  shipmentItem: MockDelegate;
+  cartReservation: MockDelegate;
+  preOrder: MockDelegate;
+  wallet: MockDelegate;
+  walletTransaction: MockDelegate;
+  ledgerEntry: MockDelegate;
+  paymentReconciliation: MockDelegate;
+  userRiskScore: MockDelegate;
+  blacklist: MockDelegate;
+  fraudFlag: MockDelegate;
+  supportTicket: MockDelegate;
+  ticketNote: MockDelegate;
+  adminNote: MockDelegate;
+  webhookEndpoint: MockDelegate;
+  webhookDelivery: MockDelegate;
+  affiliateAccount: MockDelegate;
+  campaignAttribution: MockDelegate;
+  policyDocument: MockDelegate;
+  cookieConsent: MockDelegate;
+  savedForLater: MockDelegate;
+  deliverySlot: MockDelegate;
+  giftOption: MockDelegate;
+  $transaction: jest.Mock;
+  $executeRaw: jest.Mock;
+  $executeRawUnsafe: jest.Mock;
+  $queryRaw: jest.Mock;
+  $queryRawUnsafe: jest.Mock;
+  $connect: jest.Mock;
+  $disconnect: jest.Mock;
+};
+
+export const createPrismaMock = (): MockPrisma => {
+  const mock: MockPrisma = {
     user: delegate(),
     address: delegate(),
     category: delegate(),
@@ -75,8 +150,10 @@ export const createPrismaMock = () => {
     deliverySlot: delegate(),
     giftOption: delegate(),
     /** Runs the callback immediately with the same mock so transactions are transparent */
-    $transaction: jest.fn((cb: (tx: any) => any) =>
-      typeof cb === 'function' ? cb(mock) : Promise.resolve(cb),
+    $transaction: jest.fn((cb: unknown) =>
+      typeof cb === 'function'
+        ? (cb as (tx: MockPrisma) => unknown)(mock)
+        : Promise.resolve(cb),
     ),
     /** Raw SQL — mock as jest.fn; works with both tagged template and regular call */
     $executeRaw: jest.fn().mockResolvedValue(1),
@@ -88,5 +165,3 @@ export const createPrismaMock = () => {
   };
   return mock;
 };
-
-export type MockPrisma = ReturnType<typeof createPrismaMock>;

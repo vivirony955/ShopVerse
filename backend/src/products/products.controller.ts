@@ -126,6 +126,8 @@ export class ProductsController {
   @Post('bulk-upload')
   @UseInterceptors(
     FileInterceptor('file', {
+      // multer memoryStorage() types are error-typed in some module resolution modes
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },
     }),

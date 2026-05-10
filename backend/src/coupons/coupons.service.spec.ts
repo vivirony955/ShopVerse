@@ -200,7 +200,9 @@ describe('CouponsService', () => {
         discountValue: 50,
         expiresAt: '2030-12-31',
       });
-      const dataArg = (prisma.coupon.create as jest.Mock).mock.calls[0][0].data;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const dataArg = prisma.coupon.create.mock.calls[0][0].data;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(dataArg.expiresAt).toBeInstanceOf(Date);
     });
   });

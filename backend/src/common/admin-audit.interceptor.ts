@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuthenticatedRequest } from './types';
 
 const MUTATING_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 
@@ -22,13 +23,13 @@ const SENSITIVE_KEYS = new Set([
   'authorization',
 ]);
 
-function sanitize(obj: any, depth = 0): any {
+function sanitize(obj: unknown, depth = 0): unknown {
   if (depth > 4 || obj === null || obj === undefined) return obj;
   if (typeof obj !== 'object') return obj;
   if (Array.isArray(obj))
     return obj.slice(0, 20).map((v) => sanitize(v, depth + 1));
-  const out: Record<string, any> = {};
-  for (const [k, v] of Object.entries(obj)) {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
     out[k] = SENSITIVE_KEYS.has(k.toLowerCase())
       ? '[REDACTED]'
       : sanitize(v, depth + 1);
@@ -40,8 +41,8 @@ function sanitize(obj: any, depth = 0): any {
 export class AdminAuditInterceptor implements NestInterceptor {
   constructor(private readonly prisma: PrismaService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const req = context.switchToHttp().getRequest();
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
     if (!MUTATING_METHODS.has(req.method)) return next.handle();
 
     const user = req.user;
@@ -75,7 +76,11 @@ export class AdminAuditInterceptor implements NestInterceptor {
                 entityId: entityId ?? undefined,
                 method: req.method,
                 url,
-                body: req.body ? sanitize(req.body) : undefined,
+                // sanitize returns a safe JSON-serializable structure
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                body: req.body
+                  ? (sanitize(req.body as unknown) as any)
+                  : undefined,
                 ip: req.ip,
               },
             })

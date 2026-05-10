@@ -77,9 +77,11 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ search: 'shirt' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
-        .where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const whereArg = prisma.product.findMany.mock.calls[0][0].where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(whereArg.OR).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(whereArg.OR[0]).toMatchObject({ name: { contains: 'shirt' } });
     });
 
@@ -88,8 +90,9 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ category: 'men' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
-        .where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const whereArg = prisma.product.findMany.mock.calls[0][0].where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(whereArg.category).toEqual({ slug: 'men' });
     });
 
@@ -98,8 +101,9 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ brand: 'nike' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
-        .where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const whereArg = prisma.product.findMany.mock.calls[0][0].where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(whereArg.brand).toEqual({ slug: 'nike' });
     });
 
@@ -108,8 +112,9 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ minPrice: 500, maxPrice: 2000 });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
-        .where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const whereArg = prisma.product.findMany.mock.calls[0][0].where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(whereArg.basePrice).toEqual({ gte: 500, lte: 2000 });
     });
 
@@ -118,8 +123,9 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ size: 'M', color: 'Blue' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
-        .where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const whereArg = prisma.product.findMany.mock.calls[0][0].where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(whereArg.variants.some).toMatchObject({
         size: 'M',
         color: 'Blue',
@@ -132,8 +138,9 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ tags: 'summer,cotton' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
-        .where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const whereArg = prisma.product.findMany.mock.calls[0][0].where;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(whereArg.tags).toEqual({ hasSome: ['summer', 'cotton'] });
     });
 
@@ -217,8 +224,9 @@ describe('ProductsService', () => {
       };
       prisma.product.create.mockResolvedValue({ id: 1, ...dto, tags: [] });
       await service.create(dto);
-      const dataArg = (prisma.product.create as jest.Mock).mock.calls[0][0]
-        .data;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const dataArg = prisma.product.create.mock.calls[0][0].data;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(dataArg.tags).toEqual([]);
     });
   });

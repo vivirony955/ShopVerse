@@ -98,11 +98,12 @@ export class CartReservationService {
       ).find(
         (fsi) => fsi.flashSale.startsAt <= now2 && fsi.flashSale.endsAt >= now2,
       );
-      if (
-        activeFlashSaleItem &&
-        (activeFlashSaleItem as any).perUserMaxQty > 0
-      ) {
-        const cap = (activeFlashSaleItem as any).perUserMaxQty as number;
+      const fsiWithCap = activeFlashSaleItem as
+        | (typeof activeFlashSaleItem & { perUserMaxQty?: number })
+        | null
+        | undefined;
+      if (fsiWithCap && (fsiWithCap.perUserMaxQty ?? 0) > 0) {
+        const cap = fsiWithCap.perUserMaxQty ?? 0;
         // Count qty already reserved/consumed by this user in this flash sale
         const existing = await this.prisma.cartReservationItem.aggregate({
           _sum: { quantity: true },
@@ -312,7 +313,7 @@ export class CartReservationService {
     if (changedItems.length > 0)
       return { valid: false, reason: 'Price drift', changedItems };
 
-    return { valid: true, reservation: reservation as any };
+    return { valid: true, reservation };
   }
 
   /**

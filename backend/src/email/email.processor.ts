@@ -15,7 +15,8 @@ export interface EmailJobData {
     | 'abandonedCartReminder'
     | 'lowStockAlert'
     | 'referralBonus';
-  payload: Record<string, any>;
+  // BullMQ serializes/deserializes via JSON; payload shape is validated per-case in process()
+  payload: Record<string, unknown>;
 }
 
 @Processor('email')
@@ -31,33 +32,43 @@ export class EmailProcessor extends WorkerHost {
     this.logger.debug(`Processing email job type=${type} id=${job.id}`);
 
     try {
+      // BullMQ payload is JSON-deserialized; casts are safe per-case
       switch (type) {
         case 'orderConfirmation':
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           await this.emailService.sendOrderConfirmation(payload as any);
           break;
         case 'orderShipped':
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           await this.emailService.sendOrderShipped(payload as any);
           break;
         case 'orderDelivered':
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           await this.emailService.sendOrderDelivered(payload as any);
           break;
         case 'refundConfirmation':
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           await this.emailService.sendRefundConfirmation(payload as any);
           break;
         case 'abandonedCartReminder':
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           await this.emailService.sendAbandonedCartReminder(payload as any);
           break;
         case 'lowStockAlert':
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           await this.emailService.sendLowStockAlert(payload as any);
           break;
         case 'referralBonus':
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           await this.emailService.sendReferralBonus(payload as any);
           break;
         default:
-          this.logger.warn(`Unknown email job type: ${type}`);
+          this.logger.warn(`Unknown email job type: ${String(type)}`);
       }
-    } catch (err) {
-      this.logger.error(`Email job failed type=${type}: ${err?.message}`);
+    } catch (err: unknown) {
+      this.logger.error(
+        `Email job failed type=${type}: ${err instanceof Error ? err.message : String(err)}`,
+      );
       throw err; // BullMQ will retry per queue config
     }
   }

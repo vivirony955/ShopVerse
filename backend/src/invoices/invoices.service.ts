@@ -135,8 +135,7 @@ export class InvoicesService {
 
     // Order info
     y -= 40;
-    const invoiceRef =
-      (order as any).invoice?.invoiceNumber ?? `ORD-${order.id}`;
+    const invoiceRef = order.invoice?.invoiceNumber ?? `ORD-${order.id}`;
     page.drawText(`Invoice: ${invoiceRef}`, {
       x: 50,
       y,
@@ -157,7 +156,13 @@ export class InvoicesService {
 
     // Bill to
     y -= 35;
-    const snapshot = order.addressSnapshot as any;
+    const snapshot = order.addressSnapshot as {
+      fullName?: string;
+      line1?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+    } | null;
     page.drawText('Bill To:', {
       x: 50,
       y,
@@ -276,9 +281,9 @@ export class InvoicesService {
         color: black,
       });
     }
-    if ((order as any).shippingFee > 0) {
+    if (order.shippingFee > 0) {
       y -= 18;
-      page.drawText(`Shipping: ₹${(order as any).shippingFee.toFixed(2)}`, {
+      page.drawText(`Shipping: ₹${order.shippingFee.toFixed(2)}`, {
         x: 380,
         y,
         size: 11,
@@ -286,9 +291,9 @@ export class InvoicesService {
         color: black,
       });
     }
-    if ((order as any).taxAmount > 0) {
+    if (order.taxAmount > 0) {
       y -= 18;
-      page.drawText(`Tax (GST): ₹${(order as any).taxAmount.toFixed(2)}`, {
+      page.drawText(`Tax (GST): ₹${order.taxAmount.toFixed(2)}`, {
         x: 380,
         y,
         size: 11,

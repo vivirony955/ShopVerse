@@ -4,6 +4,7 @@
 import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { LoyaltyService } from './loyalty.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthenticatedRequest } from '../common/types';
 
 @Controller('loyalty')
 @UseGuards(JwtAuthGuard)
@@ -11,12 +12,12 @@ export class LoyaltyController {
   constructor(private readonly loyaltyService: LoyaltyService) {}
 
   @Get('balance')
-  getBalance(@Request() req: any) {
+  getBalance(@Request() req: AuthenticatedRequest) {
     return this.loyaltyService.getBalance(req.user.id);
   }
 
   @Get('history')
-  getHistory(@Request() req: any) {
+  getHistory(@Request() req: AuthenticatedRequest) {
     return this.loyaltyService.getHistory(req.user.id);
   }
 }

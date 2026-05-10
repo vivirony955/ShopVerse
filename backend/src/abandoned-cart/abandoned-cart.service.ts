@@ -36,11 +36,13 @@ export class AbandonedCartService {
     if (existing) {
       await this.prisma.abandonedCart.update({
         where: { id: existing.id },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data: { cartSnapshot: items as any, reminderSentAt: null },
       });
       return;
     }
     await this.prisma.abandonedCart.create({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       data: { guestEmail: email, cartSnapshot: items as any },
     });
   }
@@ -97,7 +99,8 @@ export class AbandonedCartService {
         for (const record of records) {
           const email = record.user?.email ?? record.guestEmail;
           if (!email) continue;
-          const items = (record.cartSnapshot as any[]).map((i) => ({
+          type CartItem = { name: string; quantity: number };
+          const items = (record.cartSnapshot as CartItem[]).map((i) => ({
             name: i.name,
             quantity: i.quantity,
           }));

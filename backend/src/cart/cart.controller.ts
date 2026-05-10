@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CartService } from './cart.service';
+import { AuthenticatedRequest } from '../common/types';
 import { CartReservationService } from './cart-reservation.service';
 import { AddCartItemDto, UpdateCartItemDto } from './dto/cart.dto';
 
@@ -27,18 +28,18 @@ export class CartController {
   ) {}
 
   @Get()
-  getCart(@Req() req: any) {
+  getCart(@Req() req: AuthenticatedRequest) {
     return this.cartService.getCart(req.user.id);
   }
 
   @Post('items')
-  addItem(@Req() req: any, @Body() dto: AddCartItemDto) {
+  addItem(@Req() req: AuthenticatedRequest, @Body() dto: AddCartItemDto) {
     return this.cartService.addItem(req.user.id, dto.variantId, dto.quantity);
   }
 
   @Patch('items/:id')
   updateItem(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCartItemDto,
   ) {
@@ -46,12 +47,15 @@ export class CartController {
   }
 
   @Delete('items/:id')
-  removeItem(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+  removeItem(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.cartService.removeItem(req.user.id, id);
   }
 
   @Delete()
-  clearCart(@Req() req: any) {
+  clearCart(@Req() req: AuthenticatedRequest) {
     return this.cartService.clearCart(req.user.id);
   }
 
@@ -59,14 +63,14 @@ export class CartController {
 
   /** Lock cart items + prices for the checkout window. Returns reservationId. */
   @Post('reserve')
-  async reserveCart(@Req() req: any) {
+  async reserveCart(@Req() req: AuthenticatedRequest) {
     return this.reservationService.createReservation(req.user.id);
   }
 
   /** Release reservation (on checkout cancel) */
   @Delete('reserve/:id')
   async releaseReservation(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
   ) {
     await this.reservationService.releaseById(id, req.user.id);
@@ -75,7 +79,7 @@ export class CartController {
 
   /** Check if user still has a valid active reservation */
   @Get('reserve/status')
-  getReservationStatus(@Req() req: any) {
+  getReservationStatus(@Req() req: AuthenticatedRequest) {
     return this.reservationService
       .hasValidReservation(req.user.id)
       .then((valid) => ({ valid }));

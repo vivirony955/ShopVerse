@@ -23,6 +23,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../common/types';
 
 @Controller('wallet')
 @UseGuards(JwtAuthGuard)
@@ -30,12 +31,12 @@ export class WalletController {
   constructor(private readonly svc: WalletService) {}
 
   @Get('me')
-  getMyWallet(@CurrentUser() user: any) {
+  getMyWallet(@CurrentUser() user: AuthUser) {
     return this.svc.getWallet(user.id);
   }
 
   @Get('me/transactions')
-  myTransactions(@CurrentUser() user: any) {
+  myTransactions(@CurrentUser() user: AuthUser) {
     return this.svc.getTransactionHistory(user.id);
   }
 

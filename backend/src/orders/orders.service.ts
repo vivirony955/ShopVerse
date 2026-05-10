@@ -7,7 +7,12 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { Prisma, RefundReason } from '@prisma/client';
+import {
+  Prisma,
+  RefundReason,
+  OrderStatus,
+  PaymentStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CouponsService } from '../coupons/coupons.service';
 import { EmailService } from '../email/email.service';
@@ -563,7 +568,7 @@ export class OrdersService {
   getAllOrders(filters: { status?: string; page?: number; limit?: number }) {
     const { status, page = 1, limit = 20 } = filters;
     return this.prisma.order.findMany({
-      where: status ? { status: status as any } : {},
+      where: status ? { status: status as OrderStatus } : {},
       include: {
         user: {
           select: { id: true, email: true, firstName: true, lastName: true },
@@ -592,7 +597,9 @@ export class OrdersService {
     const updated = await this.prisma.$transaction(async (tx) => {
       if (
         status === 'SHIPPED' &&
-        PRE_SHIPMENT_STATUSES.includes(order.status as any)
+        PRE_SHIPMENT_STATUSES.includes(
+          order.status as (typeof PRE_SHIPMENT_STATUSES)[number],
+        )
       ) {
         const activeItems = order.items.filter((i) => !i.cancelledAt);
         for (const item of activeItems) {
@@ -605,12 +612,12 @@ export class OrdersService {
       }
       const row = await tx.order.update({
         where: { id: orderId },
-        data: { status: status as any },
+        data: { status: status as OrderStatus },
       });
       await tx.trackingEvent.create({
         data: {
           orderId,
-          status: status as any,
+          status: status as OrderStatus,
           note: `Status updated to ${status}`,
         },
       });
@@ -657,7 +664,7 @@ export class OrdersService {
   ) {
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { paymentId, paymentStatus: paymentStatus as any },
+      data: { paymentId, paymentStatus: paymentStatus as PaymentStatus },
     });
   }
 
@@ -824,7 +831,7 @@ export class OrdersService {
       if (nextStatus !== order.paymentStatus) {
         await tx.order.update({
           where: { id: orderId },
-          data: { paymentStatus: nextStatus as any },
+          data: { paymentStatus: nextStatus },
         });
       }
       return { refunded: true as const, refundAmount, nextStatus };

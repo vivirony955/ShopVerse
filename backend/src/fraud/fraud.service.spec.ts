@@ -54,12 +54,13 @@ describe('FraudService', () => {
         { id: 3, status: 'RETURNED', paymentMethod: 'STRIPE' },
         { id: 4, status: 'DELIVERED', paymentMethod: 'STRIPE' },
       ]);
-      prisma.userRiskScore.upsert.mockImplementation(({ create }: any) =>
-        Promise.resolve({
-          userId: 1,
-          score: create.score,
-          returnRate: create.returnRate,
-        }),
+      prisma.userRiskScore.upsert.mockImplementation(
+        ({ create }: { create: Record<string, unknown> }) =>
+          Promise.resolve({
+            userId: 1,
+            score: create['score'],
+            returnRate: create['returnRate'],
+          }),
       );
       prisma.fraudFlag.findFirst.mockResolvedValue(null);
       prisma.fraudFlag.upsert.mockResolvedValue({});
@@ -79,12 +80,13 @@ describe('FraudService', () => {
         { id: 4, status: 'CANCELLED', paymentMethod: 'COD' },
         { id: 5, status: 'DELIVERED', paymentMethod: 'COD' },
       ]);
-      prisma.userRiskScore.upsert.mockImplementation(({ create }: any) =>
-        Promise.resolve({
-          userId: 1,
-          score: create.score,
-          codAbuse: create.codAbuse,
-        }),
+      prisma.userRiskScore.upsert.mockImplementation(
+        ({ create }: { create: Record<string, unknown> }) =>
+          Promise.resolve({
+            userId: 1,
+            score: create['score'],
+            codAbuse: create['codAbuse'],
+          }),
       );
       prisma.fraudFlag.findFirst.mockResolvedValue(null);
       prisma.fraudFlag.create.mockResolvedValue({});
@@ -121,8 +123,8 @@ describe('FraudService', () => {
       const score = await service.computeRiskScore(1);
       expect(score).toBeGreaterThanOrEqual(70);
       const anyFlagCall =
-        (prisma.fraudFlag.upsert as jest.Mock).mock.calls.length > 0 ||
-        (prisma.fraudFlag.create as jest.Mock).mock.calls.length > 0;
+        prisma.fraudFlag.upsert.mock.calls.length > 0 ||
+        prisma.fraudFlag.create.mock.calls.length > 0;
       expect(anyFlagCall).toBe(true);
     });
   });
@@ -260,6 +262,7 @@ describe('FraudService', () => {
       await service.getBlacklist(BlacklistType.IP);
       expect(prisma.blacklist.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           where: expect.objectContaining({ type: BlacklistType.IP }),
         }),
       );

@@ -58,6 +58,7 @@ describe('WarehouseService', () => {
         pincode: '110001',
       });
       expect(prisma.warehouse.create).toHaveBeenCalledWith({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data: expect.objectContaining({ code: 'DEL01' }),
       });
       expect(result).toEqual(mockWarehouse);
@@ -145,7 +146,8 @@ describe('WarehouseService', () => {
         },
       ]);
       // createShipment calls $transaction
-      prisma.$transaction.mockImplementation((cb: any) =>
+
+      prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) =>
         cb({
           warehouseInventory: { updateMany: jest.fn() },
           shipment: {
@@ -242,6 +244,7 @@ describe('WarehouseService', () => {
       // On RTO, reserved is decremented but stock is NOT decremented
       expect(prisma.warehouseInventory.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({ reserved: expect.anything() }),
         }),
       );

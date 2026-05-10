@@ -11,20 +11,23 @@ import {
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
+import { AuthenticatedRequest } from './types';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger('HTTP');
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const req = context.switchToHttp().getRequest();
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const { method, url, ip, headers } = req;
     const userId = req.user?.id ?? null;
     const startMs = Date.now();
 
     return next.handle().pipe(
       tap((_body) => {
-        const res = context.switchToHttp().getResponse();
+        const res = context
+          .switchToHttp()
+          .getResponse<{ statusCode: number }>();
         const ms = Date.now() - startMs;
         this.logger.log(
           JSON.stringify({
@@ -40,18 +43,20 @@ export class LoggingInterceptor implements NestInterceptor {
           }),
         );
       }),
-      catchError((err) => {
+      catchError((err: unknown) => {
         const ms = Date.now() - startMs;
+        const status = (err as { status?: number }).status ?? 500;
+        const message = err instanceof Error ? err.message : String(err);
         this.logger.error(
           JSON.stringify({
             level: 'error',
             method,
             url,
-            statusCode: err.status ?? 500,
+            statusCode: status,
             userId,
             ip,
             durationMs: ms,
-            error: err.message,
+            error: message,
             timestamp: new Date().toISOString(),
           }),
         );

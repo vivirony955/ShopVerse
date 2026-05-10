@@ -40,6 +40,7 @@ export class ErrorTrackingService {
           url: params.url,
           userId: params.userId,
           statusCode: params.statusCode,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           metadata: params.metadata as any,
         },
       });

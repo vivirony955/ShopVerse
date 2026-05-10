@@ -16,6 +16,8 @@ import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentIntentDto } from './dto/payment.dto';
+import { AuthenticatedRequest } from '../common/types';
+import { Request } from 'express';
 
 @Controller('payments')
 export class PaymentsController {
@@ -25,7 +27,10 @@ export class PaymentsController {
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @UseGuards(JwtAuthGuard)
   @Post('create-intent')
-  createPaymentIntent(@Req() req: any, @Body() dto: CreatePaymentIntentDto) {
+  createPaymentIntent(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreatePaymentIntentDto,
+  ) {
     return this.paymentsService.createPaymentIntent(
       req.user.id,
       dto.orderId,
@@ -38,7 +43,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @Post('retry/:orderId')
   retryPayment(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('orderId', ParseIntPipe) orderId: number,
     @Body('currency') currency?: string,
   ) {
@@ -49,7 +54,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @Post('refund/:orderId')
   refundStripePayment(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('orderId', ParseIntPipe) orderId: number,
   ) {
     return this.paymentsService.refundStripePayment(orderId, req.user.id);
@@ -59,9 +64,12 @@ export class PaymentsController {
   @SkipThrottle()
   @Post('webhook')
   handleWebhook(
-    @Req() req: RawBodyRequest<any>,
+    @Req() req: RawBodyRequest<Request>,
     @Headers('stripe-signature') signature: string,
   ) {
-    return this.paymentsService.handleWebhook(req.rawBody, signature);
+    return this.paymentsService.handleWebhook(
+      req.rawBody ?? Buffer.alloc(0),
+      signature,
+    );
   }
 }

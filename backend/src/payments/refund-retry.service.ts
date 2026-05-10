@@ -4,6 +4,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import Stripe from 'stripe';
+import { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CronLockService } from '../common/cron-lock.service';
 
@@ -63,9 +64,9 @@ export class RefundRetryService {
       this.logger.log(`Retrying ${stuck.length} stuck refund(s)`);
 
       for (const rr of stuck) {
-        await this.retryOne(rr).catch((e) => {
+        await this.retryOne(rr).catch((e: unknown) => {
           this.logger.error(
-            `refund-retry loop error for rr=${rr.id}: ${e?.message ?? e}`,
+            `refund-retry loop error for rr=${rr.id}: ${e instanceof Error ? e.message : String(e)}`,
           );
         });
       }
@@ -129,13 +130,13 @@ export class RefundRetryService {
       await this.prisma.trackingEvent.create({
         data: {
           orderId: rr.orderId,
-          status: 'CANCELLING' as any,
+          status: OrderStatus.CANCELLING,
           note: `Refund retry #${nextAttempt} succeeded (${refund.id})`,
         },
       });
       this.logger.log(`Refund ${rr.id} recovered on retry #${nextAttempt}`);
-    } catch (e: any) {
-      const reason = String(e?.message ?? 'gateway error');
+    } catch (e: unknown) {
+      const reason = e instanceof Error ? e.message : 'gateway error';
       await this.prisma.refundRequest.update({
         where: { id: rr.id },
         data: {
@@ -184,7 +185,7 @@ export class RefundRetryService {
         await this.prisma.trackingEvent.create({
           data: {
             orderId: rr.orderId,
-            status: 'CANCELLING' as any,
+            status: OrderStatus.CANCELLING,
             note: `Refund permanently failed after ${MAX_REFUND_RETRIES} retries. Manual action required.`,
           },
         });

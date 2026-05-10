@@ -3,7 +3,8 @@
 
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as request from 'supertest';
+import request from 'supertest';
+import { Server } from 'http';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -38,7 +39,7 @@ describe('AuthController (HTTP)', () => {
       const user = { id: 1, email: 'new@example.com', role: 'USER' };
       mockAuthService.register.mockResolvedValue(user);
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/register')
         .send({ email: 'new@example.com', password: 'secret123' })
         .expect(201);
@@ -53,7 +54,7 @@ describe('AuthController (HTTP)', () => {
         email: 'jane@example.com',
       });
 
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as Server)
         .post('/auth/register')
         .send({
           email: 'jane@example.com',
@@ -76,12 +77,14 @@ describe('AuthController (HTTP)', () => {
         new ConflictException('Email already in use'),
       );
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/register')
         .send({ email: 'taken@example.com', password: 'pass' })
         .expect(409);
 
-      expect(res.body.message).toBe('Email already in use');
+      expect((res.body as { message: string }).message).toBe(
+        'Email already in use',
+      );
     });
   });
 
@@ -99,7 +102,7 @@ describe('AuthController (HTTP)', () => {
         refresh_token: 'rt-tok',
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/login')
         .send({ email: 'user@example.com', password: 'pass123' })
         .expect(200);
@@ -111,7 +114,7 @@ describe('AuthController (HTTP)', () => {
     it('401 — invalid credentials return UnauthorizedException', async () => {
       mockAuthService.validateUser.mockResolvedValue(null);
 
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as Server)
         .post('/auth/login')
         .send({ email: 'user@example.com', password: 'wrongpass' })
         .expect(401);
@@ -125,7 +128,7 @@ describe('AuthController (HTTP)', () => {
         refresh_token: 'rt',
       });
 
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as Server)
         .post('/auth/login')
         .send({ email: 'user@example.com', password: 'pass' })
         .expect(200);
@@ -146,7 +149,7 @@ describe('AuthController (HTTP)', () => {
         access_token: 'new-at',
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/refresh')
         .send({ refresh_token: 'valid-rt' })
         .expect(200);
@@ -160,12 +163,14 @@ describe('AuthController (HTTP)', () => {
         new UnauthorizedException('Invalid or expired refresh token'),
       );
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/refresh')
         .send({ refresh_token: 'bad-token' })
         .expect(401);
 
-      expect(res.body.message).toBe('Invalid or expired refresh token');
+      expect((res.body as { message: string }).message).toBe(
+        'Invalid or expired refresh token',
+      );
     });
   });
 });

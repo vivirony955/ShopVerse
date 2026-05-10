@@ -28,7 +28,7 @@ export class ProductsService {
       Object.keys(filters)
         .sort()
         .reduce<Record<string, unknown>>((acc, k) => {
-          const v = (filters as any)[k];
+          const v = filters[k];
           if (v !== undefined && v !== null && v !== '') acc[k] = v;
           return acc;
         }, {}),
@@ -104,7 +104,7 @@ export class ProductsService {
       limit = 20,
     } = filters;
 
-    const where: any = { isActive: true };
+    const where: Prisma.ProductWhereInput = { isActive: true };
 
     // F1-01: PostgreSQL FTS via GIN-indexed tsvector. Falls back to LIKE only if
     // the search term has special chars that would break tsquery.
@@ -246,7 +246,7 @@ export class ProductsService {
     return product;
   }
 
-  async update(id: number, data: any) {
+  async update(id: number, data: Prisma.ProductUpdateInput) {
     const existing = await this.prisma.product.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Product not found');
     const updated = await this.prisma.product.update({
@@ -334,8 +334,9 @@ export class ProductsService {
       return await this.prisma.stockNotification.create({
         data: { variantId, email: email.toLowerCase(), phone },
       });
-    } catch (e: any) {
-      if (e?.code === 'P2002') return { message: 'Already subscribed' };
+    } catch (e: unknown) {
+      if ((e as { code?: string })?.code === 'P2002')
+        return { message: 'Already subscribed' };
       throw e;
     }
   }
@@ -403,7 +404,7 @@ export class ProductsService {
 
     // Deduplicate by productId
     const seen = new Set<number>();
-    const products: any[] = [];
+    const products: (typeof variants)[0]['product'][] = [];
     for (const v of variants) {
       if (!seen.has(v.productId) && v.product.isActive) {
         seen.add(v.productId);
@@ -459,7 +460,7 @@ export class ProductsService {
         where: { id: currentId },
         select: { parentId: true },
       });
-      currentId = cat?.parentId ?? null;
+      currentId = (cat as { parentId: number | null } | null)?.parentId ?? null;
     }
     return null;
   }
@@ -549,8 +550,10 @@ export class ProductsService {
           await this.prisma.product.create({ data });
           results.created++;
         }
-      } catch (e: any) {
-        results.errors.push(`Row ${i + 1}: ${e?.message ?? 'Unknown error'}`);
+      } catch (e: unknown) {
+        results.errors.push(
+          `Row ${i + 1}: ${e instanceof Error ? e.message : 'Unknown error'}`,
+        );
       }
     }
 
@@ -596,7 +599,7 @@ export class ProductsService {
     color?: string;
     tags?: string;
   }) {
-    const where: any = { isActive: true };
+    const where: Prisma.ProductWhereInput = { isActive: true };
     if (filters.category) where.category = { slug: filters.category };
     if (filters.brand) where.brand = { slug: filters.brand };
     if (filters.tags)

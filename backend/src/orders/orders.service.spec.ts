@@ -117,7 +117,9 @@ describe('OrdersService', () => {
         items: [],
         user: {},
       };
-      prisma.$transaction.mockImplementation((cb: any) => cb(prisma));
+      prisma.$transaction.mockImplementation(
+        (cb: (tx: typeof prisma) => unknown) => cb(prisma),
+      );
       prisma.order.create.mockResolvedValue(createdOrder);
       prisma.cartItem.deleteMany.mockResolvedValue({ count: 1 });
       prisma.trackingEvent.create.mockResolvedValue({});
@@ -133,7 +135,9 @@ describe('OrdersService', () => {
       prisma.address.findFirst.mockResolvedValue(address);
       mockCouponsService.applyDiscount.mockResolvedValue(200);
 
-      prisma.$transaction.mockImplementation((cb: any) => cb(prisma));
+      prisma.$transaction.mockImplementation(
+        (cb: (tx: typeof prisma) => unknown) => cb(prisma),
+      );
       prisma.order.create.mockResolvedValue({
         id: 11,
         total: 1800,

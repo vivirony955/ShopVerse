@@ -49,7 +49,11 @@ export class VolumeDiscountsController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.MERCH)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: any) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    dto: Partial<{ minQty: number; discountPct: number; isActive: boolean }>,
+  ) {
     return this.svc.update(id, dto);
   }
 

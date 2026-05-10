@@ -8,6 +8,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ExchangeStatus } from '@prisma/client';
 
 @Injectable()
 export class ExchangeService {
@@ -93,7 +94,7 @@ export class ExchangeService {
   async updateStatus(id: number, status: string, adminNote?: string) {
     return this.prisma.exchangeRequest.update({
       where: { id },
-      data: { status: status as any, adminNote },
+      data: { status: status as ExchangeStatus, adminNote },
     });
   }
 }
