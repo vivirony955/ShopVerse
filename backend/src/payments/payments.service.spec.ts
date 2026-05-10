@@ -1,3 +1,6 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
 // ─── Stripe mock — must be at file top (Jest hoists jest.mock calls) ──────────
 jest.mock('stripe', () => ({
   // Provide __esModule so TypeScript's `import Stripe from 'stripe'` resolves to .default

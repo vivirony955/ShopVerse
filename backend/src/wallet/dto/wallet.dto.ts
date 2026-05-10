@@ -1,3 +1,6 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
 import { IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
 
 // T-W01 FIX: cap single credit/debit at ₹100,000 — prevents accidental/malicious large operations

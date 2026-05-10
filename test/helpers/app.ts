@@ -1,3 +1,6 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
 /**
  * Creates a fully-bootstrapped NestJS application for integration testing.
  * Mirrors the same setup as main.ts (pipes, filters, prefix).

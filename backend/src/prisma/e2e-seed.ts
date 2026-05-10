@@ -1,3 +1,6 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
 /**
  * E2E seed: creates test products so Playwright tests have data to work with.
  * Run from backend/: npx ts-node src/prisma/e2e-seed.ts

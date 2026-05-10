@@ -1,3 +1,6 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ExperienceService } from './experience.service';
 import { AddGiftOptionDto, CreateDeliverySlotDto, SaveForLaterDto } from './dto/experience.dto';

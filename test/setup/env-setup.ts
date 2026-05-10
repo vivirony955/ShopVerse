@@ -1,3 +1,6 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
 /**
  * Loads environment variables before any test runs.
  * Uses TEST_DATABASE_URL if set, falls back to DATABASE_URL from backend/.env.

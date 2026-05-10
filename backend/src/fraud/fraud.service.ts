@@ -1,3 +1,6 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BlacklistType, FraudFlagStatus, FraudFlagType, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
