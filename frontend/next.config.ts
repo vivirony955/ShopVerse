@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Required for the multi-stage Docker build: produces .next/standalone
+  // which contains a self-contained server.js with only runtime deps.
+  output: "standalone",
   // Exclude plain .ts files from the Pages Router scanner.
   // This prevents src/pages/api/auth/[...nextauth].ts from conflicting
   // with the App Router version at src/app/api/auth/[...nextauth]/route.ts.

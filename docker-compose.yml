@@ -1,76 +1,124 @@
-version: '3.8'
+# Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+# See LICENSE in the project root for license information.
+#
+# ShopVerse — Production Docker Compose
+#
+# Usage:
+#   cp .env.example .env     # fill in real secrets
+#   docker compose up -d     # start everything (builds images locally)
+#
+# For registry images (production):
+#   BACKEND_TAG=v1.0.0 FRONTEND_TAG=v1.0.0 docker compose pull && docker compose up -d
+#
+# Services: postgres:16 → redis:7 → backend (NestJS) → frontend (Next.js)
 
 services:
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
-    volumes:
-      - ./frontend:/app
-    command: npm install && npm run dev
-    depends_on:
-      - backend
 
-  backend:
-    build:
-      context: ./backend
-    ports:
-      - "4000:4000"
+  # ─── POSTGRES ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: shopverse-postgres
+    restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/myntra_clone
-      - JWT_SECRET=your_jwt_secret
-    volumes:
-      - ./backend:/app
-    command: ["sh", "-c", "npm install && npm run start:dev"]
-    depends_on:
-      - db
-
-  db:
-    image: postgres:14
-    container_name: postgres
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: myntra_clone
+      POSTGRES_DB: ${POSTGRES_DB:-shopverse}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-shopverse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - shopverse
 
-  test-backend:
+  # ─── REDIS ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: shopverse-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - shopverse
+
+  # ─── BACKEND ───────────────────────────────────────────────────────────────
+  backend:
+    image: ${CI_REGISTRY_IMAGE:-shopverse}/backend:${BACKEND_TAG:-latest}
     build:
-      context: ./backend
-    command: ["npm", "run", "test"]
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - backend
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopverse-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
     environment:
-      - NODE_ENV=test
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shopverse}?connection_limit=30
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in .env}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?set STRIPE_SECRET_KEY in .env}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?set STRIPE_WEBHOOK_SECRET in .env}
+      SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-resend}
+      SMTP_PASS: ${SMTP_PASS:?set SMTP_PASS in .env}
+      SMTP_FROM: ${SMTP_FROM:-noreply@shopverse.dev}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - shopverse
 
-  test-frontend:
+  # ─── FRONTEND ──────────────────────────────────────────────────────────────
+  frontend:
+    image: ${CI_REGISTRY_IMAGE:-shopverse}/frontend:${FRONTEND_TAG:-latest}
     build:
       context: ./frontend
-    command: ["npx", "cypress", "run"]
-    volumes:
-      - ./frontend:/app
-    depends_on:
-      - frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:3001}
+    container_name: shopverse-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
-      - NODE_ENV=test
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${JWT_SECRET}}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - shopverse
 
 volumes:
   postgres_data:
+    driver: local
+
+networks:
+  shopverse:
+    driver: bridge
