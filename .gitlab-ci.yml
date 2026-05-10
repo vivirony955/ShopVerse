@@ -40,10 +40,12 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
   BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend
   FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend
-  # Non-secret CI defaults — override real secrets via GitLab CI/CD Variables settings
+  # CI defaults — all dummy values, tests mock external services
   NODE_ENV: test
   JWT_SECRET: "ci-jwt-secret-32-chars-minimum-ok"
   JWT_REFRESH_SECRET: "ci-refresh-secret-32-chars-min-ok"
+  STRIPE_SECRET_KEY: "sk_test_dummy_ci_value_not_used"
+  STRIPE_WEBHOOK_SECRET: "whsec_dummy_ci_value_not_used"
   SMTP_HOST: "localhost"
   SMTP_PORT: "25"
   SMTP_USER: "ci@shopverse.dev"
