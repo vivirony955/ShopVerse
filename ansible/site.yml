@@ -1,0 +1,37 @@
+---
+# ============================================================
+#  ShopVerse — Main Ansible Playbook
+#  Execution order:
+#   1. common   — Node.js, PM2, Nginx, UFW on ALL servers
+#   2. database — PostgreSQL on db host
+#   3. backend  — NestJS build + PM2 on backend host
+#   4. frontend — Next.js build + PM2 on frontend host
+# ============================================================
+
+- name: Bootstrap all servers (Node.js, PM2, Nginx, UFW)
+  hosts: shopverse
+  become: true
+  gather_facts: true
+  roles:
+    - common
+
+- name: Deploy PostgreSQL database
+  hosts: database
+  become: true
+  gather_facts: true
+  roles:
+    - database
+
+- name: Deploy NestJS backend
+  hosts: backend
+  become: true
+  gather_facts: true
+  roles:
+    - backend
+
+- name: Deploy Next.js frontend
+  hosts: frontend
+  become: true
+  gather_facts: true
+  roles:
+    - frontend

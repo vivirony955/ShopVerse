@@ -1,0 +1,137 @@
+---
+# ============================================================
+#  Common role — runs on ALL servers
+#  Installs: curl, git, Node.js LTS, npm, PM2, Nginx, UFW
+# ============================================================
+
+# ── System update ─────────────────────────────────────────────
+- name: Update apt cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base system packages
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+      - gnupg2
+      - ca-certificates
+      - lsb-release
+      - build-essential
+      - software-properties-common
+      - acl
+      - unzip
+      - ufw
+      - nginx
+      - python3-pip
+      - python3-apt
+    state: present
+
+# ── Node.js via NodeSource ────────────────────────────────────
+- name: Create /etc/apt/keyrings directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download NodeSource GPG key
+  shell: >
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+    | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  args:
+    creates: /etc/apt/keyrings/nodesource.gpg
+
+- name: Add NodeSource repository
+  copy:
+    dest: /etc/apt/sources.list.d/nodesource.list
+    content: |
+      deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_{{ node_version }}.x nodistro main
+    mode: '0644'
+
+- name: Update apt after NodeSource repo
+  apt:
+    update_cache: true
+
+- name: Install Node.js {{ node_version }}.x
+  apt:
+    name: nodejs
+    state: present
+
+- name: Show installed Node.js version
+  command: node --version
+  register: node_ver
+  changed_when: false
+
+- name: Show installed npm version
+  command: npm --version
+  register: npm_ver
+  changed_when: false
+
+- name: Print Node / npm versions
+  debug:
+    msg: "Node.js {{ node_ver.stdout }}  |  npm {{ npm_ver.stdout }}"
+
+# ── PM2 ──────────────────────────────────────────────────────
+- name: Install PM2 globally
+  npm:
+    name: pm2
+    global: true
+    state: present
+
+- name: Configure PM2 systemd startup
+  shell: "pm2 startup systemd -u {{ ansible_user }} --hp /home/{{ ansible_user }}"
+  register: pm2_startup_out
+  changed_when: "'Target path' in pm2_startup_out.stdout"
+
+- name: Execute PM2 startup command if needed
+  shell: "{{ pm2_startup_out.stdout | regex_search('sudo .*') }}"
+  when: pm2_startup_out.stdout is search('sudo ')
+  ignore_errors: true
+
+# ── App directory ─────────────────────────────────────────────
+- name: Create application base directory
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+# ── Nginx ─────────────────────────────────────────────────────
+- name: Ensure Nginx is started and enabled
+  systemd:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Remove Nginx default site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+# ── UFW Firewall ──────────────────────────────────────────────
+- name: UFW — allow OpenSSH
+  ufw:
+    rule: allow
+    name: OpenSSH
+
+- name: UFW — allow HTTP
+  ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+
+- name: UFW — allow HTTPS
+  ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+
+- name: UFW — enable (deny by default)
+  ufw:
+    state: enabled
+    policy: deny
+    direction: incoming

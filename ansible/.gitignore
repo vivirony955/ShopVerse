@@ -1,0 +1,14 @@
+# ── Generated at runtime by deploy.sh ────────────────────────
+inventory.ini
+deploy_vars.yml
+
+# ── Ansible internals ─────────────────────────────────────────
+*.retry
+/tmp/ansible_facts_cache/
+
+# ── Editor / OS ───────────────────────────────────────────────
+.DS_Store
+*.swp
+*.swo
+__pycache__/
+*.pyc

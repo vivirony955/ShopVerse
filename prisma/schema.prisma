@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../backend/node_modules/.prisma/client"
 }
 
 datasource db {
@@ -7,29 +8,1368 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN        // legacy super-admin (keeps backward compat)
+  CS_AGENT     // view orders; initiate refund ≤ ₹5000
+  OPS          // update shipment status, manage inventory, pack orders
+  FINANCE      // approve high-value refunds (> ₹5000), view ledger
+  MERCH        // manage products, pricing, promotions, flash sales
+  SUPER_ADMIN  // all access + user impersonation
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  // FINAL §9.4 R-004: intermediate state entered when a destructive refund is in-flight
+  // with the payment gateway. Transitions to CANCELLED / REFUNDED on webhook ack, or back
+  // to CONFIRMED/PROCESSING if the gateway call fails. Prevents double-refund on retry.
+  CANCELLING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURN_REQUESTED
+  RETURNED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  STRIPE
+  COD
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+  CASHBACK
+}
+
+enum FlashSaleStatus {
+  SCHEDULED
+  ACTIVE
+  ENDED
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PICKED_UP
+  REFUNDED
+}
+
+// ─── Users & Addresses ────────────────────────────────────────────────────────
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  role      String   @default("user")
-  orders    Order[]
+  id                  Int                  @id @default(autoincrement())
+  email               String               @unique
+  password            String
+  firstName           String?
+  lastName            String?
+  phone               String?
+  role                Role                 @default(USER)
+  loyaltyPoints       Int                  @default(0)
+  referralCode        String?              @unique
+  referredById        Int?
+  referredBy          User?                @relation("Referrals", fields: [referredById], references: [id])
+  referrals           User[]               @relation("Referrals")
+  addresses           Address[]
+  cart                Cart?
+  wishlists           Wishlist[]
+  orders              Order[]
+  reviews             Review[]
+  loyaltyTransactions LoyaltyTransaction[]
+  referrerCredits     ReferralCredit[]     @relation("ReferrerCredits")
+  refereeCredit       ReferralCredit?      @relation("RefereeCredit")
+  abandonedCarts      AbandonedCart[]
+  wallet              Wallet?
+  riskScore           UserRiskScore?
+  preOrders           PreOrder[]
+  savedForLater       SavedForLater[]
+  supportTickets      SupportTicket[]
+  affiliateAccount    AffiliateAccount?
+  cookieConsents      CookieConsent[]
+  adminAuditLogs      AdminAuditLog[]
+  refundRequests      RefundRequest[]
+  couponUsages        CouponUsage[]
+  reviewVotes         ReviewVote[]
+  recentlyViewed      RecentlyViewed[]
+  notifications       Notification[]
+  productQuestions    ProductQuestion[]
+  priceAlerts         PriceAlert[]
+  blogPosts           BlogPost[]
+  // V-10: incremented on password change to invalidate all active refresh tokens
+  tokenVersion        Int                  @default(0)
+  // H2-01: account lockout after repeated failed logins
+  failedLoginAttempts Int                  @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model Address {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName  String
+  phone     String
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  pincode   String
+  isDefault Boolean @default(false)
+}
+
+// ─── Catalog ──────────────────────────────────────────────────────────────────
+
+model Category {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique
+  slug     String     @unique
+  parentId Int?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+  // FINAL §9.4 C-006: category-specific return window (days). NULL → use global default.
+  // e.g. electronics 7d, apparel 30d, innerwear 0 (non-returnable).
+  returnWindowDays Int? @default(7)
+  sizeCharts       SizeChart[]
+  volumeDiscounts  VolumeDiscount[]
+}
+
+// F1-06: Category-level size charts (e.g., "Men's Tops", "Women's Footwear")
+model SizeChart {
+  id         Int      @id @default(autoincrement())
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title      String   // e.g., "Men's T-Shirts & Shirts"
+  unit       String   @default("cm") // cm, inches
+  data       Json     // [{ size: "S", chest: 92, waist: 76, length: 68 }, ...]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([categoryId])
+}
+
+model Brand {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  slug     String    @unique
+  logoUrl  String?
+  products Product[]
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  name        String
-  price       Float
-  category    String
-  description String
-  imageUrl    String
-  inStock     Boolean  @default(true)
+  id              Int                @id @default(autoincrement())
+  name            String
+  slug            String             @unique
+  description     String
+  brandId         Int
+  brand           Brand              @relation(fields: [brandId], references: [id])
+  categoryId      Int
+  category        Category           @relation(fields: [categoryId], references: [id])
+  basePrice       Float
+  discountPct     Float              @default(0)
+  images          String[]
+  tags            String[]
+  variants        Variant[]
+  reviews         Review[]
+  wishlists       Wishlist[]
+  faqs            ProductFaq[]
+  flashSaleItems  FlashSaleProduct[]
+  isActive        Boolean            @default(true)
+  // B-14 PERF: write-through rating cache. Avoids N+1 review aggregation on PLP/PDP.
+  // Maintained by reviews.service.ts on create/update/delete (I-new: cache == ∑Review).
+  avgRating       Float              @default(0)
+  reviewCount     Int                @default(0)
+  // F1-07: structured specs (material, weight, dimensions, care instructions, etc.)
+  specifications  Json?
+  // F1-10: product demo/unboxing/review videos
+  videos          String[]           @default([])
+  recentlyViewed  RecentlyViewed[]
+  productQuestions ProductQuestion[]
+  priceAlerts     PriceAlert[]
+  priceHistory    PriceHistory[]
+  volumeDiscounts VolumeDiscount[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([isActive, createdAt])
+  @@index([discountPct])
 }
 
+model Variant {
+  id         Int         @id @default(autoincrement())
+  productId  Int
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size       String
+  color      String
+  // FINAL §7.1 / §9.4 R-001: `stock` = physically on-hand units (authoritative for MVP,
+  // denormalized from WarehouseInventory sum once multi-warehouse is live).
+  // `reservedStock` = units promised to live orders not yet shipped. Sellable = stock − reservedStock.
+  // DB CHECK enforces stock ≥ 0, reservedStock ≥ 0, reservedStock ≤ stock (see migration).
+  stock         Int         @default(0)
+  reservedStock Int         @default(0)
+  soldCount  Int         @default(0)
+  backorderAllowed Boolean @default(false)
+  // FINAL §4.1 item caps
+  minOrderQty  Int         @default(1)
+  maxOrderQty  Int         @default(10)
+  sku               String               @unique
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  warehouseInventory WarehouseInventory[]
+  shipmentItems     ShipmentItem[]
+  cartReservationItems CartReservationItem[]
+  preOrders         PreOrder[]
+  savedForLater     SavedForLater[]
+  stockNotifications  StockNotification[]
+  exchangeRequests    ExchangeRequest[]   @relation("ExchangeTargetVariant")
+
+  @@index([productId])
+  @@index([stock])
+}
+
+// ─── Cart ─────────────────────────────────────────────────────────────────────
+
+model Cart {
+  id           Int               @id @default(autoincrement())
+  userId       Int               @unique
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items        CartItem[]
+  reservations CartReservation[]
+  updatedAt    DateTime          @updatedAt
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  cartId    Int
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variantId Int
+  variant   Variant @relation(fields: [variantId], references: [id])
+  quantity  Int
+
+  @@unique([cartId, variantId])
+}
+
+// ─── Wishlist ─────────────────────────────────────────────────────────────────
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+// ─── Orders ───────────────────────────────────────────────────────────────────
+
 model Order {
+  id                  Int             @id @default(autoincrement())
+  userId              Int?
+  user                User?           @relation(fields: [userId], references: [id])
+  items               OrderItem[]
+  trackingEvents      TrackingEvent[]
+  returnRequest       ReturnRequest?
+  addressSnapshot     Json
+  guestEmail          String?
+  subtotal            Float
+  discountAmount      Float           @default(0)
+  shippingFee         Float           @default(0)   // flat shipping charge applied at checkout
+  taxAmount           Float           @default(0)   // GST/IGST on (subtotal - discount)
+  loyaltyPointsUsed   Int             @default(0)
+  loyaltyPointsEarned Int             @default(0)
+  // F1-15: split payment — wallet portion used to partially pay this order
+  walletAmountUsed    Float           @default(0)
+  total               Float
+  couponCode          String?
+  status              OrderStatus     @default(PENDING)
+  paymentMethod       PaymentMethod   @default(STRIPE)
+  paymentId           String?
+  paymentStatus       PaymentStatus   @default(UNPAID)
+  shipments           Shipment[]
+  giftOption          GiftOption?
+  reconciliation      PaymentReconciliation?
+  refundRequests      RefundRequest[]
+  refundApprovals     RefundApproval[]
+  invoice             Invoice?
+  attributions        CampaignAttribution[]
+  exchangeRequests    ExchangeRequest[]
+  deliveryRating      DeliveryRating?
+  parentOrderId       Int?            // set on split sub-orders; references the original order
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([paymentStatus])
+  @@index([parentOrderId])
+}
+
+model OrderItem {
+  id             Int           @id @default(autoincrement())
+  orderId        Int
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId      Int
+  variant        Variant       @relation(fields: [variantId], references: [id])
+  quantity       Int
+  price          Float
+  // Partial-cancellation marker (FINAL §9.4 C-004). NULL = active line, non-NULL = cancelled.
+  cancelledAt    DateTime?
+  // Per-item refund marker (FINAL §9.4 R-008 / M-006). Used to derive the
+  // aggregate Order.paymentStatus (REFUNDED when all items refunded, PARTIALLY_REFUNDED otherwise).
+  refundedAt     DateTime?
+  refundReason   RefundReason?
+  returnItems    ReturnItem[]
+  refundRequests   RefundRequest[]
+  exchangeRequests ExchangeRequest[]
+
+  @@index([orderId])
+  // B-13 PERF: covers partial-cancellation scan (WHERE orderId=? AND cancelledAt IS NULL)
+  @@index([orderId, cancelledAt])
+}
+
+// FINAL §9.4 M-006: controlled refund-reason taxonomy for analytics + ops routing.
+enum RefundReason {
+  CUSTOMER_CHANGED_MIND
+  DAMAGED_ON_ARRIVAL
+  WRONG_ITEM_SHIPPED
+  NOT_AS_DESCRIBED
+  DELIVERY_FAILED
+  QUALITY_ISSUE
+  SIZE_FIT_ISSUE
+  DUPLICATE_ORDER
+  ADMIN_ADJUSTMENT
+  OTHER
+}
+
+model TrackingEvent {
+  id        Int         @id @default(autoincrement())
+  orderId   Int
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+}
+
+model ReturnRequest {
+  id            Int          @id @default(autoincrement())
+  orderId       Int          @unique
+  order         Order        @relation(fields: [orderId], references: [id])
+  reason        String
+  items         ReturnItem[]
+  // Assigned by ops after triage (FINAL §9.4 R-006). NULL at customer-request time.
+  returnAddress String?
+  status        ReturnStatus @default(REQUESTED)
+  adminNote     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model ReturnItem {
+  id              Int           @id @default(autoincrement())
+  returnRequestId Int
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  orderItemId     Int
+  orderItem       OrderItem     @relation(fields: [orderItemId], references: [id])
+  quantity        Int
+}
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+model Review {
+  id                 Int          @id @default(autoincrement())
+  userId             Int
+  user               User         @relation(fields: [userId], references: [id])
+  productId          Int
+  product            Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rating             Int
+  title              String?
+  body               String?
+  isVerifiedPurchase Boolean      @default(false)
+  // F1-09: helpfulness voting
+  helpfulCount       Int          @default(0)
+  votes              ReviewVote[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([userId, productId])
+}
+
+// F1-09: one vote per user per review (thumbs up/down)
+model ReviewVote {
+  id        Int      @id @default(autoincrement())
+  reviewId  Int
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  isHelpful Boolean  // true = helpful, false = not helpful
+  createdAt DateTime @default(now())
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+}
+
+// ─── Coupons ──────────────────────────────────────────────────────────────────
+
+model Coupon {
+  id             Int           @id @default(autoincrement())
+  code           String        @unique
+  discountType   DiscountType
+  discountValue  Float
+  minOrderAmount Float         @default(0)
+  maxUses        Int?
+  maxUsesPerUser  Int?          // T-C02: optional per-user cap (null = unlimited per user)
+  firstOrderOnly  Boolean       @default(false) // if true, coupon only valid when user has no prior DELIVERED orders
+  usedCount       Int           @default(0)
+  expiresAt       DateTime?
+  isActive        Boolean       @default(true)
+  usages         CouponUsage[]
+}
+
+// T-C02: tracks per-user coupon usage — enforces maxUsesPerUser and prevents reuse abuse
+model CouponUsage {
+  id        Int      @id @default(autoincrement())
+  couponId  Int
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usedAt    DateTime @default(now())
+
+  @@unique([couponId, userId]) // one record per user per coupon; increment usedCount there
+  @@index([userId])
+}
+
+// ─── Product FAQs ─────────────────────────────────────────────────────────────
+
+model ProductFaq {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// ─── Delivery / Pincode ───────────────────────────────────────────────────────
+
+model PincodeServiceability {
+  id            Int     @id @default(autoincrement())
+  pincode       String  @unique
+  isServiceable Boolean @default(true)
+  estimateDays  Int     @default(5)
+  courier       String?
+}
+
+// ─── Flash Sales ─────────────────────────────────────────────────────────────
+
+model FlashSale {
+  id          Int                @id @default(autoincrement())
+  title       String
+  slug        String             @unique
+  discountPct Float
+  startsAt    DateTime
+  endsAt      DateTime
+  status      FlashSaleStatus    @default(SCHEDULED)
+  products    FlashSaleProduct[]
+  createdAt   DateTime           @default(now())
+}
+
+model FlashSaleProduct {
+  id              Int       @id @default(autoincrement())
+  flashSaleId     Int
+  flashSale       FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  productId       Int
+  product         Product   @relation(fields: [productId], references: [id])
+  perUserMaxQty   Int       @default(0)   // 0 = unlimited; >0 enforced per user per flash sale
+
+  @@unique([flashSaleId, productId])
+}
+
+// ─── Loyalty Points ───────────────────────────────────────────────────────────
+
+model LoyaltyTransaction {
   id        Int      @id @default(autoincrement())
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  products  Json
-  total     Float
-  status    String   @default("pending")
+  orderId   Int?
+  points    Int
+  type      String   // EARN | REDEEM | REFERRAL_BONUS | MANUAL
+  note      String?
+  // Deterministic idempotency key (FINAL §9.4 C-007). e.g. "earn:order:<id>", "redeem:order:<id>"
+  reference String?  @unique
+  createdAt DateTime @default(now())
+
+  @@index([userId, type])
+}
+
+// ─── Abandoned Cart ───────────────────────────────────────────────────────────
+
+model AbandonedCart {
+  id             Int       @id @default(autoincrement())
+  userId         Int?
+  user           User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestEmail     String?
+  cartSnapshot   Json
+  reminderSentAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// ─── Referral Credits ─────────────────────────────────────────────────────────
+
+model ReferralCredit {
+  id           Int      @id @default(autoincrement())
+  referrerId   Int
+  referrer     User     @relation("ReferrerCredits", fields: [referrerId], references: [id])
+  newUserId    Int      @unique
+  newUser      User     @relation("RefereeCredit", fields: [newUserId], references: [id])
+  creditAmount Int
+  appliedAt    DateTime @default(now())
+}
+
+// ─── Warehouse & Fulfillment ──────────────────────────────────────────────────
+
+model Warehouse {
+  id          Int                  @id @default(autoincrement())
+  name        String
+  code        String               @unique
+  city        String
+  state       String
+  pincode     String
+  lat         Float?
+  lng         Float?
+  isActive    Boolean              @default(true)
+  inventory   WarehouseInventory[]
+  shipments   Shipment[]
+  cartReservationItems CartReservationItem[]
+  createdAt   DateTime             @default(now())
+}
+
+model WarehouseInventory {
+  id          Int       @id @default(autoincrement())
+  warehouseId Int
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  variantId   Int
+  variant     Variant   @relation(fields: [variantId], references: [id])
+  stock       Int       @default(0)
+  reserved    Int       @default(0)
+
+  @@unique([warehouseId, variantId])
+  @@index([variantId])
+}
+
+model Shipment {
+  id            Int          @id @default(autoincrement())
+  orderId       Int
+  order         Order        @relation(fields: [orderId], references: [id])
+  warehouseId   Int
+  warehouse     Warehouse    @relation(fields: [warehouseId], references: [id])
+  items         ShipmentItem[]
+  trackingCode  String?
+  carrier       String?
+  status        ShipmentStatus @default(PENDING)
+  expectedAt    DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model ShipmentItem {
+  id         Int      @id @default(autoincrement())
+  shipmentId Int
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  variantId  Int
+  variant    Variant  @relation(fields: [variantId], references: [id])
+  quantity   Int
+}
+
+// ─── Cart Reservation ─────────────────────────────────────────────────────────
+
+// FINAL §4.2 — parent/child. Parent = one row per checkout attempt,
+// child = one row per reserved line. placeOrder() requires a valid reservationId.
+enum CartReservationStatus {
+  ACTIVE
+  EXPIRED
+  CONSUMED
+}
+
+model CartReservation {
+  id        Int                   @id @default(autoincrement())
+  cartId    Int
+  cart      Cart                  @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  userId    Int
+  status    CartReservationStatus @default(ACTIVE)
+  expiresAt DateTime
+  isFlash   Boolean               @default(false)
+  items     CartReservationItem[]
+  createdAt DateTime              @default(now())
+
+  @@index([userId, status, expiresAt])
+  @@index([expiresAt])
+}
+
+model CartReservationItem {
+  id            Int             @id @default(autoincrement())
+  reservationId Int
+  reservation   CartReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  variantId     Int
+  variant       Variant         @relation(fields: [variantId], references: [id])
+  warehouseId   Int
+  warehouse     Warehouse       @relation(fields: [warehouseId], references: [id])
+  quantity      Int
+  lockedPrice   Float
+  lockedMrp     Float
+
+  @@unique([reservationId, variantId])
+  @@index([variantId])
+}
+
+// ─── Notify-when-back-in-stock (FINAL §3.2) ───────────────────────────────────
+
+model StockNotification {
+  id          Int       @id @default(autoincrement())
+  variantId   Int
+  variant     Variant   @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  email       String
+  phone       String?
+  createdAt   DateTime  @default(now())
+  notifiedAt  DateTime?
+
+  @@index([notifiedAt])
+}
+
+// ─── Refund requests (FINAL §9.3, I-11) ───────────────────────────────────────
+
+enum RefundRequestStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+enum RefundDestination {
+  ORIGINAL_PAYMENT
+  WALLET
+}
+
+model RefundRequest {
+  id             Int                  @id @default(autoincrement())
+  orderId        Int
+  order          Order                @relation(fields: [orderId], references: [id])
+  orderItemId    Int?
+  orderItem      OrderItem?           @relation(fields: [orderItemId], references: [id])
+  amount         Float
+  reason         String?
+  status         RefundRequestStatus  @default(PENDING)
+  destination    RefundDestination    @default(ORIGINAL_PAYMENT)
+  gatewayRef     String?
+  reference      String               @unique
+  requestedById  Int?
+  requestedBy    User?                @relation(fields: [requestedById], references: [id])
+  processedAt    DateTime?
+  failureReason  String?
+  // W5 PERF: retry counter for gateway failures. Cron bumps this on each retry attempt;
+  // after MAX_REFUND_RETRIES (5), row is marked FAILED permanently + alert logged.
+  retryCount     Int                  @default(0)
+  lastRetryAt    DateTime?
+  walletTxns      WalletTransaction[]
+  refundApproval  RefundApproval?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  // B-13 PERF: covers order-scoped refund lookups filtered by status
+  @@index([orderId, status])
+  // W5 PERF: covers refund retry cron scan
+  @@index([status, updatedAt])
+}
+
+// ─── Pre-orders & Backorders ──────────────────────────────────────────────────
+
+model PreOrder {
+  id               Int           @id @default(autoincrement())
+  userId           Int
+  user             User          @relation(fields: [userId], references: [id])
+  variantId        Int
+  variant          Variant       @relation(fields: [variantId], references: [id])
+  quantity         Int
+  priceAtPreorder  Float
+  expectedDate     DateTime?
+  status           PreOrderStatus @default(PENDING)
+  convertedOrderId Int?
+  createdAt        DateTime      @default(now())
+
+  @@index([variantId, status])
+}
+
+// ─── Wallet & Financial Ledger ────────────────────────────────────────────────
+
+model Wallet {
+  id           Int               @id @default(autoincrement())
+  userId       Int               @unique
+  user         User              @relation(fields: [userId], references: [id])
+  balance      Float             @default(0)
+  transactions WalletTransaction[]
+  updatedAt    DateTime          @updatedAt
+}
+
+model WalletTransaction {
+  id          Int                   @id @default(autoincrement())
+  walletId    Int
+  wallet      Wallet                @relation(fields: [walletId], references: [id])
+  amount      Float
+  type        WalletTxType
+  // FINAL §9.4 C-003/R-003: NOT NULL + composite unique to guarantee at-most-once.
+  // Callers should pass a deterministic key (e.g. "refund:order:42"); the service
+  // auto-generates a UUID key when the caller has nothing to de-dupe on.
+  reference   String
+  description String?
+  balanceAfter Float
+  refundRequestId Int?
+  refundRequest  RefundRequest? @relation(fields: [refundRequestId], references: [id])
+  createdAt   DateTime              @default(now())
+
+  @@unique([walletId, reference, type])
+  @@index([walletId, createdAt])
+  @@index([refundRequestId])
+}
+
+model LedgerEntry {
+  id          Int         @id @default(autoincrement())
+  type        LedgerType
+  debitAmount Float       @default(0)
+  creditAmount Float      @default(0)
+  reference   String      // orderId, refundId, walletTxId
+  description String?
+  createdAt   DateTime    @default(now())
+
+  @@index([reference])
+  @@index([createdAt])
+}
+
+model PaymentReconciliation {
+  id              Int               @id @default(autoincrement())
+  gatewayRef      String            @unique
+  orderId         Int?              @unique
+  order           Order?            @relation(fields: [orderId], references: [id])
+  gatewayAmount   Float
+  internalAmount  Float?
+  status          ReconcileStatus   @default(PENDING)
+  discrepancy     Float?
+  resolvedAt      DateTime?
+  notes           String?
+  createdAt       DateTime          @default(now())
+}
+
+// ─── Fraud & Returns Abuse ────────────────────────────────────────────────────
+
+model UserRiskScore {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique
+  user           User     @relation(fields: [userId], references: [id])
+  score          Float    @default(0)    // 0-100
+  returnRate     Float    @default(0)
+  refundAbuse    Boolean  @default(false)
+  codAbuse       Boolean  @default(false)
+  lastUpdated    DateTime @default(now())
+}
+
+model Blacklist {
+  id         Int           @id @default(autoincrement())
+  type       BlacklistType
+  value      String        // userId, email, IP, device fingerprint, address hash
+  reason     String
+  isActive   Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+
+  @@unique([type, value])
+  @@index([type, isActive])
+}
+
+model FraudFlag {
+  id        Int            @id @default(autoincrement())
+  userId    Int?
+  orderId   Int?
+  type      FraudFlagType
+  detail    String?
+  status    FraudFlagStatus @default(OPEN)
+  reviewedBy Int?
+  resolvedAt DateTime?
+  createdAt DateTime       @default(now())
+
+  @@index([status, createdAt])
+}
+
+// ─── Support & Internal Ops ───────────────────────────────────────────────────
+
+model SupportTicket {
+  id          Int            @id @default(autoincrement())
+  userId      Int?
+  user        User?          @relation(fields: [userId], references: [id])
+  orderId     Int?
+  subject     String
+  description String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  assignedTo  Int?
+  notes       TicketNote[]
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([status, priority])
+}
+
+model TicketNote {
+  id        Int          @id @default(autoincrement())
+  ticketId  Int
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  Int
+  body      String
+  isInternal Boolean     @default(true)
+  createdAt DateTime     @default(now())
+}
+
+model AdminNote {
+  id         Int      @id @default(autoincrement())
+  authorId   Int
+  targetType String   // user | order | product
+  targetId   Int
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+}
+
+// ─── Webhooks ─────────────────────────────────────────────────────────────────
+
+model WebhookEndpoint {
+  id         Int            @id @default(autoincrement())
+  url        String
+  secret     String
+  events     String[]       // ["order.created", "payment.success", ...]
+  isActive   Boolean        @default(true)
+  deliveries WebhookDelivery[]
+  createdAt  DateTime       @default(now())
+}
+
+model WebhookDelivery {
+  id           Int             @id @default(autoincrement())
+  endpointId   Int
+  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event        String
+  payload      Json
+  responseCode Int?
+  attempts     Int             @default(0)
+  success      Boolean         @default(false)
+  nextRetryAt  DateTime?
+  createdAt    DateTime        @default(now())
+
+  @@index([endpointId, success])
+  @@index([nextRetryAt])
+}
+
+// ─── Affiliate & Growth ───────────────────────────────────────────────────────
+
+model AffiliateAccount {
+  id           Int                 @id @default(autoincrement())
+  userId       Int                 @unique
+  user         User                @relation(fields: [userId], references: [id])
+  code         String              @unique
+  commissionPct Float              @default(5)
+  totalEarned  Float               @default(0)
+  totalPaid    Float               @default(0)
+  isActive     Boolean             @default(true)
+  attributions CampaignAttribution[]
+  createdAt    DateTime            @default(now())
+}
+
+model CampaignAttribution {
+  id              Int              @id @default(autoincrement())
+  affiliateId     Int?
+  affiliate       AffiliateAccount? @relation(fields: [affiliateId], references: [id])
+  orderId         Int?
+  order           Order?           @relation(fields: [orderId], references: [id])
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  utmContent      String?
+  attributionType AttributionType  @default(LAST_TOUCH)
+  commissionAmount Float           @default(0)
+  createdAt       DateTime         @default(now())
+
+  @@index([affiliateId])
+  @@index([orderId])
+}
+
+// ─── Admin Audit Log ─────────────────────────────────────────────────────────
+
+model AdminAuditLog {
+  id         Int      @id @default(autoincrement())
+  adminId    Int
+  admin      User     @relation(fields: [adminId], references: [id])
+  action     String   // e.g. "UPDATE_ORDER", "DELETE_PRODUCT"
+  entity     String   // e.g. "Order", "Product"
+  entityId   String?  // stringified ID of the affected record
+  method     String   // HTTP method
+  url        String
+  body       Json?    // request payload snapshot (sanitized)
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+// ─── Error Tracking ──────────────────────────────────────────────────────────
+model ErrorLog {
+  id          Int      @id @default(autoincrement())
+  level       String   @default("error")  // error | warn | fatal
+  message     String
+  stack       String?
+  context     String?  // service/module name
+  method      String?
+  url         String?
+  userId      Int?
+  statusCode  Int?
+  metadata    Json?    // any extra structured data
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([level])
+  @@index([createdAt])
+  @@index([resolved])
+}
+
+// ─── Legal & Policy ───────────────────────────────────────────────────────────
+
+model PolicyDocument {
+  id          Int      @id @default(autoincrement())
+  type        PolicyType
+  version     String
+  content     String
+  isActive    Boolean  @default(true)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@unique([type, version])
+}
+
+model CookieConsent {
+  id           Int      @id @default(autoincrement())
+  userId       Int?
+  user         User?    @relation(fields: [userId], references: [id])
+  sessionId    String?
+  analytics    Boolean  @default(false)
+  marketing    Boolean  @default(false)
+  consentedAt  DateTime @default(now())
+  ip           String?
+}
+
+// ─── Experience Enhancements ──────────────────────────────────────────────────
+
+model SavedForLater {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variantId Int
+  variant   Variant  @relation(fields: [variantId], references: [id])
+  addedAt   DateTime @default(now())
+
+  @@unique([userId, variantId])
+}
+
+model DeliverySlot {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  slotLabel   String   // "9am-12pm", "2pm-6pm"
+  maxOrders   Int      @default(50)
+  bookedCount Int      @default(0)
+  pincode     String?
+  isActive    Boolean  @default(true)
+
+  @@index([date, pincode])
+}
+
+model GiftOption {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+  message   String?
+  wrapping  Boolean  @default(false)
+  recipientName String?
+}
+
+// ─── New Enums ────────────────────────────────────────────────────────────────
+
+enum ShipmentStatus {
+  PENDING
+  PACKED
+  DISPATCHED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RTO
+}
+
+enum PreOrderStatus {
+  PENDING
+  CONVERTED
+  CANCELLED
+}
+
+enum WalletTxType {
+  CREDIT
+  DEBIT
+  REFUND
+  BONUS
+}
+
+enum LedgerType {
+  ORDER_PAYMENT
+  REFUND
+  WALLET_CREDIT
+  WALLET_DEBIT
+  COMMISSION
+  COMMISSION_PAYOUT
+  ADJUSTMENT
+}
+
+enum ReconcileStatus {
+  PENDING
+  MATCHED
+  DISCREPANCY
+  RESOLVED
+}
+
+enum BlacklistType {
+  USER
+  EMAIL
+  IP
+  DEVICE
+  ADDRESS
+}
+
+enum FraudFlagType {
+  HIGH_RETURN_RATE
+  REFUND_ABUSE
+  COD_ABUSE
+  SUSPICIOUS_IP
+  ACCOUNT_TAKEOVER
+}
+
+enum FraudFlagStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  FALSE_POSITIVE
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum AttributionType {
+  FIRST_TOUCH
+  LAST_TOUCH
+  LINEAR
+}
+
+enum PolicyType {
+  TERMS_AND_CONDITIONS
+  PRIVACY_POLICY
+  RETURN_POLICY
+  COOKIE_POLICY
+  AGE_RESTRICTION
+}
+
+// ─── Distributed Cron Lock ───────────────────────────────────────────────────
+// FINAL §9.4 M-005: prevents duplicate cron execution across multi-instance deployments.
+// A job first INSERTs a row keyed by job name with an expiry. Unique-constraint violation
+// means another instance holds the lock.
+model CronLock {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  holder     String   // instance id / hostname that owns the lock
+  acquiredAt DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([expiresAt])
+}
+
+// ─── Invoice (D-04, §22.1) ────────────────────────────────────────────────────
+// I-13: invoice sequence number is continuous per financial year (no gaps).
+// Generated when order transitions to CONFIRMED. One invoice per order.
+
+model Invoice {
+  id             Int      @id @default(autoincrement())
+  orderId        Int      @unique
+  order          Order    @relation(fields: [orderId], references: [id])
+  invoiceNumber  String   @unique       // e.g. "INV/2026-27/000001"
+  financialYear  String                 // e.g. "2026-27" (Apr→Mar India FY)
+  sequence       Int                   // monotonic within financialYear, 1-based
+  subtotal       Float
+  discountAmount Float    @default(0)
+  shippingFee    Float    @default(0)
+  taxAmount      Float    @default(0)
+  total          Float
+  issuedAt       DateTime @default(now())
+
+  @@unique([financialYear, sequence])
+  @@index([financialYear])
+  @@index([issuedAt])
+}
+
+// ─── Maker-Checker (ADM-RBAC, §16.2) ─────────────────────────────────────────
+// High-value refunds (> ₹5000) require a FINANCE-role approver to approve
+// before the actual refund is executed. CS_AGENT creates the request; FINANCE approves.
+
+model RefundApproval {
+  id            Int      @id @default(autoincrement())
+  orderId       Int
+  order         Order    @relation(fields: [orderId], references: [id])
+  amount        Float
+  reason        String
+  requestedBy   Int                               // userId of CS_AGENT requestor
+  requestedAt   DateTime @default(now())
+  approvedBy    Int?                              // userId of FINANCE approver
+  approvedAt    DateTime?
+  rejectedBy    Int?
+  rejectedAt    DateTime?
+  rejectedReason String?
+  status        RefundApprovalStatus @default(PENDING)
+  refundRequest RefundRequest?       @relation(fields: [refundRequestId], references: [id])
+  refundRequestId Int?               @unique       // set after approval triggers refund
+
+  @@index([orderId])
+  @@index([status])
+}
+
+enum RefundApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXECUTED   // refund was triggered after approval
+}
+
+// Monotonic per-year counter. Locked with SELECT ... FOR UPDATE for atomicity.
+model InvoiceSequence {
+  id            Int    @id @default(autoincrement())
+  financialYear String @unique          // "2026-27"
+  lastSequence  Int    @default(0)      // incremented atomically; next invoice = lastSequence + 1
+}
+
+// --- Security Monitoring (H2-10) ---
+
+model SecurityAlert {
+  id          Int       @id @default(autoincrement())
+  type        String
+  severity    String    @default("MEDIUM")
+  metadata    Json
+  resolvedAt  DateTime?
+  resolvedBy  Int?
+  createdAt   DateTime  @default(now())
+
+  @@index([type, createdAt])
+  @@index([resolvedAt])
+}
+
+// ─── F1-04: Recently Viewed (server-persisted) ────────────────────────────────
+model RecentlyViewed {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId, viewedAt(sort: Desc)])
+}
+
+// ─── F2-06: In-app Notification Center ───────────────────────────────────────
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // ORDER_UPDATE | PRICE_DROP | PROMO | SYSTEM
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+}
+
+// ─── F2-11: Trending / Popular Searches ──────────────────────────────────────
+model SearchLog {
+  id          Int      @id @default(autoincrement())
+  query       String
+  userId      Int?
+  resultCount Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([query, createdAt])
+  @@index([createdAt])
+}
+
+// ─── F2-12: Exchange Flow ─────────────────────────────────────────────────────
+model ExchangeRequest {
+  id                 Int            @id @default(autoincrement())
+  orderId            Int
+  order              Order          @relation(fields: [orderId], references: [id])
+  orderItemId        Int
+  orderItem          OrderItem      @relation(fields: [orderItemId], references: [id])
+  requestedVariantId Int
+  requestedVariant   Variant        @relation("ExchangeTargetVariant", fields: [requestedVariantId], references: [id])
+  reason             String
+  status             ExchangeStatus @default(PENDING)
+  adminNote          String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+enum ExchangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SHIPPED
+  COMPLETED
+}
+
+// ─── F2-13: Delivery Feedback / Rating ───────────────────────────────────────
+model DeliveryRating {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+// ─── F2-14: Customer Q&A ──────────────────────────────────────────────────────
+model ProductQuestion {
+  id          Int       @id @default(autoincrement())
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  question    String
+  answer      String?
+  answeredBy  Int?
+  answeredAt  DateTime?
+  isApproved  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([productId, isApproved])
+}
+
+// ─── F2-17: Price Drop Alerts ────────────────────────────────────────────────
+model PriceAlert {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  targetPrice Float
+  isTriggered Boolean   @default(false)
+  triggeredAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, productId])
+  @@index([productId, isTriggered])
+}
+
+// ─── F2-19: Loyalty Tier Config ───────────────────────────────────────────────
+model LoyaltyTier {
+  id             Int    @id @default(autoincrement())
+  name           String @unique  // BRONZE | SILVER | GOLD | PLATINUM
+  minPoints      Int
+  earnMultiplier Float  @default(1.0)
+  perks          Json   // string[]
+}
+
+// ─── F3-10: Blog / Content CMS ───────────────────────────────────────────────
+model BlogPost {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  content     String
+  excerpt     String?
+  coverImage  String?
+  authorId    Int
+  author      User      @relation(fields: [authorId], references: [id])
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  tags        String[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isPublished, publishedAt])
+}
+
+// ─── F3-12: Price History (daily snapshot for chart) ─────────────────────────
+model PriceHistory {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  price       Float
+  discountPct Float    @default(0)
+  recordedAt  DateTime @default(now())
+
+  @@index([productId, recordedAt])
+}
+
+// ─── F4-08: Volume / Tiered Quantity Discounts ───────────────────────────────
+model VolumeDiscount {
+  id          Int       @id @default(autoincrement())
+  productId   Int?
+  product     Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  minQty      Int
+  discountPct Float
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([productId])
+  @@index([categoryId])
 }

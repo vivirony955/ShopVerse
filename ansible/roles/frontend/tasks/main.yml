@@ -1,0 +1,147 @@
+---
+# ============================================================
+#  Frontend role — Next.js 15 (App Router)
+#  Steps:
+#   1. Open UFW port for frontend
+#   2. Rsync source code (excl. node_modules / .next / .env.local)
+#   3. Write .env.local from template
+#   4. npm install  →  npm run build
+#   5. Launch / restart with PM2 (next start)
+#   6. Configure Nginx reverse-proxy
+# ============================================================
+
+# ── UFW ───────────────────────────────────────────────────────
+- name: UFW — allow frontend port {{ frontend_port }}
+  ufw:
+    rule: allow
+    port: "{{ frontend_port }}"
+    proto: tcp
+
+# ── App directory ─────────────────────────────────────────────
+- name: Create frontend source directory
+  file:
+    path: "{{ app_dir }}/frontend"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+# ── Sync source code ──────────────────────────────────────────
+- name: Sync frontend source code to server
+  synchronize:
+    src: "{{ playbook_dir }}/../frontend/"
+    dest: "{{ app_dir }}/frontend/"
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=.next"
+      - "--exclude=.env.local"
+      - "--exclude=.git"
+      - "--exclude=*.log"
+      - "--exclude=coverage"
+    delete: true
+    checksum: true
+  become: false
+
+# ── Environment file ──────────────────────────────────────────
+- name: Write frontend .env.local file
+  template:
+    src: frontend.env.j2
+    dest: "{{ app_dir }}/frontend/.env.local"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0600'
+
+# ── Dependencies ──────────────────────────────────────────────
+- name: Install frontend npm dependencies
+  npm:
+    path: "{{ app_dir }}/frontend"
+    state: present
+  become_user: "{{ ansible_user }}"
+
+# ── Build ─────────────────────────────────────────────────────
+- name: Build Next.js application
+  command: npm run build
+  args:
+    chdir: "{{ app_dir }}/frontend"
+  become_user: "{{ ansible_user }}"
+  environment:
+    NODE_ENV: production
+    NEXT_TELEMETRY_DISABLED: "1"
+  async: 600        # build can take up to 10 minutes
+  poll: 15
+
+# ── PM2 ───────────────────────────────────────────────────────
+- name: Create frontend log directory
+  file:
+    path: "{{ app_dir }}/frontend/logs"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Stop existing PM2 frontend process (if running)
+  shell: pm2 delete shopverse-frontend || true
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+
+- name: Start frontend with PM2 (next start)
+  shell: >
+    pm2 start npm
+    --name shopverse-frontend
+    --log {{ app_dir }}/frontend/logs/app.log
+    --error {{ app_dir }}/frontend/logs/error.log
+    --time
+    --max-memory-restart 1G
+    -- start -- -p {{ frontend_port }}
+  become_user: "{{ ansible_user }}"
+  args:
+    chdir: "{{ app_dir }}/frontend"
+  environment:
+    PORT: "{{ frontend_port }}"
+    NODE_ENV: production
+
+- name: Save PM2 process list
+  shell: pm2 save
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+
+# ── Nginx reverse proxy ───────────────────────────────────────
+- name: Write Nginx frontend config
+  template:
+    src: frontend.nginx.j2
+    dest: /etc/nginx/sites-available/shopverse-frontend
+    mode: '0644'
+  notify: reload nginx
+
+- name: Enable Nginx frontend site
+  file:
+    src: /etc/nginx/sites-available/shopverse-frontend
+    dest: /etc/nginx/sites-enabled/shopverse-frontend
+    state: link
+  notify: reload nginx
+
+- name: Test Nginx configuration
+  command: nginx -t
+  changed_when: false
+
+# ── Optional: Certbot (Let's Encrypt) ────────────────────────
+- name: Install Certbot and Nginx plugin
+  apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+  when: install_certbot | bool and frontend_domain != ''
+
+- name: Issue SSL certificate for frontend domain
+  command: >
+    certbot --nginx
+    -d {{ frontend_domain }}
+    --non-interactive
+    --agree-tos
+    --email {{ seed_admin_email }}
+    --redirect
+  when: install_certbot | bool and frontend_domain != ''
+  register: certbot_result
+  failed_when: certbot_result.rc != 0
+  changed_when: "'Certificate not yet due for renewal' not in certbot_result.stdout"

@@ -1,0 +1,49 @@
+---
+# ============================================================
+#  Default variables — all overridden by deploy_vars.yml
+#  at runtime via --extra-vars "@deploy_vars.yml"
+# ============================================================
+
+# ── Server IPs
+frontend_ip: "127.0.0.1"
+backend_ip:  "127.0.0.1"
+db_ip:       "127.0.0.1"
+
+# ── Ports
+backend_port:  4000
+frontend_port: 3000
+
+# ── Paths
+app_dir: "/opt/shopverse"
+
+# ── Node.js
+node_version: "20"
+
+# ── Database
+db_name:     "shopverse"
+db_user:     "shopverse"
+db_password: "changeme_in_deploy_vars"
+
+# ── Backend env
+jwt_secret:            "changeme_in_deploy_vars"
+stripe_secret_key:     "sk_test_placeholder"
+stripe_webhook_secret: "whsec_placeholder"
+cors_origins:          "http://localhost:3000"
+seed_admin_email:      "admin@shopverse.com"
+seed_admin_password:   "Admin@123456"
+
+# ── Frontend env
+nextauth_secret:        "changeme_in_deploy_vars"
+nextauth_url:           "http://localhost:3000"
+backend_api_url:        "http://localhost:4000/api"
+stripe_publishable_key: "pk_test_placeholder"
+
+# ── Domains (empty = use IP)
+frontend_domain: ""
+backend_domain:  ""
+
+# ── Flags
+run_migrations:  true
+run_seed:        true
+install_certbot: false
+single_server:   false

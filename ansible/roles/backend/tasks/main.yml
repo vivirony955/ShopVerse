@@ -1,0 +1,179 @@
+---
+# ============================================================
+#  Backend role — NestJS (Prisma + PostgreSQL)
+#  Steps:
+#   1. Open UFW port for backend
+#   2. Rsync source code (excl. node_modules / .env)
+#   3. Write .env from template
+#   4. npm install  →  npm run build
+#   5. npx prisma migrate deploy  (optional)
+#   6. npm run seed                (optional, idempotent)
+#   7. Launch / restart with PM2
+#   8. Configure Nginx reverse-proxy
+# ============================================================
+
+# ── UFW ───────────────────────────────────────────────────────
+- name: UFW — allow backend port {{ backend_port }}
+  ufw:
+    rule: allow
+    port: "{{ backend_port }}"
+    proto: tcp
+
+# ── App directories ───────────────────────────────────────────
+- name: Create backend source directory
+  file:
+    path: "{{ app_dir }}/backend"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Create prisma directory alongside backend
+  file:
+    path: "{{ app_dir }}/prisma"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+# ── Sync source code ──────────────────────────────────────────
+- name: Sync backend source code to server
+  synchronize:
+    src: "{{ playbook_dir }}/../backend/"
+    dest: "{{ app_dir }}/backend/"
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=dist"
+      - "--exclude=.env"
+      - "--exclude=.git"
+      - "--exclude=coverage"
+      - "--exclude=*.log"
+    delete: true
+    checksum: true
+  become: false
+
+- name: Sync prisma schema and migrations to server
+  synchronize:
+    src: "{{ playbook_dir }}/../prisma/"
+    dest: "{{ app_dir }}/prisma/"
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=.git"
+    delete: true
+    checksum: true
+  become: false
+
+# ── Environment file ──────────────────────────────────────────
+- name: Write backend .env file
+  template:
+    src: backend.env.j2
+    dest: "{{ app_dir }}/backend/.env"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0600'
+
+# ── Dependencies ──────────────────────────────────────────────
+- name: Install backend npm dependencies
+  npm:
+    path: "{{ app_dir }}/backend"
+    state: present
+    production: false          # need devDeps for Prisma CLI
+  become_user: "{{ ansible_user }}"
+
+# ── Build ─────────────────────────────────────────────────────
+- name: Build NestJS application
+  command: npm run build
+  args:
+    chdir: "{{ app_dir }}/backend"
+  become_user: "{{ ansible_user }}"
+  environment:
+    NODE_ENV: production
+
+# ── Prisma migrations ─────────────────────────────────────────
+- name: Run Prisma migrations
+  command: npx prisma migrate deploy
+  args:
+    chdir: "{{ app_dir }}/backend"
+  become_user: "{{ ansible_user }}"
+  environment:
+    DATABASE_URL: "postgresql://{{ db_user }}:{{ db_password }}@{{ db_ip }}:5432/{{ db_name }}"
+  when: run_migrations | bool
+  register: migrate_result
+
+- name: Show migration output
+  debug:
+    msg: "{{ migrate_result.stdout_lines }}"
+  when: run_migrations | bool and migrate_result.stdout_lines is defined
+
+# ── Seed ──────────────────────────────────────────────────────
+- name: Run admin seed
+  command: npm run seed
+  args:
+    chdir: "{{ app_dir }}/backend"
+  become_user: "{{ ansible_user }}"
+  environment:
+    DATABASE_URL: "postgresql://{{ db_user }}:{{ db_password }}@{{ db_ip }}:5432/{{ db_name }}"
+    SEED_ADMIN_EMAIL: "{{ seed_admin_email }}"
+    SEED_ADMIN_PASSWORD: "{{ seed_admin_password }}"
+  when: run_seed | bool
+  register: seed_result
+  failed_when: >
+    seed_result.rc != 0 and
+    'already exists' not in (seed_result.stdout | default('')) and
+    'already exists' not in (seed_result.stderr | default(''))
+
+- name: Show seed output
+  debug:
+    msg: "{{ seed_result.stdout_lines | default(['(no output)']) }}"
+  when: run_seed | bool
+
+# ── PM2 ───────────────────────────────────────────────────────
+- name: Stop existing PM2 backend process (if running)
+  shell: pm2 delete shopverse-backend || true
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+
+- name: Start backend with PM2
+  shell: >
+    pm2 start {{ app_dir }}/backend/dist/main.js
+    --name shopverse-backend
+    --env production
+    --max-memory-restart 512M
+    --log {{ app_dir }}/backend/logs/app.log
+    --error {{ app_dir }}/backend/logs/error.log
+    --time
+  become_user: "{{ ansible_user }}"
+  args:
+    chdir: "{{ app_dir }}/backend"
+
+- name: Ensure PM2 log directory exists
+  file:
+    path: "{{ app_dir }}/backend/logs"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Save PM2 process list
+  shell: pm2 save
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+
+# ── Nginx reverse proxy ───────────────────────────────────────
+- name: Write Nginx backend config
+  template:
+    src: backend.nginx.j2
+    dest: /etc/nginx/sites-available/shopverse-backend
+    mode: '0644'
+  notify: reload nginx
+
+- name: Enable Nginx backend site
+  file:
+    src: /etc/nginx/sites-available/shopverse-backend
+    dest: /etc/nginx/sites-enabled/shopverse-backend
+    state: link
+  notify: reload nginx
+
+- name: Test Nginx configuration
+  command: nginx -t
+  changed_when: false

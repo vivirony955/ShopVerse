@@ -1,0 +1,76 @@
+# ShopVerse — Nginx frontend (Next.js) reverse proxy
+# Managed by Ansible — do not edit manually.
+
+upstream shopverse_frontend {
+    server 127.0.0.1:{{ frontend_port }};
+    keepalive 64;
+}
+
+server {
+    listen 80;
+{% if frontend_domain %}
+    server_name {{ frontend_domain }};
+{% else %}
+    server_name {{ frontend_ip }} _;
+{% endif %}
+
+    # Security headers
+    add_header X-Frame-Options        "SAMEORIGIN"    always;
+    add_header X-Content-Type-Options "nosniff"       always;
+    add_header X-XSS-Protection       "1; mode=block" always;
+    add_header Referrer-Policy        "strict-origin-when-cross-origin" always;
+
+    client_max_body_size 10M;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types
+        text/plain text/css text/xml text/javascript
+        application/json application/javascript application/xml
+        application/rss+xml application/atom+xml image/svg+xml;
+
+    # ── Next.js static assets (long cache) ─────────────────
+    location /_next/static/ {
+        alias {{ app_dir }}/frontend/.next/static/;
+        expires 365d;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        access_log off;
+    }
+
+    # ── Public folder ───────────────────────────────────────
+    location /public/ {
+        alias {{ app_dir }}/frontend/public/;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+        access_log off;
+    }
+
+    # ── Favicon / robots ────────────────────────────────────
+    location = /favicon.ico {
+        alias {{ app_dir }}/frontend/public/favicon.ico;
+        expires 30d;
+        access_log off;
+    }
+
+    location = /robots.txt {
+        alias {{ app_dir }}/frontend/public/robots.txt;
+        access_log off;
+    }
+
+    # ── All Next.js pages + API routes ──────────────────────
+    location / {
+        proxy_pass         http://shopverse_frontend;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade    $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host       $host;
+        proxy_set_header   X-Real-IP  $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 120s;
+    }
+}

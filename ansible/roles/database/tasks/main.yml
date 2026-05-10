@@ -1,0 +1,119 @@
+---
+# ============================================================
+#  Database role — PostgreSQL setup
+#  - Installs PostgreSQL
+#  - Creates DB user + database
+#  - Opens pg_hba.conf for backend connections
+#  - Opens UFW port 5432 only from backend IP
+# ============================================================
+
+- name: Install PostgreSQL + Python adapter
+  apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - libpq-dev
+      - python3-psycopg2
+    state: present
+
+- name: Ensure PostgreSQL is started and enabled
+  systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+# ── Detect installed PostgreSQL version ───────────────────────
+- name: Get PostgreSQL version number
+  shell: >
+    ls /etc/postgresql/ | sort -V | tail -1
+  register: pg_version_raw
+  changed_when: false
+
+- name: Set pg_version fact
+  set_fact:
+    pg_version: "{{ pg_version_raw.stdout | trim }}"
+
+- name: Print detected PostgreSQL version
+  debug:
+    msg: "PostgreSQL version: {{ pg_version }}"
+
+# ── Set config paths ──────────────────────────────────────────
+- name: Set PostgreSQL config file paths
+  set_fact:
+    pg_conf_file: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+    pg_hba_file:  "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
+
+# ── Create user and database ──────────────────────────────────
+- name: Create PostgreSQL user
+  become_user: postgres
+  postgresql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    role_attr_flags: CREATEDB,LOGIN
+    state: present
+
+- name: Create PostgreSQL database
+  become_user: postgres
+  postgresql_db:
+    name: "{{ db_name }}"
+    owner: "{{ db_user }}"
+    encoding: UTF8
+    lc_collate: "en_US.UTF-8"
+    lc_ctype: "en_US.UTF-8"
+    template: template0
+    state: present
+
+- name: Grant all privileges on database to user
+  become_user: postgres
+  postgresql_privs:
+    db: "{{ db_name }}"
+    role: "{{ db_user }}"
+    type: database
+    privs: ALL
+    state: present
+
+# ── Remote connectivity ───────────────────────────────────────
+- name: Configure PostgreSQL to listen on all interfaces
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: "^#?listen_addresses\\s*="
+    line: "listen_addresses = '*'"
+  notify: restart postgresql
+
+- name: Allow local md5 connections in pg_hba.conf
+  lineinfile:
+    path: "{{ pg_hba_file }}"
+    line: "host    {{ db_name }}    {{ db_user }}    127.0.0.1/32    md5"
+    insertafter: "# IPv4 local connections:"
+    state: present
+  notify: restart postgresql
+
+- name: Allow backend-server connections in pg_hba.conf
+  lineinfile:
+    path: "{{ pg_hba_file }}"
+    line: "host    {{ db_name }}    {{ db_user }}    {{ backend_ip }}/32    md5"
+    insertafter: "# IPv4 local connections:"
+    state: present
+  when: backend_ip != db_ip
+  notify: restart postgresql
+
+# ── Flush handlers before UFW so restart happens first ────────
+- name: Flush handlers to apply PostgreSQL config
+  meta: flush_handlers
+
+# ── UFW ───────────────────────────────────────────────────────
+- name: UFW — allow PostgreSQL from backend server
+  ufw:
+    rule: allow
+    port: '5432'
+    proto: tcp
+    src: "{{ backend_ip }}"
+  when: backend_ip != db_ip
+
+- name: UFW — allow PostgreSQL locally (single-server mode)
+  ufw:
+    rule: allow
+    port: '5432'
+    proto: tcp
+    src: "127.0.0.1"
+  when: backend_ip == db_ip
