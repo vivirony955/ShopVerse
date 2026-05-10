@@ -68,7 +68,9 @@ describe('BrandsController', () => {
       mockBrandsService.update.mockResolvedValue(updated);
       const result = await controller.update(1, { name: 'Nike Inc' });
       expect(result).toEqual(updated);
-      expect(mockBrandsService.update).toHaveBeenCalledWith(1, { name: 'Nike Inc' });
+      expect(mockBrandsService.update).toHaveBeenCalledWith(1, {
+        name: 'Nike Inc',
+      });
     });
   });
 

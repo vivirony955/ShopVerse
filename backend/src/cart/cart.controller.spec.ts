@@ -25,7 +25,13 @@ describe('CartController', () => {
       controllers: [CartController],
       providers: [
         { provide: CartService, useValue: mockCartService },
-        { provide: CartReservationService, useValue: { createReservation: jest.fn(), validateForCheckout: jest.fn() } },
+        {
+          provide: CartReservationService,
+          useValue: {
+            createReservation: jest.fn(),
+            validateForCheckout: jest.fn(),
+          },
+        },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -59,7 +65,10 @@ describe('CartController', () => {
     it('adds an item and returns the cart item', async () => {
       const item = { id: 5, cartId: 1, variantId: 2, quantity: 2 };
       mockCartService.addItem.mockResolvedValue(item);
-      const result = await controller.addItem(mockReq, { variantId: 2, quantity: 2 });
+      const result = await controller.addItem(mockReq, {
+        variantId: 2,
+        quantity: 2,
+      });
       expect(result).toEqual(item);
       expect(mockCartService.addItem).toHaveBeenCalledWith(1, 2, 2);
     });

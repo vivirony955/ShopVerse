@@ -14,7 +14,9 @@ export class PriceAlertsService {
   ) {}
 
   async set(userId: number, productId: number, targetPrice: number) {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
     if (!product) throw new NotFoundException('Product not found');
     return this.prisma.priceAlert.upsert({
       where: { userId_productId: { userId, productId } },
@@ -26,7 +28,18 @@ export class PriceAlertsService {
   async getForUser(userId: number) {
     return this.prisma.priceAlert.findMany({
       where: { userId },
-      include: { product: { select: { id: true, name: true, slug: true, basePrice: true, discountPct: true, images: true } } },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            basePrice: true,
+            discountPct: true,
+            images: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -41,25 +54,39 @@ export class PriceAlertsService {
     const activeAlerts = await this.prisma.priceAlert.findMany({
       where: { isTriggered: false },
       include: {
-        product: { select: { name: true, basePrice: true, discountPct: true, slug: true } },
+        product: {
+          select: {
+            name: true,
+            basePrice: true,
+            discountPct: true,
+            slug: true,
+          },
+        },
         user: { select: { email: true, firstName: true } },
       },
     });
 
     for (const alert of activeAlerts) {
-      const effectivePrice = alert.product.basePrice * (1 - alert.product.discountPct / 100);
+      const effectivePrice =
+        alert.product.basePrice * (1 - alert.product.discountPct / 100);
       if (effectivePrice <= alert.targetPrice) {
         await this.prisma.priceAlert.update({
           where: { id: alert.id },
           data: { isTriggered: true, triggeredAt: new Date() },
         });
         // Fire and forget — non-blocking
-        this.email.sendPriceDropAlert(alert.user.email, alert.user.firstName ?? 'Customer', {
-          productName: alert.product.name,
-          currentPrice: effectivePrice,
-          targetPrice: alert.targetPrice,
-          slug: alert.product.slug,
-        }).catch(() => {});
+        this.email
+          .sendPriceDropAlert(
+            alert.user.email,
+            alert.user.firstName ?? 'Customer',
+            {
+              productName: alert.product.name,
+              currentPrice: effectivePrice,
+              targetPrice: alert.targetPrice,
+              slug: alert.product.slug,
+            },
+          )
+          .catch(() => {});
       }
     }
   }

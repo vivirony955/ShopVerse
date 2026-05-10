@@ -58,7 +58,10 @@ describe('WishlistController', () => {
       mockWishlistService.removeFromWishlist.mockResolvedValue({ id: 5 });
       const result = await controller.removeFromWishlist(mockReq, 10);
       expect(result).toEqual({ id: 5 });
-      expect(mockWishlistService.removeFromWishlist).toHaveBeenCalledWith(1, 10);
+      expect(mockWishlistService.removeFromWishlist).toHaveBeenCalledWith(
+        1,
+        10,
+      );
     });
   });
 });

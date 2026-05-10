@@ -16,7 +16,9 @@ export class EmailService {
 
   constructor(
     private readonly config: ConfigService,
-    @Optional() @InjectQueue('email') private readonly emailQueue?: Queue<EmailJobData>,
+    @Optional()
+    @InjectQueue('email')
+    private readonly emailQueue?: Queue<EmailJobData>,
   ) {
     const host = config.get<string>('SMTP_HOST', '');
     const port = config.get<number>('SMTP_PORT', 587);
@@ -28,7 +30,7 @@ export class EmailService {
     if (!this.enabled) {
       this.logger.warn(
         'Email is DISABLED — set SMTP_HOST, SMTP_USER, SMTP_PASS in .env to enable transactional emails. ' +
-        'Recommended: Resend (smtp.resend.com port 465) or SendGrid.',
+          'Recommended: Resend (smtp.resend.com port 465) or SendGrid.',
       );
     }
 
@@ -41,20 +43,30 @@ export class EmailService {
 
     // Verify connection on startup (non-blocking, log only)
     if (this.enabled) {
-      this.transporter.verify().then(() => {
-        this.logger.log(`Email connected to ${host}:${port}`);
-      }).catch((err) => {
-        this.logger.error(`Email connection failed (${host}:${port}): ${err.message}. Check SMTP credentials.`);
-      });
+      this.transporter
+        .verify()
+        .then(() => {
+          this.logger.log(`Email connected to ${host}:${port}`);
+        })
+        .catch((err) => {
+          this.logger.error(
+            `Email connection failed (${host}:${port}): ${err.message}. Check SMTP credentials.`,
+          );
+        });
     }
   }
 
   private async send(to: string, subject: string, html: string): Promise<void> {
     if (!this.enabled) {
-      this.logger.debug(`[EMAIL SUPPRESSED — no SMTP config] To: ${to} | Subject: ${subject}`);
+      this.logger.debug(
+        `[EMAIL SUPPRESSED — no SMTP config] To: ${to} | Subject: ${subject}`,
+      );
       return;
     }
-    const from = this.config.get<string>('SMTP_FROM', 'ShopVerse <no-reply@shopverse.com>');
+    const from = this.config.get<string>(
+      'SMTP_FROM',
+      'ShopVerse <no-reply@shopverse.com>',
+    );
     try {
       await this.transporter.sendMail({ from, to, subject, html });
       this.logger.debug(`Email sent to ${to}: ${subject}`);
@@ -69,13 +81,18 @@ export class EmailService {
    * Falls back to immediate synchronous send if queue is unavailable (no Redis).
    * This makes the queue opt-in: set REDIS_URL in .env to enable async delivery.
    */
-  private async enqueue(type: EmailJobData['type'], payload: Record<string, any>): Promise<void> {
+  private async enqueue(
+    type: EmailJobData['type'],
+    payload: Record<string, any>,
+  ): Promise<void> {
     if (this.emailQueue) {
       try {
         await this.emailQueue.add(type, { type, payload });
         return;
       } catch (err) {
-        this.logger.warn(`Email queue unavailable, falling back to sync send: ${err?.message}`);
+        this.logger.warn(
+          `Email queue unavailable, falling back to sync send: ${err?.message}`,
+        );
       }
     }
     // Fallback: synchronous inline execution (original behaviour).
@@ -91,7 +108,11 @@ export class EmailService {
     guestEmail?: string | null;
     user?: { email: string; firstName?: string | null } | null;
     total: number;
-    items: Array<{ variant: { product: { name: string } }; quantity: number; price: number }>;
+    items: Array<{
+      variant: { product: { name: string } };
+      quantity: number;
+      price: number;
+    }>;
   }): Promise<void> {
     const email = order.guestEmail ?? order.user?.email;
     if (!email) return;
@@ -179,7 +200,9 @@ export class EmailService {
     items: Array<{ name: string; quantity: number }>;
   }): Promise<void> {
     const name = opts.firstName ?? 'there';
-    const itemList = opts.items.map((i) => `<li>${i.name} ×${i.quantity}</li>`).join('');
+    const itemList = opts.items
+      .map((i) => `<li>${i.name} ×${i.quantity}</li>`)
+      .join('');
 
     await this.send(
       opts.to,
@@ -192,10 +215,18 @@ export class EmailService {
 
   async sendLowStockAlert(opts: {
     adminEmail: string;
-    variants: Array<{ product: { name: string }; size: string; color: string; stock: number }>;
+    variants: Array<{
+      product: { name: string };
+      size: string;
+      color: string;
+      stock: number;
+    }>;
   }): Promise<void> {
     const rows = opts.variants
-      .map((v) => `<tr><td>${v.product.name}</td><td>${v.size}/${v.color}</td><td>${v.stock}</td></tr>`)
+      .map(
+        (v) =>
+          `<tr><td>${v.product.name}</td><td>${v.size}/${v.color}</td><td>${v.stock}</td></tr>`,
+      )
       .join('');
 
     await this.send(
@@ -222,12 +253,16 @@ export class EmailService {
     );
   }
 
-  async sendPriceDropAlert(to: string, firstName: string, opts: {
-    productName: string;
-    currentPrice: number;
-    targetPrice: number;
-    slug: string;
-  }): Promise<void> {
+  async sendPriceDropAlert(
+    to: string,
+    firstName: string,
+    opts: {
+      productName: string;
+      currentPrice: number;
+      targetPrice: number;
+      slug: string;
+    },
+  ): Promise<void> {
     await this.send(
       to,
       `Price drop alert: ${opts.productName}`,
@@ -237,10 +272,14 @@ export class EmailService {
     );
   }
 
-  async sendCashbackCredited(to: string, firstName: string, opts: {
-    amount: number;
-    orderId: number;
-  }): Promise<void> {
+  async sendCashbackCredited(
+    to: string,
+    firstName: string,
+    opts: {
+      amount: number;
+      orderId: number;
+    },
+  ): Promise<void> {
     await this.send(
       to,
       'Cashback credited to your ShopVerse wallet!',

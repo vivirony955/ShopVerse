@@ -21,7 +21,9 @@ describe('CategoriesController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CategoriesController],
-      providers: [{ provide: CategoriesService, useValue: mockCategoriesService }],
+      providers: [
+        { provide: CategoriesService, useValue: mockCategoriesService },
+      ],
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
@@ -60,7 +62,10 @@ describe('CategoriesController', () => {
       mockCategoriesService.create.mockResolvedValue(created);
       const result = await controller.create({ name: 'Kids', slug: 'kids' });
       expect(result).toEqual(created);
-      expect(mockCategoriesService.create).toHaveBeenCalledWith({ name: 'Kids', slug: 'kids' });
+      expect(mockCategoriesService.create).toHaveBeenCalledWith({
+        name: 'Kids',
+        slug: 'kids',
+      });
     });
   });
 
@@ -70,7 +75,9 @@ describe('CategoriesController', () => {
       mockCategoriesService.update.mockResolvedValue(updated);
       const result = await controller.update(1, { name: 'Mens' });
       expect(result).toEqual(updated);
-      expect(mockCategoriesService.update).toHaveBeenCalledWith(1, { name: 'Mens' });
+      expect(mockCategoriesService.update).toHaveBeenCalledWith(1, {
+        name: 'Mens',
+      });
     });
   });
 

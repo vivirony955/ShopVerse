@@ -1,7 +1,16 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ExchangeService } from './exchange.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -16,13 +25,22 @@ export class ExchangeController {
   @Post()
   request(
     @CurrentUser() user: any,
-    @Body() dto: { orderId: number; orderItemId: number; requestedVariantId: number; reason: string },
+    @Body()
+    dto: {
+      orderId: number;
+      orderItemId: number;
+      requestedVariantId: number;
+      reason: string;
+    },
   ) {
     return this.svc.request(user.id, dto);
   }
 
   @Get('order/:orderId')
-  getForOrder(@CurrentUser() user: any, @Param('orderId', ParseIntPipe) orderId: number) {
+  getForOrder(
+    @CurrentUser() user: any,
+    @Param('orderId', ParseIntPipe) orderId: number,
+  ) {
     return this.svc.getForOrder(user.id, orderId);
   }
 

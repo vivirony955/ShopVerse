@@ -2,14 +2,19 @@
 // See LICENSE in the project root for license information.
 
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { BlacklistType, FraudFlagStatus, FraudFlagType, OrderStatus } from '@prisma/client';
+import {
+  BlacklistType,
+  FraudFlagStatus,
+  FraudFlagType,
+  OrderStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddBlacklistDto, FlagFraudDto, ResolveFlagDto } from './dto/fraud.dto';
 
 // Risk score thresholds
 const HIGH_RISK_THRESHOLD = 70;
 const RETURN_RATE_ABUSE_THRESHOLD = 0.5; // >50% return rate
-const COD_CANCEL_RATE_THRESHOLD = 0.4;   // >40% COD cancellation rate
+const COD_CANCEL_RATE_THRESHOLD = 0.4; // >40% COD cancellation rate
 
 @Injectable()
 export class FraudService {
@@ -28,7 +33,11 @@ export class FraudService {
     if (totalOrders === 0) return 0;
 
     const returnedOrders = orders.filter((o) => {
-      const returnStatuses: string[] = ['RETURNED', 'RETURN_REQUESTED', 'REFUNDED'];
+      const returnStatuses: string[] = [
+        'RETURNED',
+        'RETURN_REQUESTED',
+        'REFUNDED',
+      ];
       return returnStatuses.includes(o.status);
     }).length;
     const returnRate = returnedOrders / totalOrders;
@@ -56,7 +65,13 @@ export class FraudService {
     await this.prisma.userRiskScore.upsert({
       where: { userId },
       create: { userId, score, returnRate, refundAbuse, codAbuse },
-      update: { score, returnRate, refundAbuse, codAbuse, lastUpdated: new Date() },
+      update: {
+        score,
+        returnRate,
+        refundAbuse,
+        codAbuse,
+        lastUpdated: new Date(),
+      },
     });
 
     // Auto-flag high risk users
@@ -67,40 +82,56 @@ export class FraudService {
     return score;
   }
 
-  private async autoFlag(userId: number, score: number, refundAbuse: boolean, codAbuse: boolean) {
+  private async autoFlag(
+    userId: number,
+    score: number,
+    refundAbuse: boolean,
+    codAbuse: boolean,
+  ) {
     if (refundAbuse) {
-      await this.prisma.fraudFlag.upsert({
-        where: {
-          // create unique constraint workaround: check open flags
-          id: (await this.prisma.fraudFlag.findFirst({
-            where: { userId, type: FraudFlagType.HIGH_RETURN_RATE, status: FraudFlagStatus.OPEN },
-          }))?.id ?? 0,
-        },
-        create: {
-          userId,
-          type: FraudFlagType.HIGH_RETURN_RATE,
-          detail: `Auto-flagged: return rate abuse, score ${score}`,
-          status: FraudFlagStatus.OPEN,
-        },
-        update: {},
-      }).catch(() =>
-        this.prisma.fraudFlag.create({
-          data: {
+      await this.prisma.fraudFlag
+        .upsert({
+          where: {
+            // create unique constraint workaround: check open flags
+            id:
+              (
+                await this.prisma.fraudFlag.findFirst({
+                  where: {
+                    userId,
+                    type: FraudFlagType.HIGH_RETURN_RATE,
+                    status: FraudFlagStatus.OPEN,
+                  },
+                })
+              )?.id ?? 0,
+          },
+          create: {
             userId,
             type: FraudFlagType.HIGH_RETURN_RATE,
             detail: `Auto-flagged: return rate abuse, score ${score}`,
+            status: FraudFlagStatus.OPEN,
           },
-        }),
-      );
+          update: {},
+        })
+        .catch(() =>
+          this.prisma.fraudFlag.create({
+            data: {
+              userId,
+              type: FraudFlagType.HIGH_RETURN_RATE,
+              detail: `Auto-flagged: return rate abuse, score ${score}`,
+            },
+          }),
+        );
     }
     if (codAbuse) {
-      await this.prisma.fraudFlag.create({
-        data: {
-          userId,
-          type: FraudFlagType.COD_ABUSE,
-          detail: `Auto-flagged: COD cancellation abuse, score ${score}`,
-        },
-      }).catch(() => null);
+      await this.prisma.fraudFlag
+        .create({
+          data: {
+            userId,
+            type: FraudFlagType.COD_ABUSE,
+            detail: `Auto-flagged: COD cancellation abuse, score ${score}`,
+          },
+        })
+        .catch(() => null);
     }
   }
 
@@ -174,21 +205,35 @@ export class FraudService {
       checks.push(this.isBlacklisted(BlacklistType.IP, params.ip));
     }
     if (params.deviceFingerprint) {
-      checks.push(this.isBlacklisted(BlacklistType.DEVICE, params.deviceFingerprint));
+      checks.push(
+        this.isBlacklisted(BlacklistType.DEVICE, params.deviceFingerprint),
+      );
     }
-    checks.push(this.isBlacklisted(BlacklistType.USER, params.userId.toString()));
+    checks.push(
+      this.isBlacklisted(BlacklistType.USER, params.userId.toString()),
+    );
 
     const results = await Promise.all(checks);
     const blacklistedIndex = results.findIndex(Boolean);
     if (blacklistedIndex !== -1) {
-      const type = blacklistedIndex === 0 && params.ip ? 'IP' : blacklistedIndex === 1 && params.deviceFingerprint ? 'device' : 'account';
+      const type =
+        blacklistedIndex === 0 && params.ip
+          ? 'IP'
+          : blacklistedIndex === 1 && params.deviceFingerprint
+            ? 'device'
+            : 'account';
       return { blocked: true, reason: `Blocked: ${type} is blacklisted` };
     }
 
     // Check risk score
-    const riskRecord = await this.prisma.userRiskScore.findUnique({ where: { userId: params.userId } });
+    const riskRecord = await this.prisma.userRiskScore.findUnique({
+      where: { userId: params.userId },
+    });
     if (riskRecord && riskRecord.score >= HIGH_RISK_THRESHOLD) {
-      return { blocked: true, reason: `Blocked: high risk score (${riskRecord.score})` };
+      return {
+        blocked: true,
+        reason: `Blocked: high risk score (${riskRecord.score})`,
+      };
     }
 
     return { blocked: false };
@@ -202,15 +247,26 @@ export class FraudService {
   }): Promise<{ blocked: boolean; reason?: string }> {
     const checks: Array<Promise<boolean>> = [];
     if (params.ip) checks.push(this.isBlacklisted(BlacklistType.IP, params.ip));
-    if (params.deviceFingerprint) checks.push(this.isBlacklisted(BlacklistType.DEVICE, params.deviceFingerprint));
-    if (params.email) checks.push(this.isBlacklisted(BlacklistType.USER, params.email.toLowerCase()));
+    if (params.deviceFingerprint)
+      checks.push(
+        this.isBlacklisted(BlacklistType.DEVICE, params.deviceFingerprint),
+      );
+    if (params.email)
+      checks.push(
+        this.isBlacklisted(BlacklistType.USER, params.email.toLowerCase()),
+      );
 
     if (checks.length === 0) return { blocked: false };
 
     const results = await Promise.all(checks);
     const idx = results.findIndex(Boolean);
     if (idx !== -1) {
-      const type = idx === 0 && params.ip ? 'IP' : idx === 1 && params.deviceFingerprint ? 'device' : 'email';
+      const type =
+        idx === 0 && params.ip
+          ? 'IP'
+          : idx === 1 && params.deviceFingerprint
+            ? 'device'
+            : 'email';
       return { blocked: true, reason: `Blocked: ${type} is blacklisted` };
     }
     return { blocked: false };

@@ -1,7 +1,18 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { BlogService } from './blog.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -32,7 +43,11 @@ export class BlogController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.MERCH)
-  update(@CurrentUser() user: any, @Param('id', ParseIntPipe) id: number, @Body() dto: any) {
+  update(
+    @CurrentUser() user: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: any,
+  ) {
     const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user.role);
     return this.svc.update(id, user.id, isAdmin, dto);
   }

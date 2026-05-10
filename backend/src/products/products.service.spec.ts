@@ -20,7 +20,12 @@ describe('ProductsService', () => {
     set: jest.fn().mockResolvedValue(undefined),
     del: jest.fn().mockResolvedValue(undefined),
     delByPattern: jest.fn().mockResolvedValue(undefined),
-    getOrLoad: jest.fn().mockImplementation(async (_key: string, _ttl: number, loader: () => Promise<unknown>) => loader()),
+    getOrLoad: jest
+      .fn()
+      .mockImplementation(
+        async (_key: string, _ttl: number, loader: () => Promise<unknown>) =>
+          loader(),
+      ),
   };
 
   beforeEach(async () => {
@@ -44,7 +49,13 @@ describe('ProductsService', () => {
 
   describe('findAll', () => {
     const mockItems = [
-      { id: 1, name: 'Polo Shirt', basePrice: 999, brand: { id: 1, name: 'Nike' }, variants: [] },
+      {
+        id: 1,
+        name: 'Polo Shirt',
+        basePrice: 999,
+        brand: { id: 1, name: 'Nike' },
+        variants: [],
+      },
     ];
 
     it('returns paginated result with defaults', async () => {
@@ -52,7 +63,13 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(1);
 
       const result = await service.findAll({});
-      expect(result).toEqual({ items: mockItems, total: 1, page: 1, limit: 20, totalPages: 1 });
+      expect(result).toEqual({
+        items: mockItems,
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
     });
 
     it('applies search filter', async () => {
@@ -60,7 +77,8 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ search: 'shirt' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0].where;
+      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
+        .where;
       expect(whereArg.OR).toBeDefined();
       expect(whereArg.OR[0]).toMatchObject({ name: { contains: 'shirt' } });
     });
@@ -70,7 +88,8 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ category: 'men' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0].where;
+      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
+        .where;
       expect(whereArg.category).toEqual({ slug: 'men' });
     });
 
@@ -79,7 +98,8 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ brand: 'nike' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0].where;
+      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
+        .where;
       expect(whereArg.brand).toEqual({ slug: 'nike' });
     });
 
@@ -88,7 +108,8 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ minPrice: 500, maxPrice: 2000 });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0].where;
+      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
+        .where;
       expect(whereArg.basePrice).toEqual({ gte: 500, lte: 2000 });
     });
 
@@ -97,8 +118,13 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ size: 'M', color: 'Blue' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0].where;
-      expect(whereArg.variants.some).toMatchObject({ size: 'M', color: 'Blue', stock: { gt: 0 } });
+      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
+        .where;
+      expect(whereArg.variants.some).toMatchObject({
+        size: 'M',
+        color: 'Blue',
+        stock: { gt: 0 },
+      });
     });
 
     it('applies tags filter', async () => {
@@ -106,7 +132,8 @@ describe('ProductsService', () => {
       prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({ tags: 'summer,cotton' });
-      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0].where;
+      const whereArg = (prisma.product.findMany as jest.Mock).mock.calls[0][0]
+        .where;
       expect(whereArg.tags).toEqual({ hasSome: ['summer', 'cotton'] });
     });
 
@@ -131,7 +158,14 @@ describe('ProductsService', () => {
 
   describe('findOne', () => {
     it('returns product with relations', async () => {
-      const product = { id: 1, name: 'Polo', brand: {}, category: {}, variants: [], reviews: [] };
+      const product = {
+        id: 1,
+        name: 'Polo',
+        brand: {},
+        category: {},
+        variants: [],
+        reviews: [],
+      };
       prisma.product.findUnique.mockResolvedValue(product);
       const result = await service.findOne(1);
       expect(result).toEqual(product);
@@ -151,10 +185,21 @@ describe('ProductsService', () => {
   describe('create', () => {
     it('creates and returns product with relations', async () => {
       const dto = {
-        name: 'T-Shirt', slug: 't-shirt', description: 'Cotton tee',
-        brandId: 1, categoryId: 2, basePrice: 799, images: ['img.jpg'],
+        name: 'T-Shirt',
+        slug: 't-shirt',
+        description: 'Cotton tee',
+        brandId: 1,
+        categoryId: 2,
+        basePrice: 799,
+        images: ['img.jpg'],
       };
-      const created = { id: 5, ...dto, tags: [], brand: { id: 1, name: 'Nike' }, category: {} };
+      const created = {
+        id: 5,
+        ...dto,
+        tags: [],
+        brand: { id: 1, name: 'Nike' },
+        category: {},
+      };
       prisma.product.create.mockResolvedValue(created);
       const result = await service.create(dto);
       expect(result).toEqual(created);
@@ -162,12 +207,18 @@ describe('ProductsService', () => {
 
     it('defaults tags to empty array when not provided', async () => {
       const dto = {
-        name: 'T-Shirt', slug: 't-shirt', description: 'Cotton',
-        brandId: 1, categoryId: 2, basePrice: 799, images: [],
+        name: 'T-Shirt',
+        slug: 't-shirt',
+        description: 'Cotton',
+        brandId: 1,
+        categoryId: 2,
+        basePrice: 799,
+        images: [],
       };
       prisma.product.create.mockResolvedValue({ id: 1, ...dto, tags: [] });
       await service.create(dto);
-      const dataArg = (prisma.product.create as jest.Mock).mock.calls[0][0].data;
+      const dataArg = (prisma.product.create as jest.Mock).mock.calls[0][0]
+        .data;
       expect(dataArg.tags).toEqual([]);
     });
   });
@@ -177,14 +228,21 @@ describe('ProductsService', () => {
   describe('update', () => {
     it('updates and returns product', async () => {
       prisma.product.findUnique.mockResolvedValue({ id: 1, name: 'Old' });
-      prisma.product.update.mockResolvedValue({ id: 1, name: 'New', brand: {}, category: {} });
+      prisma.product.update.mockResolvedValue({
+        id: 1,
+        name: 'New',
+        brand: {},
+        category: {},
+      });
       const result = await service.update(1, { name: 'New' });
       expect(result.name).toBe('New');
     });
 
     it('throws NotFoundException for unknown product', async () => {
       prisma.product.findUnique.mockResolvedValue(null);
-      await expect(service.update(999, { name: 'X' })).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, { name: 'X' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -207,19 +265,41 @@ describe('ProductsService', () => {
 
   describe('addVariant', () => {
     it('creates a variant for a product', async () => {
-      const variant = { id: 10, productId: 1, size: 'L', color: 'Red', stock: 50, sku: 'SKU-001' };
+      const variant = {
+        id: 10,
+        productId: 1,
+        size: 'L',
+        color: 'Red',
+        stock: 50,
+        sku: 'SKU-001',
+      };
       prisma.variant.create.mockResolvedValue(variant);
-      const result = await service.addVariant(1, { size: 'L', color: 'Red', stock: 50, sku: 'SKU-001' });
+      const result = await service.addVariant(1, {
+        size: 'L',
+        color: 'Red',
+        stock: 50,
+        sku: 'SKU-001',
+      });
       expect(result).toEqual(variant);
       expect(prisma.variant.create).toHaveBeenCalledWith({
-        data: { size: 'L', color: 'Red', stock: 50, sku: 'SKU-001', productId: 1 },
+        data: {
+          size: 'L',
+          color: 'Red',
+          stock: 50,
+          sku: 'SKU-001',
+          productId: 1,
+        },
       });
     });
   });
 
   describe('updateVariant', () => {
     it('updates a variant', async () => {
-      prisma.variant.findFirst.mockResolvedValue({ id: 10, productId: 1, stock: 50 });
+      prisma.variant.findFirst.mockResolvedValue({
+        id: 10,
+        productId: 1,
+        stock: 50,
+      });
       prisma.variant.update.mockResolvedValue({ id: 10, stock: 30 });
       const result = await service.updateVariant(1, 10, { stock: 30 });
       expect(result.stock).toBe(30);
@@ -227,7 +307,9 @@ describe('ProductsService', () => {
 
     it('throws NotFoundException when variant not in product', async () => {
       prisma.variant.findFirst.mockResolvedValue(null);
-      await expect(service.updateVariant(1, 99, { stock: 5 })).rejects.toThrow(NotFoundException);
+      await expect(service.updateVariant(1, 99, { stock: 5 })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -240,7 +322,9 @@ describe('ProductsService', () => {
 
     it('throws NotFoundException when variant not in product', async () => {
       prisma.variant.findFirst.mockResolvedValue(null);
-      await expect(service.deleteVariant(1, 99)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteVariant(1, 99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

@@ -15,19 +15,41 @@ export class UsersService {
   async findById(id: number) {
     return this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, createdAt: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+      },
     });
   }
 
-  async create(data: { email: string; password: string; firstName?: string; lastName?: string }) {
+  async create(data: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+  }) {
     return this.prisma.user.create({ data });
   }
 
-  async updateProfile(id: number, data: { firstName?: string; lastName?: string; phone?: string }) {
+  async updateProfile(
+    id: number,
+    data: { firstName?: string; lastName?: string; phone?: string },
+  ) {
     return this.prisma.user.update({
       where: { id },
       data,
-      select: { id: true, email: true, firstName: true, lastName: true, phone: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+      },
     });
   }
 
@@ -51,30 +73,48 @@ export class UsersService {
     },
   ) {
     if (data.isDefault) {
-      await this.prisma.address.updateMany({ where: { userId }, data: { isDefault: false } });
+      await this.prisma.address.updateMany({
+        where: { userId },
+        data: { isDefault: false },
+      });
     }
     return this.prisma.address.create({ data: { ...data, userId } });
   }
 
   async updateAddress(userId: number, addressId: number, data: any) {
-    const addr = await this.prisma.address.findFirst({ where: { id: addressId, userId } });
+    const addr = await this.prisma.address.findFirst({
+      where: { id: addressId, userId },
+    });
     if (!addr) throw new NotFoundException('Address not found');
     if (data.isDefault) {
-      await this.prisma.address.updateMany({ where: { userId }, data: { isDefault: false } });
+      await this.prisma.address.updateMany({
+        where: { userId },
+        data: { isDefault: false },
+      });
     }
     return this.prisma.address.update({ where: { id: addressId }, data });
   }
 
   async deleteAddress(userId: number, addressId: number) {
-    const addr = await this.prisma.address.findFirst({ where: { id: addressId, userId } });
+    const addr = await this.prisma.address.findFirst({
+      where: { id: addressId, userId },
+    });
     if (!addr) throw new NotFoundException('Address not found');
     return this.prisma.address.delete({ where: { id: addressId } });
   }
 
   async setDefaultAddress(userId: number, addressId: number) {
-    const addr = await this.prisma.address.findFirst({ where: { id: addressId, userId } });
+    const addr = await this.prisma.address.findFirst({
+      where: { id: addressId, userId },
+    });
     if (!addr) throw new NotFoundException('Address not found');
-    await this.prisma.address.updateMany({ where: { userId }, data: { isDefault: false } });
-    return this.prisma.address.update({ where: { id: addressId }, data: { isDefault: true } });
+    await this.prisma.address.updateMany({
+      where: { userId },
+      data: { isDefault: false },
+    });
+    return this.prisma.address.update({
+      where: { id: addressId },
+      data: { isDefault: true },
+    });
   }
 }

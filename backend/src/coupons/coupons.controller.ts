@@ -1,13 +1,28 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, ParseIntPipe, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  ParseIntPipe,
+  HttpCode,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles, Role } from '../auth/roles.decorator';
 import { CouponsService } from './coupons.service';
-import { ValidateCouponDto, CreateCouponDto, UpdateCouponDto } from './dto/coupon.dto';
+import {
+  ValidateCouponDto,
+  CreateCouponDto,
+  UpdateCouponDto,
+} from './dto/coupon.dto';
 
 @Controller('coupons')
 export class CouponsController {

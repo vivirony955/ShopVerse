@@ -7,9 +7,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { LedgerType, Prisma, ReconcileStatus, WalletTxType } from '@prisma/client';
+import {
+  LedgerType,
+  Prisma,
+  ReconcileStatus,
+  WalletTxType,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreditWalletDto, DebitWalletDto, ReconcilePaymentDto } from './dto/wallet.dto';
+import {
+  CreditWalletDto,
+  DebitWalletDto,
+  ReconcilePaymentDto,
+} from './dto/wallet.dto';
 
 // V-09 FIX: maximum allowed wallet balance (₹1,00,000). Prevents unlimited accumulation
 // via repeated refund-to-wallet cycles. Admin credits are also subject to this cap.
@@ -72,9 +81,16 @@ export class WalletService {
       });
     } catch (e) {
       // Unique violation on (walletId, reference, CREDIT) → this credit already happened.
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
         const existing = await this.prisma.walletTransaction.findFirst({
-          where: { wallet: { userId: dto.userId }, reference, type: WalletTxType.CREDIT },
+          where: {
+            wallet: { userId: dto.userId },
+            reference,
+            type: WalletTxType.CREDIT,
+          },
         });
         if (existing) return existing;
       }
@@ -90,7 +106,9 @@ export class WalletService {
     const reference = dto.reference ?? `wallet:debit:${randomUUID()}`;
     try {
       return await this.prisma.$transaction(async (tx) => {
-        const wallet = await tx.wallet.findUnique({ where: { userId: dto.userId } });
+        const wallet = await tx.wallet.findUnique({
+          where: { userId: dto.userId },
+        });
         if (!wallet) throw new NotFoundException('Wallet not found');
 
         // Conditional decrement: only debits if balance is sufficient. No read-then-write race.
@@ -101,7 +119,9 @@ export class WalletService {
         if (updated.count === 0) {
           throw new BadRequestException('Insufficient wallet balance');
         }
-        const refreshed = await tx.wallet.findUnique({ where: { id: wallet.id } });
+        const refreshed = await tx.wallet.findUnique({
+          where: { id: wallet.id },
+        });
 
         const txRecord = await tx.walletTransaction.create({
           data: {
@@ -124,9 +144,16 @@ export class WalletService {
         return txRecord;
       });
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
         const existing = await this.prisma.walletTransaction.findFirst({
-          where: { wallet: { userId: dto.userId }, reference, type: WalletTxType.DEBIT },
+          where: {
+            wallet: { userId: dto.userId },
+            reference,
+            type: WalletTxType.DEBIT,
+          },
         });
         if (existing) return existing;
       }
@@ -152,11 +179,16 @@ export class WalletService {
     let status: ReconcileStatus = ReconcileStatus.PENDING;
 
     if (dto.orderId) {
-      const order = await this.prisma.order.findUnique({ where: { id: dto.orderId } });
+      const order = await this.prisma.order.findUnique({
+        where: { id: dto.orderId },
+      });
       if (order) {
         internalAmount = order.total;
         discrepancy = Math.abs(dto.gatewayAmount - (internalAmount ?? 0));
-        status = discrepancy < 0.01 ? ReconcileStatus.MATCHED : ReconcileStatus.DISCREPANCY;
+        status =
+          discrepancy < 0.01
+            ? ReconcileStatus.MATCHED
+            : ReconcileStatus.DISCREPANCY;
       }
     }
 
@@ -208,7 +240,9 @@ export class WalletService {
    * Marks the order as PAID and creates a reconciliation record.
    */
   async confirmCODDelivery(orderId: number, agentNote?: string) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order) throw new NotFoundException('Order not found');
     if (order.paymentMethod !== 'COD') {
       throw new BadRequestException('Order is not a COD order');
@@ -247,7 +281,9 @@ export class WalletService {
         },
       });
 
-      return { message: `COD of ₹${order.total} confirmed for order #${orderId}` };
+      return {
+        message: `COD of ₹${order.total} confirmed for order #${orderId}`,
+      };
     });
   }
 }

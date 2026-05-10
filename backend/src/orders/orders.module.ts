@@ -14,7 +14,16 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
-  imports: [CouponsModule, EmailModule, FraudModule, CartModule, LoyaltyModule, ReferralModule, InventoryModule, WalletModule],
+  imports: [
+    CouponsModule,
+    EmailModule,
+    FraudModule,
+    CartModule,
+    LoyaltyModule,
+    ReferralModule,
+    InventoryModule,
+    WalletModule,
+  ],
   controllers: [OrdersController],
   providers: [OrdersService],
   exports: [OrdersService],

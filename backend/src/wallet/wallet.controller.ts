@@ -1,9 +1,24 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { WalletService } from './wallet.service';
-import { CreditWalletDto, DebitWalletDto, ReconcilePaymentDto } from './dto/wallet.dto';
+import {
+  CreditWalletDto,
+  DebitWalletDto,
+  ReconcilePaymentDto,
+} from './dto/wallet.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
@@ -33,7 +48,7 @@ export class WalletController {
     if (!dto.reference) {
       throw new BadRequestException(
         'reference is required for admin wallet credits. ' +
-        'Use format: admin:credit:<reason>:<YYYYMMDD>',
+          'Use format: admin:credit:<reason>:<YYYYMMDD>',
       );
     }
     return this.svc.credit(dto);

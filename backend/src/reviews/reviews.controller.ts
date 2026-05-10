@@ -2,11 +2,20 @@
 // See LICENSE in the project root for license information.
 
 import {
-  Controller, Get, Post, Patch, Delete,
-  Param, Body, Query, UseGuards, Req, ParseIntPipe,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Roles, Role } from '../auth/roles.decorator';
+import { Role } from '../auth/roles.decorator';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto, UpdateReviewDto } from './dto/review.dto';
 
@@ -20,7 +29,11 @@ export class ReviewsController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    return this.reviewsService.getProductReviews(productId, Number(page), Number(limit));
+    return this.reviewsService.getProductReviews(
+      productId,
+      Number(page),
+      Number(limit),
+    );
   }
 
   @UseGuards(JwtAuthGuard)

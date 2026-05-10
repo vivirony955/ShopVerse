@@ -1,7 +1,12 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,11 +20,21 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async register(email: string, password: string, firstName?: string, lastName?: string) {
+  async register(
+    email: string,
+    password: string,
+    firstName?: string,
+    lastName?: string,
+  ) {
     const existing = await this.usersService.findOneByEmail(email);
     if (existing) throw new ConflictException('Email already in use');
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await this.usersService.create({ email, password: hashedPassword, firstName, lastName });
+    const user = await this.usersService.create({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+    });
     const { password: _, ...result } = user;
     return result;
   }
@@ -42,9 +57,11 @@ export class AuthService {
       const attempts = (user.failedLoginAttempts ?? 0) + 1;
       // Lock for 15 min after 5th failure; extend to 60 min after 8th
       const lockout =
-        attempts >= 8 ? new Date(Date.now() + 60 * 60 * 1000) :
-        attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) :
-        null;
+        attempts >= 8
+          ? new Date(Date.now() + 60 * 60 * 1000)
+          : attempts >= 5
+            ? new Date(Date.now() + 15 * 60 * 1000)
+            : null;
       await this.prisma.user.update({
         where: { id: user.id },
         data: { failedLoginAttempts: { increment: 1 }, lockedUntil: lockout },
@@ -60,7 +77,7 @@ export class AuthService {
       });
     }
 
-    const { password, ...result } = user;
+    const { password: _password, ...result } = user;
     return result;
   }
 
@@ -92,7 +109,12 @@ export class AuthService {
         throw new UnauthorizedException('Refresh token has been revoked');
       }
       const newAccessToken = this.jwtService.sign(
-        { username: payload.username, sub: payload.sub, role: user.role, tv: user.tokenVersion },
+        {
+          username: payload.username,
+          sub: payload.sub,
+          role: user.role,
+          tv: user.tokenVersion,
+        },
         { expiresIn: '15m' },
       );
       return { access_token: newAccessToken };
@@ -106,7 +128,11 @@ export class AuthService {
    * V-10: Change password. Verifies current password, hashes new one, and increments
    * tokenVersion to invalidate all currently active refresh tokens for this user.
    */
-  async changePassword(userId: number, currentPassword: string, newPassword: string) {
+  async changePassword(
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
     const valid = await bcrypt.compare(currentPassword, user.password);

@@ -1,7 +1,7 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEndpointDto, UpdateEndpointDto } from './dto/webhook.dto';
@@ -54,21 +54,39 @@ export class WebhooksService {
       where: { isActive: true },
     });
 
-    const matching = endpoints.filter((ep) => ep.events.includes(event) || ep.events.includes('*'));
+    const matching = endpoints.filter(
+      (ep) => ep.events.includes(event) || ep.events.includes('*'),
+    );
 
     for (const ep of matching) {
-      const body = JSON.stringify({ event, data: payload, timestamp: Date.now() });
-      const signature = createHmac('sha256', ep.secret).update(body).digest('hex');
+      const body = JSON.stringify({
+        event,
+        data: payload,
+        timestamp: Date.now(),
+      });
+      const signature = createHmac('sha256', ep.secret)
+        .update(body)
+        .digest('hex');
 
       const delivery = await this.prisma.webhookDelivery.create({
-        data: { endpointId: ep.id, event, payload: payload as any, attempts: 0 },
+        data: {
+          endpointId: ep.id,
+          event,
+          payload: payload as any,
+          attempts: 0,
+        },
       });
 
       await this.deliver(delivery.id, ep.url, body, signature);
     }
   }
 
-  private async deliver(deliveryId: number, url: string, body: string, signature: string) {
+  private async deliver(
+    deliveryId: number,
+    url: string,
+    body: string,
+    signature: string,
+  ) {
     try {
       const response = await firstValueFrom(
         this.http.post(url, body, {
@@ -82,7 +100,12 @@ export class WebhooksService {
 
       await this.prisma.webhookDelivery.update({
         where: { id: deliveryId },
-        data: { responseCode: response.status, attempts: { increment: 1 }, success: true, nextRetryAt: null },
+        data: {
+          responseCode: response.status,
+          attempts: { increment: 1 },
+          success: true,
+          nextRetryAt: null,
+        },
       });
     } catch (err: any) {
       const delivery = await this.prisma.webhookDelivery.update({
@@ -108,21 +131,41 @@ export class WebhooksService {
   @Cron(CronExpression.EVERY_MINUTE)
   async retryFailed() {
     // FINAL §9.4 R-010 / M-005: prevent double-sending from concurrent replicas.
-    await this.cronLock.runExclusive('webhook-retry-failed', 55_000, async () => {
-      const due = await this.prisma.webhookDelivery.findMany({
-        where: { success: false, nextRetryAt: { lte: new Date() }, attempts: { lt: MAX_ATTEMPTS } },
-        include: { endpoint: true },
-        take: 50,
-      });
+    await this.cronLock.runExclusive(
+      'webhook-retry-failed',
+      55_000,
+      async () => {
+        const due = await this.prisma.webhookDelivery.findMany({
+          where: {
+            success: false,
+            nextRetryAt: { lte: new Date() },
+            attempts: { lt: MAX_ATTEMPTS },
+          },
+          include: { endpoint: true },
+          take: 50,
+        });
 
-      for (const delivery of due) {
-        const body = JSON.stringify({ event: delivery.event, data: delivery.payload, timestamp: Date.now() });
-        const signature = createHmac('sha256', delivery.endpoint.secret).update(body).digest('hex');
-        await this.deliver(delivery.id, delivery.endpoint.url, body, signature);
-      }
+        for (const delivery of due) {
+          const body = JSON.stringify({
+            event: delivery.event,
+            data: delivery.payload,
+            timestamp: Date.now(),
+          });
+          const signature = createHmac('sha256', delivery.endpoint.secret)
+            .update(body)
+            .digest('hex');
+          await this.deliver(
+            delivery.id,
+            delivery.endpoint.url,
+            body,
+            signature,
+          );
+        }
 
-      if (due.length > 0) this.logger.log(`Retried ${due.length} webhook deliveries`);
-    });
+        if (due.length > 0)
+          this.logger.log(`Retried ${due.length} webhook deliveries`);
+      },
+    );
   }
 
   async getDeliveries(endpointId: number) {

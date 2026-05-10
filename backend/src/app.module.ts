@@ -97,21 +97,21 @@ import { VolumeDiscountsModule } from './volume-discounts/volume-discounts.modul
     InvoicesModule,
 
     // ─── Advanced feature modules ─────────────────────────────────────────────
-    WarehouseModule,      // Smart order routing, inventory, partial shipments
-    WalletModule,         // Store credits, double-entry ledger, payment reconciliation
-    FraudModule,          // Risk scoring, blacklist, fraud flags
-    WebhooksModule,       // Event webhooks with retry logic
-    SupportModule,        // Support tickets, admin notes, SLA tracking
-    AffiliateModule,      // Affiliate/influencer tracking, UTM attribution
-    ExperienceModule,     // Save-for-later, delivery slots, gift options, buy-again
-    LegalModule,          // Policies, cookie consent
-    CommonModule,         // @Global: ErrorTrackingService available everywhere
-    NotificationsModule,  // F2-06: In-app notification center
-    ExchangeModule,       // F2-12: Exchange flow (swap product after delivery)
-    QaModule,             // F2-14: Customer Q&A on PDPs
-    PriceAlertsModule,    // F2-17: Price drop alert emails
-    BlogModule,           // F3-10: Blog / content CMS
-    PriceHistoryModule,   // F3-12: Daily price snapshots for charts
+    WarehouseModule, // Smart order routing, inventory, partial shipments
+    WalletModule, // Store credits, double-entry ledger, payment reconciliation
+    FraudModule, // Risk scoring, blacklist, fraud flags
+    WebhooksModule, // Event webhooks with retry logic
+    SupportModule, // Support tickets, admin notes, SLA tracking
+    AffiliateModule, // Affiliate/influencer tracking, UTM attribution
+    ExperienceModule, // Save-for-later, delivery slots, gift options, buy-again
+    LegalModule, // Policies, cookie consent
+    CommonModule, // @Global: ErrorTrackingService available everywhere
+    NotificationsModule, // F2-06: In-app notification center
+    ExchangeModule, // F2-12: Exchange flow (swap product after delivery)
+    QaModule, // F2-14: Customer Q&A on PDPs
+    PriceAlertsModule, // F2-17: Price drop alert emails
+    BlogModule, // F3-10: Blog / content CMS
+    PriceHistoryModule, // F3-12: Daily price snapshots for charts
     VolumeDiscountsModule, // F4-08: Tiered quantity discounts
   ],
   controllers: [AppController],

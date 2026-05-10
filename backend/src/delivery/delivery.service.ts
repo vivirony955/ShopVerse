@@ -54,6 +54,8 @@ export class DeliveryService {
   }
 
   findAll() {
-    return this.prisma.pincodeServiceability.findMany({ orderBy: { pincode: 'asc' } });
+    return this.prisma.pincodeServiceability.findMany({
+      orderBy: { pincode: 'asc' },
+    });
   }
 }

@@ -1,7 +1,12 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 
 /**
@@ -31,7 +36,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {
     const url = process.env.REDIS_URL;
     if (!url) {
-      this.logger.warn('REDIS_URL not set — RedisService running in no-op mode');
+      this.logger.warn(
+        'REDIS_URL not set — RedisService running in no-op mode',
+      );
       return;
     }
     try {
@@ -55,7 +62,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       await this.client.ping();
       this.healthy = true;
     } catch (e: any) {
-      this.logger.warn(`Redis init failed, falling back to no-op: ${e?.message ?? e}`);
+      this.logger.warn(
+        `Redis init failed, falling back to no-op: ${e?.message ?? e}`,
+      );
       this.healthy = false;
     }
   }
@@ -166,8 +175,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         if n < q then return -1 end
         return redis.call('DECRBY', KEYS[1], q)
       `;
-      const result = (await this.client!.eval(script, 1, key, String(qty))) as number;
-      if (result === -2) return null;  // key missing → caller handles
+      const result = (await this.client!.eval(
+        script,
+        1,
+        key,
+        String(qty),
+      )) as number;
+      if (result === -2) return null; // key missing → caller handles
       if (result === -1) return false; // insufficient — gate rejects
       return true;
     } catch (e: any) {
@@ -192,12 +206,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       `;
       await this.client!.eval(script, 1, key, String(qty));
     } catch (e: any) {
-      this.logger.debug(`releaseReserveGate(${key}) failed: ${e?.message ?? e}`);
+      this.logger.debug(
+        `releaseReserveGate(${key}) failed: ${e?.message ?? e}`,
+      );
     }
   }
 
   /** Populate a reserve gate if absent. Uses SET NX so concurrent initers don't clobber. */
-  async initReserveGate(key: string, initialValue: number, ttlSeconds: number): Promise<void> {
+  async initReserveGate(
+    key: string,
+    initialValue: number,
+    ttlSeconds: number,
+  ): Promise<void> {
     if (!this.isEnabled()) return;
     try {
       await this.client!.set(key, String(initialValue), 'EX', ttlSeconds, 'NX');
@@ -221,7 +241,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       }
       if (pending > 0) await pipeline.exec();
     } catch (e: any) {
-      this.logger.debug(`redis.delByPattern(${pattern}) failed: ${e?.message ?? e}`);
+      this.logger.debug(
+        `redis.delByPattern(${pattern}) failed: ${e?.message ?? e}`,
+      );
     }
   }
 }

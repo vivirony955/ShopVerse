@@ -1,7 +1,11 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -15,8 +19,12 @@ export class CartService {
           include: {
             product: {
               select: {
-                id: true, name: true, images: true,
-                basePrice: true, discountPct: true, slug: true,
+                id: true,
+                name: true,
+                images: true,
+                basePrice: true,
+                discountPct: true,
+                slug: true,
               },
             },
           },
@@ -40,7 +48,9 @@ export class CartService {
   }
 
   async addItem(userId: number, variantId: number, quantity: number) {
-    const variant = await this.prisma.variant.findUnique({ where: { id: variantId } });
+    const variant = await this.prisma.variant.findUnique({
+      where: { id: variantId },
+    });
     if (!variant) throw new NotFoundException('Variant not found');
 
     let cart = await this.prisma.cart.findUnique({ where: { userId } });
@@ -57,28 +67,41 @@ export class CartService {
 
     // §4.1 per-variant caps (authoritative source of truth for max/min).
     if (finalQty < variant.minOrderQty) {
-      throw new BadRequestException(`Minimum order quantity for this variant is ${variant.minOrderQty}`);
+      throw new BadRequestException(
+        `Minimum order quantity for this variant is ${variant.minOrderQty}`,
+      );
     }
     if (finalQty > variant.maxOrderQty) {
-      throw new BadRequestException(`Maximum order quantity for this variant is ${variant.maxOrderQty}`);
+      throw new BadRequestException(
+        `Maximum order quantity for this variant is ${variant.maxOrderQty}`,
+      );
     }
-    if (sellable < finalQty) throw new BadRequestException('Insufficient stock');
+    if (sellable < finalQty)
+      throw new BadRequestException('Insufficient stock');
 
     if (existing) {
-      return this.prisma.cartItem.update({ where: { id: existing.id }, data: { quantity: finalQty } });
+      return this.prisma.cartItem.update({
+        where: { id: existing.id },
+        data: { quantity: finalQty },
+      });
     }
-    return this.prisma.cartItem.create({ data: { cartId: cart.id, variantId, quantity } });
+    return this.prisma.cartItem.create({
+      data: { cartId: cart.id, variantId, quantity },
+    });
   }
 
   async updateItem(userId: number, itemId: number, quantity: number) {
     // FINAL §9.4 H-002: qty=0 removes the line (matches PATCH/DELETE intent users expect).
     // Negative quantities are rejected.
-    if (quantity < 0) throw new BadRequestException('Quantity cannot be negative');
+    if (quantity < 0)
+      throw new BadRequestException('Quantity cannot be negative');
 
     const cart = await this.prisma.cart.findUnique({ where: { userId } });
     if (!cart) throw new NotFoundException('Cart not found');
 
-    const item = await this.prisma.cartItem.findFirst({ where: { id: itemId, cartId: cart.id } });
+    const item = await this.prisma.cartItem.findFirst({
+      where: { id: itemId, cartId: cart.id },
+    });
     if (!item) throw new NotFoundException('Cart item not found');
 
     if (quantity === 0) {
@@ -86,25 +109,37 @@ export class CartService {
       return { message: 'Cart item removed' };
     }
 
-    const variant = await this.prisma.variant.findUnique({ where: { id: item.variantId } });
+    const variant = await this.prisma.variant.findUnique({
+      where: { id: item.variantId },
+    });
     if (!variant) throw new BadRequestException('Insufficient stock');
     if (quantity < variant.minOrderQty) {
-      throw new BadRequestException(`Minimum order quantity for this variant is ${variant.minOrderQty}`);
+      throw new BadRequestException(
+        `Minimum order quantity for this variant is ${variant.minOrderQty}`,
+      );
     }
     if (quantity > variant.maxOrderQty) {
-      throw new BadRequestException(`Maximum order quantity for this variant is ${variant.maxOrderQty}`);
+      throw new BadRequestException(
+        `Maximum order quantity for this variant is ${variant.maxOrderQty}`,
+      );
     }
     const sellable = variant.stock - variant.reservedStock;
-    if (sellable < quantity) throw new BadRequestException('Insufficient stock');
+    if (sellable < quantity)
+      throw new BadRequestException('Insufficient stock');
 
-    return this.prisma.cartItem.update({ where: { id: itemId }, data: { quantity } });
+    return this.prisma.cartItem.update({
+      where: { id: itemId },
+      data: { quantity },
+    });
   }
 
   async removeItem(userId: number, itemId: number) {
     const cart = await this.prisma.cart.findUnique({ where: { userId } });
     if (!cart) throw new NotFoundException('Cart not found');
 
-    const item = await this.prisma.cartItem.findFirst({ where: { id: itemId, cartId: cart.id } });
+    const item = await this.prisma.cartItem.findFirst({
+      where: { id: itemId, cartId: cart.id },
+    });
     if (!item) throw new NotFoundException('Cart item not found');
 
     return this.prisma.cartItem.delete({ where: { id: itemId } });

@@ -2,8 +2,17 @@
 // See LICENSE in the project root for license information.
 
 import {
-  IsString, IsNumber, IsOptional, IsArray, IsBoolean, IsObject,
-  Min, Max, MaxLength, IsInt, IsPositive,
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  IsBoolean,
+  IsObject,
+  Min,
+  Max,
+  MaxLength,
+  IsInt,
+  IsPositive,
 } from 'class-validator';
 
 export class CreateProductDto {

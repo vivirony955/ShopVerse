@@ -31,7 +31,9 @@ describe('WishlistService', () => {
 
   describe('getWishlist', () => {
     it('returns wishlist items for a user', async () => {
-      const items = [{ id: 1, userId: 1, productId: 10, product: { id: 10, name: 'Polo' } }];
+      const items = [
+        { id: 1, userId: 1, productId: 10, product: { id: 10, name: 'Polo' } },
+      ];
       prisma.wishlist.findMany.mockResolvedValue(items);
       const result = await service.getWishlist(1);
       expect(result).toEqual(items);
@@ -51,21 +53,33 @@ describe('WishlistService', () => {
   describe('addToWishlist', () => {
     it('adds a product to wishlist', async () => {
       prisma.product.findUnique.mockResolvedValue({ id: 10, name: 'Polo' });
-      prisma.wishlist.create.mockResolvedValue({ id: 1, userId: 1, productId: 10 });
+      prisma.wishlist.create.mockResolvedValue({
+        id: 1,
+        userId: 1,
+        productId: 10,
+      });
       const result = await service.addToWishlist(1, 10);
       expect(result).toHaveProperty('id', 1);
-      expect(prisma.wishlist.create).toHaveBeenCalledWith({ data: { userId: 1, productId: 10 } });
+      expect(prisma.wishlist.create).toHaveBeenCalledWith({
+        data: { userId: 1, productId: 10 },
+      });
     });
 
     it('throws NotFoundException for unknown product', async () => {
       prisma.product.findUnique.mockResolvedValue(null);
-      await expect(service.addToWishlist(1, 999)).rejects.toThrow(NotFoundException);
+      await expect(service.addToWishlist(1, 999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws ConflictException when product already in wishlist', async () => {
       prisma.product.findUnique.mockResolvedValue({ id: 10, name: 'Polo' });
-      prisma.wishlist.create.mockRejectedValue(new Error('Unique constraint violation'));
-      await expect(service.addToWishlist(1, 10)).rejects.toThrow(ConflictException);
+      prisma.wishlist.create.mockRejectedValue(
+        new Error('Unique constraint violation'),
+      );
+      await expect(service.addToWishlist(1, 10)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -73,7 +87,11 @@ describe('WishlistService', () => {
 
   describe('removeFromWishlist', () => {
     it('removes product from wishlist', async () => {
-      prisma.wishlist.findUnique.mockResolvedValue({ id: 1, userId: 1, productId: 10 });
+      prisma.wishlist.findUnique.mockResolvedValue({
+        id: 1,
+        userId: 1,
+        productId: 10,
+      });
       prisma.wishlist.delete.mockResolvedValue({ id: 1 });
       const result = await service.removeFromWishlist(1, 10);
       expect(result).toEqual({ id: 1 });
@@ -84,7 +102,9 @@ describe('WishlistService', () => {
 
     it('throws NotFoundException when product not in wishlist', async () => {
       prisma.wishlist.findUnique.mockResolvedValue(null);
-      await expect(service.removeFromWishlist(1, 99)).rejects.toThrow(NotFoundException);
+      await expect(service.removeFromWishlist(1, 99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

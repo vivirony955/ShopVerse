@@ -34,7 +34,11 @@ describe('Auth endpoints (e2e smoke)', () => {
   afterEach(() => jest.clearAllMocks());
 
   it('POST /auth/register → 201', async () => {
-    mockAuthService.register.mockResolvedValue({ id: 1, email: 'new@example.com', role: 'USER' });
+    mockAuthService.register.mockResolvedValue({
+      id: 1,
+      email: 'new@example.com',
+      role: 'USER',
+    });
     await request(app.getHttpServer())
       .post('/auth/register')
       .send({ email: 'new@example.com', password: 'secret123' })
@@ -42,7 +46,9 @@ describe('Auth endpoints (e2e smoke)', () => {
   });
 
   it('POST /auth/register → 409 on duplicate email', async () => {
-    mockAuthService.register.mockRejectedValue(new ConflictException('Email already in use'));
+    mockAuthService.register.mockRejectedValue(
+      new ConflictException('Email already in use'),
+    );
     await request(app.getHttpServer())
       .post('/auth/register')
       .send({ email: 'taken@example.com', password: 'secret123' })
@@ -50,8 +56,15 @@ describe('Auth endpoints (e2e smoke)', () => {
   });
 
   it('POST /auth/login → 200 with tokens', async () => {
-    mockAuthService.validateUser.mockResolvedValue({ id: 1, email: 'user@example.com', role: 'USER' });
-    mockAuthService.login.mockResolvedValue({ access_token: 'at', refresh_token: 'rt' });
+    mockAuthService.validateUser.mockResolvedValue({
+      id: 1,
+      email: 'user@example.com',
+      role: 'USER',
+    });
+    mockAuthService.login.mockResolvedValue({
+      access_token: 'at',
+      refresh_token: 'rt',
+    });
     const res = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'user@example.com', password: 'pass123' })

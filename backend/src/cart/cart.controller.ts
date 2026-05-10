@@ -2,8 +2,16 @@
 // See LICENSE in the project root for license information.
 
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, UseGuards, Req, ParseIntPipe,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CartService } from './cart.service';
@@ -57,7 +65,10 @@ export class CartController {
 
   /** Release reservation (on checkout cancel) */
   @Delete('reserve/:id')
-  async releaseReservation(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+  async releaseReservation(
+    @Req() req: any,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     await this.reservationService.releaseById(id, req.user.id);
     return { message: 'Reservation released' };
   }
@@ -65,6 +76,8 @@ export class CartController {
   /** Check if user still has a valid active reservation */
   @Get('reserve/status')
   getReservationStatus(@Req() req: any) {
-    return this.reservationService.hasValidReservation(req.user.id).then((valid) => ({ valid }));
+    return this.reservationService
+      .hasValidReservation(req.user.id)
+      .then((valid) => ({ valid }));
   }
 }

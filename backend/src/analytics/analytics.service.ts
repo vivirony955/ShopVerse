@@ -22,7 +22,12 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
   /** Order statuses that represent committed revenue (GMV). */
-  static readonly GMV_STATUSES = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'] as const;
+  static readonly GMV_STATUSES = [
+    'CONFIRMED',
+    'PROCESSING',
+    'SHIPPED',
+    'DELIVERED',
+  ] as const;
   /** Delivered-only (for revenue recognition). */
   static readonly DELIVERED_STATUSES = ['DELIVERED'] as const;
 
@@ -38,7 +43,11 @@ export class AnalyticsService {
     return Math.min(n, max);
   }
 
-  private async memo<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
+  private async memo<T>(
+    key: string,
+    ttlMs: number,
+    fn: () => Promise<T>,
+  ): Promise<T> {
     const hit = this.cache.get(key);
     if (hit && hit.expiresAt > Date.now()) return hit.value as T;
     const value = await fn();
@@ -79,7 +88,10 @@ export class AnalyticsService {
    * Refunds are derived from order payment status (PARTIALLY_REFUNDED emits partial).
    * When RefundRequest table is live (see §9.3), replace with RefundRequest aggregation.
    */
-  async getNmv(since: Date, until: Date = new Date()): Promise<{
+  async getNmv(
+    since: Date,
+    until: Date = new Date(),
+  ): Promise<{
     gmv: number;
     refunded: number;
     chargebacks: number;
@@ -108,7 +120,10 @@ export class AnalyticsService {
     const fullRefunds = Number(refundedAgg._sum.total ?? 0);
     // Conservative estimate until RefundRequest table exists: assume 50% refunded for partials.
     // Downstream fix is to replace with Σ RefundRequest.amount WHERE status=COMPLETED.
-    const partialRefunds = partialRefundedRows.reduce((sum, r) => sum + Number(r.total) * 0.5, 0);
+    const partialRefunds = partialRefundedRows.reduce(
+      (sum, r) => sum + Number(r.total) * 0.5,
+      0,
+    );
 
     const refunded = fullRefunds + partialRefunds;
     const chargebacks = 0; // TODO: wire once Dispute/Chargeback table exists (§6.10)
@@ -144,7 +159,9 @@ export class AnalyticsService {
   /**
    * Revenue time-series by day for the last N days. Parameterized (injection-safe).
    */
-  async getRevenueSeries(days: number): Promise<Array<{ date: string; gmv: number; orders: number }>> {
+  async getRevenueSeries(
+    days: number,
+  ): Promise<Array<{ date: string; gmv: number; orders: number }>> {
     const d = this.clampDays(days);
     const cacheKey = `rev-series:${d}`;
     return this.memo(cacheKey, this.CACHE_TTL_MS, async () => {
@@ -162,7 +179,10 @@ export class AnalyticsService {
         ORDER BY date ASC
       `);
       return rows.map((r) => ({
-        date: r.date instanceof Date ? r.date.toISOString().slice(0, 10) : String(r.date),
+        date:
+          r.date instanceof Date
+            ? r.date.toISOString().slice(0, 10)
+            : String(r.date),
         gmv: Number(r.gmv ?? 0),
         orders: Number(r.orders),
       }));
@@ -174,7 +194,12 @@ export class AnalyticsService {
    * across multiple months. A user belongs to the cohort of their signup month only.
    */
   async getCohortRetention(monthsBack = 6): Promise<
-    Array<{ month: string; newUsers: number; retained: number; retentionRate: number }>
+    Array<{
+      month: string;
+      newUsers: number;
+      retained: number;
+      retentionRate: number;
+    }>
   > {
     const months = Math.max(1, Math.min(24, Math.trunc(monthsBack)));
     const cacheKey = `cohort:${months}`;
@@ -210,10 +235,14 @@ export class AnalyticsService {
         const newUsers = Number(r.new_users);
         const retained = Number(r.retained);
         return {
-          month: r.month instanceof Date ? r.month.toISOString().slice(0, 7) : String(r.month),
+          month:
+            r.month instanceof Date
+              ? r.month.toISOString().slice(0, 7)
+              : String(r.month),
           newUsers,
           retained,
-          retentionRate: newUsers > 0 ? Math.round((retained / newUsers) * 100) : 0,
+          retentionRate:
+            newUsers > 0 ? Math.round((retained / newUsers) * 100) : 0,
         };
       });
     });
@@ -252,27 +281,32 @@ export class AnalyticsService {
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
     const fifteenMinAgo = new Date(now.getTime() - 15 * 60 * 1000);
 
-    const [ordersLastHour, gmvAgg, newUsersLastHour, activeCarts, paymentsLastHour] =
-      await Promise.all([
-        this.prisma.order.count({
-          where: {
-            createdAt: { gte: oneHourAgo },
-            status: { in: AnalyticsService.GMV_STATUSES as any },
-          },
-        }),
-        this.prisma.order.aggregate({
-          _sum: { total: true },
-          where: {
-            createdAt: { gte: oneHourAgo },
-            status: { in: AnalyticsService.GMV_STATUSES as any },
-          },
-        }),
-        this.prisma.user.count({ where: { createdAt: { gte: oneHourAgo } } }),
-        this.prisma.cart.count({ where: { updatedAt: { gte: fifteenMinAgo } } }),
-        this.prisma.order.count({
-          where: { paymentStatus: 'PAID', updatedAt: { gte: oneHourAgo } },
-        }),
-      ]);
+    const [
+      ordersLastHour,
+      gmvAgg,
+      newUsersLastHour,
+      activeCarts,
+      paymentsLastHour,
+    ] = await Promise.all([
+      this.prisma.order.count({
+        where: {
+          createdAt: { gte: oneHourAgo },
+          status: { in: AnalyticsService.GMV_STATUSES as any },
+        },
+      }),
+      this.prisma.order.aggregate({
+        _sum: { total: true },
+        where: {
+          createdAt: { gte: oneHourAgo },
+          status: { in: AnalyticsService.GMV_STATUSES as any },
+        },
+      }),
+      this.prisma.user.count({ where: { createdAt: { gte: oneHourAgo } } }),
+      this.prisma.cart.count({ where: { updatedAt: { gte: fifteenMinAgo } } }),
+      this.prisma.order.count({
+        where: { paymentStatus: 'PAID', updatedAt: { gte: oneHourAgo } },
+      }),
+    ]);
 
     return {
       timestamp: now.toISOString(),

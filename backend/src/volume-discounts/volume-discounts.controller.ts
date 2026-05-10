@@ -1,7 +1,17 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { VolumeDiscountsService } from './volume-discounts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -24,7 +34,15 @@ export class VolumeDiscountsController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.MERCH)
-  create(@Body() dto: { productId?: number; categoryId?: number; minQty: number; discountPct: number }) {
+  create(
+    @Body()
+    dto: {
+      productId?: number;
+      categoryId?: number;
+      minQty: number;
+      discountPct: number;
+    },
+  ) {
     return this.svc.create(dto);
   }
 

@@ -52,7 +52,9 @@ export class RefundRetryService {
           updatedAt: { lte: cutoff },
           retryCount: { lt: MAX_REFUND_RETRIES },
         },
-        include: { order: { select: { id: true, paymentId: true, total: true } } },
+        include: {
+          order: { select: { id: true, paymentId: true, total: true } },
+        },
         orderBy: { updatedAt: 'asc' },
         take: RETRY_BATCH_SIZE,
       });
@@ -62,7 +64,9 @@ export class RefundRetryService {
 
       for (const rr of stuck) {
         await this.retryOne(rr).catch((e) => {
-          this.logger.error(`refund-retry loop error for rr=${rr.id}: ${e?.message ?? e}`);
+          this.logger.error(
+            `refund-retry loop error for rr=${rr.id}: ${e?.message ?? e}`,
+          );
         });
       }
 
@@ -102,7 +106,11 @@ export class RefundRetryService {
         {
           payment_intent: rr.order.paymentId,
           reason: 'requested_by_customer',
-          metadata: { orderId: String(rr.orderId), refundRequestId: String(rr.id), retry: String(nextAttempt) },
+          metadata: {
+            orderId: String(rr.orderId),
+            refundRequestId: String(rr.id),
+            retry: String(nextAttempt),
+          },
         },
         { idempotencyKey: `${rr.reference}:attempt:${nextAttempt}` },
       );
@@ -153,7 +161,13 @@ export class RefundRetryService {
         status: 'PROCESSING',
         retryCount: { gte: MAX_REFUND_RETRIES },
       },
-      select: { id: true, orderId: true, amount: true, reference: true, failureReason: true },
+      select: {
+        id: true,
+        orderId: true,
+        amount: true,
+        reference: true,
+        failureReason: true,
+      },
     });
     for (const rr of doomed) {
       const flipped = await this.prisma.refundRequest.updateMany({

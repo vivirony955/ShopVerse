@@ -77,10 +77,21 @@ describe('ExperienceService', () => {
 
   describe('moveToCart', () => {
     it('moves item from saved list to cart and deletes from saved', async () => {
-      prisma.savedForLater.findUnique.mockResolvedValue({ userId: 1, variantId: 5 });
+      prisma.savedForLater.findUnique.mockResolvedValue({
+        userId: 1,
+        variantId: 5,
+      });
       prisma.cart.upsert.mockResolvedValue({ id: 10, userId: 1 });
-      prisma.cartItem.upsert.mockResolvedValue({ id: 20, cartId: 10, variantId: 5, quantity: 1 });
-      prisma.savedForLater.delete.mockResolvedValue({ userId: 1, variantId: 5 });
+      prisma.cartItem.upsert.mockResolvedValue({
+        id: 20,
+        cartId: 10,
+        variantId: 5,
+        quantity: 1,
+      });
+      prisma.savedForLater.delete.mockResolvedValue({
+        userId: 1,
+        variantId: 5,
+      });
 
       const result = await service.moveToCart(1, 5);
       expect(result).toEqual({ moved: true });
@@ -90,7 +101,9 @@ describe('ExperienceService', () => {
 
     it('throws NotFoundException when item is not in saved list', async () => {
       prisma.savedForLater.findUnique.mockResolvedValue(null);
-      await expect(service.moveToCart(1, 999)).rejects.toThrow(NotFoundException);
+      await expect(service.moveToCart(1, 999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -158,7 +171,9 @@ describe('ExperienceService', () => {
   describe('bookSlot', () => {
     it('increments bookedCount', async () => {
       // bookSlot uses $queryRaw for atomic conditional increment
-      prisma.$queryRaw.mockResolvedValue([{ id: 1, bookedCount: 11, maxOrders: 50, isActive: true }]);
+      prisma.$queryRaw.mockResolvedValue([
+        { id: 1, bookedCount: 11, maxOrders: 50, isActive: true },
+      ]);
 
       const result = await service.bookSlot(1);
       expect(result.bookedCount).toBe(11);
@@ -215,7 +230,9 @@ describe('ExperienceService', () => {
 
     it('throws NotFoundException for unknown order', async () => {
       prisma.order.findUnique.mockResolvedValue(null);
-      await expect(service.addGiftOption({ orderId: 999 })).rejects.toThrow(NotFoundException);
+      await expect(service.addGiftOption({ orderId: 999 })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

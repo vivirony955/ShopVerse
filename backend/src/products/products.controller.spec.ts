@@ -45,7 +45,13 @@ describe('ProductsController', () => {
 
   describe('findAll', () => {
     it('returns paginated product list', async () => {
-      const response = { items: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const response = {
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       mockProductsService.findAll.mockResolvedValue(response);
       const result = await controller.findAll();
       expect(result).toEqual(response);
@@ -56,7 +62,11 @@ describe('ProductsController', () => {
       mockProductsService.findAll.mockResolvedValue({ items: [] });
       await controller.findAll('shirt', 'men', 'nike', 500, 2000, 'M', 'Blue');
       expect(mockProductsService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({ search: 'shirt', category: 'men', brand: 'nike' }),
+        expect.objectContaining({
+          search: 'shirt',
+          category: 'men',
+          brand: 'nike',
+        }),
       );
     });
   });
@@ -78,8 +88,13 @@ describe('ProductsController', () => {
   describe('create', () => {
     it('creates and returns a new product', async () => {
       const dto = {
-        name: 'T-Shirt', slug: 't-shirt', description: 'Cotton', brandId: 1,
-        categoryId: 2, basePrice: 999, images: ['img.jpg'],
+        name: 'T-Shirt',
+        slug: 't-shirt',
+        description: 'Cotton',
+        brandId: 1,
+        categoryId: 2,
+        basePrice: 999,
+        images: ['img.jpg'],
       };
       const created = { id: 3, ...dto };
       mockProductsService.create.mockResolvedValue(created);
@@ -103,9 +118,21 @@ describe('ProductsController', () => {
 
   describe('addVariant', () => {
     it('adds a variant to a product', async () => {
-      const variant = { id: 10, productId: 1, size: 'L', color: 'Red', stock: 50, sku: 'SKU001' };
+      const variant = {
+        id: 10,
+        productId: 1,
+        size: 'L',
+        color: 'Red',
+        stock: 50,
+        sku: 'SKU001',
+      };
       mockProductsService.addVariant.mockResolvedValue(variant);
-      const result = await controller.addVariant(1, { size: 'L', color: 'Red', stock: 50, sku: 'SKU001' });
+      const result = await controller.addVariant(1, {
+        size: 'L',
+        color: 'Red',
+        stock: 50,
+        sku: 'SKU001',
+      });
       expect(result).toEqual(variant);
     });
   });

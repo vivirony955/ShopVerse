@@ -36,25 +36,45 @@ describe('PaymentsController', () => {
     it('creates a payment intent for the current user', async () => {
       const response = { clientSecret: 'cs_test', amount: 1500 };
       mockPaymentsService.createPaymentIntent.mockResolvedValue(response);
-      const result = await controller.createPaymentIntent(mockReq, { orderId: 1 });
+      const result = await controller.createPaymentIntent(mockReq, {
+        orderId: 1,
+      });
       expect(result).toEqual(response);
-      expect(mockPaymentsService.createPaymentIntent).toHaveBeenCalledWith(1, 1, undefined);
+      expect(mockPaymentsService.createPaymentIntent).toHaveBeenCalledWith(
+        1,
+        1,
+        undefined,
+      );
     });
 
     it('passes currency to service when provided', async () => {
-      mockPaymentsService.createPaymentIntent.mockResolvedValue({ clientSecret: 'cs', amount: 500 });
-      await controller.createPaymentIntent(mockReq, { orderId: 2, currency: 'usd' });
-      expect(mockPaymentsService.createPaymentIntent).toHaveBeenCalledWith(1, 2, 'usd');
+      mockPaymentsService.createPaymentIntent.mockResolvedValue({
+        clientSecret: 'cs',
+        amount: 500,
+      });
+      await controller.createPaymentIntent(mockReq, {
+        orderId: 2,
+        currency: 'usd',
+      });
+      expect(mockPaymentsService.createPaymentIntent).toHaveBeenCalledWith(
+        1,
+        2,
+        'usd',
+      );
     });
   });
 
   describe('handleWebhook', () => {
     it('forwards raw body and signature to service', async () => {
       mockPaymentsService.handleWebhook.mockResolvedValue({ received: true });
-      const result = await controller.handleWebhook(mockReq as any, 'whsec_sig');
+      const result = await controller.handleWebhook(
+        mockReq as any,
+        'whsec_sig',
+      );
       expect(result).toEqual({ received: true });
       expect(mockPaymentsService.handleWebhook).toHaveBeenCalledWith(
-        mockReq.rawBody, 'whsec_sig',
+        mockReq.rawBody,
+        'whsec_sig',
       );
     });
   });

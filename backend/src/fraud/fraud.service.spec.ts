@@ -17,10 +17,7 @@ describe('FraudService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        FraudService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [FraudService, { provide: PrismaService, useValue: prisma }],
     }).compile();
     service = module.get<FraudService>(FraudService);
   });
@@ -34,7 +31,9 @@ describe('FraudService', () => {
   describe('computeRiskScore', () => {
     it('throws NotFoundException for unknown user', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.computeRiskScore(999)).rejects.toThrow(NotFoundException);
+      await expect(service.computeRiskScore(999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns 0 for user with no orders', async () => {
@@ -56,7 +55,11 @@ describe('FraudService', () => {
         { id: 4, status: 'DELIVERED', paymentMethod: 'STRIPE' },
       ]);
       prisma.userRiskScore.upsert.mockImplementation(({ create }: any) =>
-        Promise.resolve({ userId: 1, score: create.score, returnRate: create.returnRate }),
+        Promise.resolve({
+          userId: 1,
+          score: create.score,
+          returnRate: create.returnRate,
+        }),
       );
       prisma.fraudFlag.findFirst.mockResolvedValue(null);
       prisma.fraudFlag.upsert.mockResolvedValue({});
@@ -77,7 +80,11 @@ describe('FraudService', () => {
         { id: 5, status: 'DELIVERED', paymentMethod: 'COD' },
       ]);
       prisma.userRiskScore.upsert.mockImplementation(({ create }: any) =>
-        Promise.resolve({ userId: 1, score: create.score, codAbuse: create.codAbuse }),
+        Promise.resolve({
+          userId: 1,
+          score: create.score,
+          codAbuse: create.codAbuse,
+        }),
       );
       prisma.fraudFlag.findFirst.mockResolvedValue(null);
       prisma.fraudFlag.create.mockResolvedValue({});
@@ -102,8 +109,14 @@ describe('FraudService', () => {
       ]);
       prisma.userRiskScore.upsert.mockResolvedValue({ userId: 1, score: 70 });
       prisma.fraudFlag.findFirst.mockResolvedValue(null);
-      prisma.fraudFlag.upsert.mockResolvedValue({ id: 1, type: FraudFlagType.HIGH_RETURN_RATE });
-      prisma.fraudFlag.create.mockResolvedValue({ id: 2, type: FraudFlagType.COD_ABUSE });
+      prisma.fraudFlag.upsert.mockResolvedValue({
+        id: 1,
+        type: FraudFlagType.HIGH_RETURN_RATE,
+      });
+      prisma.fraudFlag.create.mockResolvedValue({
+        id: 2,
+        type: FraudFlagType.COD_ABUSE,
+      });
 
       const score = await service.computeRiskScore(1);
       expect(score).toBeGreaterThanOrEqual(70);
@@ -132,7 +145,9 @@ describe('FraudService', () => {
       });
       expect(prisma.blacklist.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { type_value: { type: BlacklistType.EMAIL, value: 'fraud@bad.com' } },
+          where: {
+            type_value: { type: BlacklistType.EMAIL, value: 'fraud@bad.com' },
+          },
         }),
       );
       expect(result.isActive).toBe(true);
@@ -229,7 +244,12 @@ describe('FraudService', () => {
   describe('getBlacklist', () => {
     it('returns active blacklist entries', async () => {
       prisma.blacklist.findMany.mockResolvedValue([
-        { id: 1, type: BlacklistType.EMAIL, value: 'fraud@bad.com', isActive: true },
+        {
+          id: 1,
+          type: BlacklistType.EMAIL,
+          value: 'fraud@bad.com',
+          isActive: true,
+        },
       ]);
       const result = await service.getBlacklist();
       expect(result).toHaveLength(1);
@@ -239,7 +259,9 @@ describe('FraudService', () => {
       prisma.blacklist.findMany.mockResolvedValue([]);
       await service.getBlacklist(BlacklistType.IP);
       expect(prisma.blacklist.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expect.objectContaining({ type: BlacklistType.IP }) }),
+        expect.objectContaining({
+          where: expect.objectContaining({ type: BlacklistType.IP }),
+        }),
       );
     });
   });

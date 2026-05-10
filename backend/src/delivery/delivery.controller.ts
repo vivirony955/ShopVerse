@@ -3,7 +3,7 @@
 
 import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
-import { CheckDeliveryDto, UpsertPincodeDto } from './dto/delivery.dto';
+import { UpsertPincodeDto } from './dto/delivery.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';

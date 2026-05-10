@@ -1,7 +1,12 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
@@ -26,12 +31,16 @@ export class PaymentsService {
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
-      throw new Error('SECURITY: STRIPE_SECRET_KEY env var is missing. Payments will not function.');
+      throw new Error(
+        'SECURITY: STRIPE_SECRET_KEY env var is missing. Payments will not function.',
+      );
     }
     // V-03 FIX: validate STRIPE_WEBHOOK_SECRET at startup so webhook handler
     // never silently accepts events with an empty string secret.
     if (!process.env.STRIPE_WEBHOOK_SECRET) {
-      throw new Error('SECURITY: STRIPE_WEBHOOK_SECRET env var is missing. Webhook verification will not function.');
+      throw new Error(
+        'SECURITY: STRIPE_WEBHOOK_SECRET env var is missing. Webhook verification will not function.',
+      );
     }
     this.stripe = new Stripe(stripeKey, {
       apiVersion: '2022-11-15',
@@ -39,9 +48,12 @@ export class PaymentsService {
   }
 
   async createPaymentIntent(userId: number, orderId: number, currency = 'inr') {
-    const order = await this.prisma.order.findFirst({ where: { id: orderId, userId } });
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+    });
     if (!order) throw new NotFoundException('Order not found');
-    if (order.paymentStatus === 'PAID') throw new BadRequestException('Order already paid');
+    if (order.paymentStatus === 'PAID')
+      throw new BadRequestException('Order already paid');
 
     // FINAL §6.3: idempotency key prevents duplicate intents on client retry (B-11).
     const paymentIntent = await this.stripe.paymentIntents.create(
@@ -66,15 +78,24 @@ export class PaymentsService {
    * Safe to call multiple times — cancels any previous open intent first.
    */
   async retryPayment(userId: number, orderId: number, currency = 'inr') {
-    const order = await this.prisma.order.findFirst({ where: { id: orderId, userId } });
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+    });
     if (!order) throw new NotFoundException('Order not found');
-    if (order.paymentStatus === 'PAID') throw new BadRequestException('Order already paid');
+    if (order.paymentStatus === 'PAID')
+      throw new BadRequestException('Order already paid');
 
     // Cancel previous PaymentIntent if exists and still open
     if (order.paymentId) {
       try {
         const prev = await this.stripe.paymentIntents.retrieve(order.paymentId);
-        if (['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(prev.status)) {
+        if (
+          [
+            'requires_payment_method',
+            'requires_confirmation',
+            'requires_action',
+          ].includes(prev.status)
+        ) {
           await this.stripe.paymentIntents.cancel(order.paymentId);
         }
       } catch {
@@ -91,7 +112,11 @@ export class PaymentsService {
       {
         amount: Math.round(order.total * 100),
         currency,
-        metadata: { orderId: orderId.toString(), userId: userId.toString(), retry: 'true' },
+        metadata: {
+          orderId: orderId.toString(),
+          userId: userId.toString(),
+          retry: 'true',
+        },
       },
       { idempotencyKey: retryKey },
     );
@@ -150,7 +175,10 @@ export class PaymentsService {
                 gatewayRef: pi.id,
                 gatewayAmount: pi.amount / 100,
                 internalAmount: order.total,
-                status: Math.abs(pi.amount / 100 - order.total) < 0.01 ? 'MATCHED' : 'DISCREPANCY',
+                status:
+                  Math.abs(pi.amount / 100 - order.total) < 0.01
+                    ? 'MATCHED'
+                    : 'DISCREPANCY',
               },
             });
             // 2. Mark order PAID + CONFIRMED
@@ -169,8 +197,13 @@ export class PaymentsService {
           });
           processed = true;
         } catch (e) {
-          if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-            this.logger.debug(`Duplicate webhook for ${pi.id} — already processed`);
+          if (
+            e instanceof Prisma.PrismaClientKnownRequestError &&
+            e.code === 'P2002'
+          ) {
+            this.logger.debug(
+              `Duplicate webhook for ${pi.id} — already processed`,
+            );
           } else {
             throw e;
           }
@@ -178,15 +211,21 @@ export class PaymentsService {
 
         if (processed) {
           // Side effects only fire for the winning webhook delivery.
-          this.invoicesService.createInvoiceRecord(orderId).catch((e) =>
-            this.logger.error(`Invoice creation failed for order #${orderId}: ${e?.message}`)
-          );
+          this.invoicesService
+            .createInvoiceRecord(orderId)
+            .catch((e) =>
+              this.logger.error(
+                `Invoice creation failed for order #${orderId}: ${e?.message}`,
+              ),
+            );
           this.emailService.sendOrderConfirmation(order as any).catch(() => {});
-          this.webhooksService.dispatch('order.paid', {
-            orderId,
-            total: order.total,
-            paymentIntentId: pi.id,
-          }).catch(() => {});
+          this.webhooksService
+            .dispatch('order.paid', {
+              orderId,
+              total: order.total,
+              paymentIntentId: pi.id,
+            })
+            .catch(() => {});
           this.logger.log(`Payment confirmed for order #${orderId}`);
         }
         break;
@@ -227,9 +266,10 @@ export class PaymentsService {
         //   - WHERE-guard on updateMany keeps the tracking/logging path a no-op
         //     on replay
         const dispute = event.data.object as Stripe.Dispute;
-        const paymentIntentId = typeof dispute.payment_intent === 'string'
-          ? dispute.payment_intent
-          : dispute.payment_intent?.id;
+        const paymentIntentId =
+          typeof dispute.payment_intent === 'string'
+            ? dispute.payment_intent
+            : dispute.payment_intent?.id;
         if (!paymentIntentId) break;
 
         const orders = await this.prisma.order.findMany({
@@ -269,13 +309,15 @@ export class PaymentsService {
               `paymentIntent=${paymentIntentId} amount=${dispute.amount / 100} reason=${dispute.reason}. ` +
               `Manual action required.`,
           );
-          await this.prisma.trackingEvent.create({
-            data: {
-              orderId: o.id,
-              status: 'CANCELLING' as any,
-              note: `Chargeback dispute opened (${dispute.id}): ${dispute.reason}. Manual review required.`,
-            },
-          }).catch(() => {});
+          await this.prisma.trackingEvent
+            .create({
+              data: {
+                orderId: o.id,
+                status: 'CANCELLING' as any,
+                note: `Chargeback dispute opened (${dispute.id}): ${dispute.reason}. Manual review required.`,
+              },
+            })
+            .catch(() => {});
         }
         break;
       }
@@ -289,7 +331,10 @@ export class PaymentsService {
         // We only transition UNPAID/PAID → REFUNDED; a second delivery finds REFUNDED
         // and updateMany returns count=0, skipping side effects.
         const orders = await this.prisma.order.findMany({
-          where: { paymentId: paymentIntentId, paymentStatus: { not: 'REFUNDED' } },
+          where: {
+            paymentId: paymentIntentId,
+            paymentStatus: { not: 'REFUNDED' },
+          },
         });
         for (const order of orders) {
           const updated = await this.prisma.$transaction(async (tx) => {
@@ -306,10 +351,14 @@ export class PaymentsService {
             return res.count;
           });
           if (updated === 1) {
-            this.logger.log(`Stripe refund processed for order #${order.id} (${paymentIntentId})`);
+            this.logger.log(
+              `Stripe refund processed for order #${order.id} (${paymentIntentId})`,
+            );
             // V-08 FIX: claw back loyalty points earned on delivery when refund comes via Stripe webhook
             if (order.userId) {
-              this.loyaltyService.clawbackPoints(order.userId, order.id).catch(() => {});
+              this.loyaltyService
+                .clawbackPoints(order.userId, order.id)
+                .catch(() => {});
             }
           }
         }
@@ -330,9 +379,12 @@ export class PaymentsService {
     });
     if (!order) throw new NotFoundException('Order not found');
     if (!order.paymentId) throw new BadRequestException('No payment to refund');
-    if (order.paymentStatus !== 'PAID') throw new BadRequestException('Order is not paid');
+    if (order.paymentStatus !== 'PAID')
+      throw new BadRequestException('Order is not paid');
     if (order.status === 'CANCELLING' || order.status === 'REFUNDED') {
-      throw new BadRequestException('Refund already in progress for this order');
+      throw new BadRequestException(
+        'Refund already in progress for this order',
+      );
     }
 
     // FINAL §9.4 R-004: two-phase refund. Enter CANCELLING state BEFORE calling Stripe
@@ -375,11 +427,18 @@ export class PaymentsService {
       const refund = await this.stripe.refunds.create({
         payment_intent: order.paymentId,
         reason: 'requested_by_customer',
-        metadata: { orderId: String(orderId), refundRequestId: String(refundRequest.id) },
+        metadata: {
+          orderId: String(orderId),
+          refundRequestId: String(refundRequest.id),
+        },
       });
       await this.prisma.refundRequest.update({
         where: { id: refundRequest.id },
-        data: { gatewayRef: refund.id, status: 'COMPLETED', processedAt: new Date() },
+        data: {
+          gatewayRef: refund.id,
+          status: 'COMPLETED',
+          processedAt: new Date(),
+        },
       });
       await this.prisma.trackingEvent.create({
         data: {
@@ -398,10 +457,17 @@ export class PaymentsService {
       });
       await this.prisma.refundRequest.update({
         where: { id: refundRequest.id },
-        data: { status: 'FAILED', failureReason: String(e?.message ?? 'gateway error') },
+        data: {
+          status: 'FAILED',
+          failureReason: String(e?.message ?? 'gateway error'),
+        },
       });
-      this.logger.error(`Stripe refund failed for order #${orderId}: ${e?.message ?? e}`);
-      throw new BadRequestException(`Refund failed: ${e?.message ?? 'gateway error'}`);
+      this.logger.error(
+        `Stripe refund failed for order #${orderId}: ${e?.message ?? e}`,
+      );
+      throw new BadRequestException(
+        `Refund failed: ${e?.message ?? 'gateway error'}`,
+      );
     }
   }
 }

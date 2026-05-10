@@ -1,7 +1,11 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -24,7 +28,9 @@ export class WishlistService {
   }
 
   async addToWishlist(userId: number, productId: number) {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
     if (!product) throw new NotFoundException('Product not found');
     try {
       return await this.prisma.wishlist.create({ data: { userId, productId } });
@@ -38,6 +44,8 @@ export class WishlistService {
       where: { userId_productId: { userId, productId } },
     });
     if (!item) throw new NotFoundException('Product not in wishlist');
-    return this.prisma.wishlist.delete({ where: { userId_productId: { userId, productId } } });
+    return this.prisma.wishlist.delete({
+      where: { userId_productId: { userId, productId } },
+    });
   }
 }

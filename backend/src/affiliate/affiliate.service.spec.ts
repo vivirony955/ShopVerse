@@ -52,15 +52,23 @@ describe('AffiliateService', () => {
 
     it('uses custom commissionPct when provided', async () => {
       prisma.affiliateAccount.findUnique.mockResolvedValue(null);
-      prisma.affiliateAccount.create.mockResolvedValue({ ...mockAffiliate, commissionPct: 10 });
+      prisma.affiliateAccount.create.mockResolvedValue({
+        ...mockAffiliate,
+        commissionPct: 10,
+      });
 
-      const result = await service.createAccount({ userId: 10, commissionPct: 10 });
+      const result = await service.createAccount({
+        userId: 10,
+        commissionPct: 10,
+      });
       expect(result.commissionPct).toBe(10);
     });
 
     it('throws BadRequestException if account already exists', async () => {
       prisma.affiliateAccount.findUnique.mockResolvedValue(mockAffiliate);
-      await expect(service.createAccount({ userId: 10 })).rejects.toThrow(BadRequestException);
+      await expect(service.createAccount({ userId: 10 })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -107,7 +115,10 @@ describe('AffiliateService', () => {
     it('computes commission when affiliate code and orderId are provided', async () => {
       prisma.affiliateAccount.findUnique.mockResolvedValue(mockAffiliate);
       prisma.order.findUnique.mockResolvedValue({ id: 5, total: 2000 });
-      prisma.affiliateAccount.update.mockResolvedValue({ ...mockAffiliate, totalEarned: 100 });
+      prisma.affiliateAccount.update.mockResolvedValue({
+        ...mockAffiliate,
+        totalEarned: 100,
+      });
       prisma.campaignAttribution.create.mockResolvedValue({
         id: 2,
         affiliateId: 1,
@@ -135,13 +146,19 @@ describe('AffiliateService', () => {
         attributionType: AttributionType.LAST_TOUCH,
       });
 
-      const result = await service.trackAttribution({ affiliateCode: 'INVALID', orderId: 5 });
+      const result = await service.trackAttribution({
+        affiliateCode: 'INVALID',
+        orderId: 5,
+      });
       expect(result.commissionAmount).toBe(0);
       expect(result.affiliateId).toBeNull();
     });
 
     it('skips commission for inactive affiliate', async () => {
-      prisma.affiliateAccount.findUnique.mockResolvedValue({ ...mockAffiliate, isActive: false });
+      prisma.affiliateAccount.findUnique.mockResolvedValue({
+        ...mockAffiliate,
+        isActive: false,
+      });
       prisma.campaignAttribution.create.mockResolvedValue({
         id: 4,
         affiliateId: null,
@@ -149,7 +166,10 @@ describe('AffiliateService', () => {
         attributionType: AttributionType.LAST_TOUCH,
       });
 
-      const result = await service.trackAttribution({ affiliateCode: 'ABCD1234', orderId: 5 });
+      const result = await service.trackAttribution({
+        affiliateCode: 'ABCD1234',
+        orderId: 5,
+      });
       expect(result.commissionAmount).toBe(0);
     });
   });

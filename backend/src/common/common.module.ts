@@ -9,7 +9,17 @@ import { RedisService } from './redis.service';
 
 @Global()
 @Module({
-  providers: [ErrorTrackingService, CronLockService, InvariantValidatorService, RedisService],
-  exports: [ErrorTrackingService, CronLockService, InvariantValidatorService, RedisService],
+  providers: [
+    ErrorTrackingService,
+    CronLockService,
+    InvariantValidatorService,
+    RedisService,
+  ],
+  exports: [
+    ErrorTrackingService,
+    CronLockService,
+    InvariantValidatorService,
+    RedisService,
+  ],
 })
 export class CommonModule {}

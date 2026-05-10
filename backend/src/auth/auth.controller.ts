@@ -1,7 +1,15 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Body, Controller, Post, UnauthorizedException, HttpCode, UseGuards, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UnauthorizedException,
+  HttpCode,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -17,7 +25,12 @@ export class AuthController {
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('register')
   async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto.email, dto.password, dto.firstName, dto.lastName);
+    return this.authService.register(
+      dto.email,
+      dto.password,
+      dto.firstName,
+      dto.lastName,
+    );
   }
 
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
@@ -43,6 +56,10 @@ export class AuthController {
     @Req() req: any,
     @Body() dto: { currentPassword: string; newPassword: string },
   ) {
-    return this.authService.changePassword(req.user.id, dto.currentPassword, dto.newPassword);
+    return this.authService.changePassword(
+      req.user.id,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 }

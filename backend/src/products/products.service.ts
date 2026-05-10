@@ -1,7 +1,11 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { createHash } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -59,18 +63,45 @@ export class ProductsService {
   }) {
     // W4 + P-16 PERF: read-through cache with single-flight stampede protection.
     const cacheKey = this.plpKey(filters);
-    return this.redis.getOrLoad(cacheKey, PLP_CACHE_TTL_SECONDS, () => this.loadPlp(filters));
+    return this.redis.getOrLoad(cacheKey, PLP_CACHE_TTL_SECONDS, () =>
+      this.loadPlp(filters),
+    );
   }
 
   /** DB-backed PLP loader — extracted so getOrLoad can single-flight it. */
   private async loadPlp(filters: {
-    search?: string; category?: string; brand?: string; minPrice?: number; maxPrice?: number;
-    size?: string; color?: string; tags?: string; sort?: string; order?: 'asc' | 'desc';
-    page?: number; limit?: number;
-  }): Promise<{ items: any[]; total: number; page: number; limit: number; totalPages: number }> {
+    search?: string;
+    category?: string;
+    brand?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    size?: string;
+    color?: string;
+    tags?: string;
+    sort?: string;
+    order?: 'asc' | 'desc';
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    items: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const {
-      search, category, brand, minPrice, maxPrice,
-      size, color, tags, sort, order = 'asc', page = 1, limit = 20,
+      search,
+      category,
+      brand,
+      minPrice,
+      maxPrice,
+      size,
+      color,
+      tags,
+      sort,
+      order = 'asc',
+      page = 1,
+      limit = 20,
     } = filters;
 
     const where: any = { isActive: true };
@@ -81,7 +112,9 @@ export class ProductsService {
     if (search) {
       try {
         // websearch_to_tsquery handles partial words, phrases, and boolean ops safely.
-        const rows = await this.prisma.$queryRaw<{ id: number; rank: number }[]>`
+        const rows = await this.prisma.$queryRaw<
+          { id: number; rank: number }[]
+        >`
           SELECT p.id, ts_rank(
             to_tsvector('english', p.name || ' ' || p.description || ' ' || array_to_string(p.tags, ' ')),
             websearch_to_tsquery('english', ${search})
@@ -135,11 +168,12 @@ export class ProductsService {
     // B-14 PERF: drop `reviews` include — PLP now reads from pre-computed
     // Product.avgRating / reviewCount cache (maintained by reviews.service.ts).
     // When FTS is active, preserve relevance order; otherwise use requested sort.
-    const orderBy: Prisma.ProductOrderByWithRelationInput | undefined = ftsProductIds && ftsProductIds.length > 0
-      ? undefined // order preserved by ftsProductIds array via Prisma { in: [...] }
-      : (sort
+    const orderBy: Prisma.ProductOrderByWithRelationInput | undefined =
+      ftsProductIds && ftsProductIds.length > 0
+        ? undefined // order preserved by ftsProductIds array via Prisma { in: [...] }
+        : sort
           ? { [sort]: order as Prisma.SortOrder }
-          : { createdAt: Prisma.SortOrder.desc });
+          : { createdAt: Prisma.SortOrder.desc };
 
     const [items, total] = await Promise.all([
       this.prisma.product.findMany({
@@ -169,24 +203,28 @@ export class ProductsService {
     // W4 + P-16 PERF: PDP read-through cache with single-flight stampede protection.
     // NotFoundException must propagate — we let the loader throw; getOrLoad
     // doesn't cache the null and the rejection bubbles to all coalesced waiters.
-    return this.redis.getOrLoad(this.pdpKey(id), PDP_CACHE_TTL_SECONDS, async () => {
-      const product = await this.prisma.product.findUnique({
-        where: { id },
-        include: {
-          brand: true,
-          category: true,
-          variants: true,
-          reviews: {
-            include: {
-              user: { select: { id: true, firstName: true, lastName: true } },
+    return this.redis.getOrLoad(
+      this.pdpKey(id),
+      PDP_CACHE_TTL_SECONDS,
+      async () => {
+        const product = await this.prisma.product.findUnique({
+          where: { id },
+          include: {
+            brand: true,
+            category: true,
+            variants: true,
+            reviews: {
+              include: {
+                user: { select: { id: true, firstName: true, lastName: true } },
+              },
+              orderBy: { createdAt: 'desc' },
             },
-            orderBy: { createdAt: 'desc' },
           },
-        },
-      });
-      if (!product) throw new NotFoundException('Product not found');
-      return product;
-    });
+        });
+        if (!product) throw new NotFoundException('Product not found');
+        return product;
+      },
+    );
   }
 
   async create(data: {
@@ -230,22 +268,43 @@ export class ProductsService {
 
   // ─── Variants ───────────────────────────────────────────────────────────────
 
-  async addVariant(productId: number, data: { size: string; color: string; stock: number; sku: string }) {
-    const variant = await this.prisma.variant.create({ data: { ...data, productId } });
+  async addVariant(
+    productId: number,
+    data: { size: string; color: string; stock: number; sku: string },
+  ) {
+    const variant = await this.prisma.variant.create({
+      data: { ...data, productId },
+    });
     await this.invalidateProductCaches(productId);
     return variant;
   }
 
-  async updateVariant(productId: number, variantId: number, data: { size?: string; color?: string; stock?: number; backorderAllowed?: boolean }) {
-    const variant = await this.prisma.variant.findFirst({ where: { id: variantId, productId } });
+  async updateVariant(
+    productId: number,
+    variantId: number,
+    data: {
+      size?: string;
+      color?: string;
+      stock?: number;
+      backorderAllowed?: boolean;
+    },
+  ) {
+    const variant = await this.prisma.variant.findFirst({
+      where: { id: variantId, productId },
+    });
     if (!variant) throw new NotFoundException('Variant not found');
-    const updated = await this.prisma.variant.update({ where: { id: variantId }, data });
+    const updated = await this.prisma.variant.update({
+      where: { id: variantId },
+      data,
+    });
     await this.invalidateProductCaches(productId);
     return updated;
   }
 
   async deleteVariant(productId: number, variantId: number) {
-    const variant = await this.prisma.variant.findFirst({ where: { id: variantId, productId } });
+    const variant = await this.prisma.variant.findFirst({
+      where: { id: variantId, productId },
+    });
     if (!variant) throw new NotFoundException('Variant not found');
     const deleted = await this.prisma.$transaction(async (tx) => {
       // Remove warehouse inventory rows before deleting the variant to avoid FK violation.
@@ -260,9 +319,16 @@ export class ProductsService {
    * Subscribe an email (optionally phone) to a back-in-stock alert for an OOS variant.
    * FINAL §3.2. Idempotent via partial unique index on (variantId, email) WHERE notifiedAt IS NULL.
    */
-  async subscribeStockNotification(variantId: number, email: string, phone?: string) {
-    if (!email || !email.includes('@')) throw new BadRequestException('Valid email required');
-    const variant = await this.prisma.variant.findUnique({ where: { id: variantId } });
+  async subscribeStockNotification(
+    variantId: number,
+    email: string,
+    phone?: string,
+  ) {
+    if (!email || !email.includes('@'))
+      throw new BadRequestException('Valid email required');
+    const variant = await this.prisma.variant.findUnique({
+      where: { id: variantId },
+    });
     if (!variant) throw new NotFoundException('Variant not found');
     try {
       return await this.prisma.stockNotification.create({
@@ -286,7 +352,11 @@ export class ProductsService {
     if (!product) return [];
 
     return this.prisma.product.findMany({
-      where: { id: { not: productId }, categoryId: product.categoryId, isActive: true },
+      where: {
+        id: { not: productId },
+        categoryId: product.categoryId,
+        isActive: true,
+      },
       include: { brand: true, category: true, variants: { take: 1 } },
       orderBy: [{ discountPct: 'desc' }, { createdAt: 'desc' }],
       take: limit,
@@ -325,7 +395,9 @@ export class ProductsService {
     const variants = await this.prisma.variant.findMany({
       where: { id: { in: variantIds } },
       include: {
-        product: { include: { brand: true, category: true, variants: { take: 1 } } },
+        product: {
+          include: { brand: true, category: true, variants: { take: 1 } },
+        },
       },
     });
 
@@ -399,13 +471,29 @@ export class ProductsService {
    * Returns { created, updated, errors[] }
    */
   async bulkUpload(csvText: string) {
-    const lines = csvText.split('\n').map((l) => l.trim()).filter(Boolean);
-    if (lines.length < 2) throw new BadRequestException('CSV must have header + at least one data row');
+    const lines = csvText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length < 2)
+      throw new BadRequestException(
+        'CSV must have header + at least one data row',
+      );
 
     const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
-    const required = ['name', 'slug', 'description', 'brandid', 'categoryid', 'baseprice'];
+    const required = [
+      'name',
+      'slug',
+      'description',
+      'brandid',
+      'categoryid',
+      'baseprice',
+    ];
     const missing = required.filter((r) => !headers.includes(r));
-    if (missing.length) throw new BadRequestException(`CSV missing columns: ${missing.join(', ')}`);
+    if (missing.length)
+      throw new BadRequestException(
+        `CSV missing columns: ${missing.join(', ')}`,
+      );
 
     const results = { created: 0, updated: 0, errors: [] as string[] };
 
@@ -416,24 +504,46 @@ export class ProductsService {
         continue;
       }
       const row: Record<string, string> = {};
-      headers.forEach((h, j) => { row[h] = cols[j]?.trim() ?? ''; });
+      headers.forEach((h, j) => {
+        row[h] = cols[j]?.trim() ?? '';
+      });
 
       try {
         const data = {
           name: row['name'],
-          slug: row['slug'] || row['name'].toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+          slug:
+            row['slug'] ||
+            row['name']
+              .toLowerCase()
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9-]/g, ''),
           description: row['description'],
           brandId: parseInt(row['brandid'], 10),
           categoryId: parseInt(row['categoryid'], 10),
           basePrice: parseFloat(row['baseprice']),
           discountPct: row['discountpct'] ? parseFloat(row['discountpct']) : 0,
-          images: row['images'] ? row['images'].split('|').map((s) => s.trim()).filter(Boolean) : [],
-          tags: row['tags'] ? row['tags'].split('|').map((s) => s.trim().toLowerCase()).filter(Boolean) : [],
+          images: row['images']
+            ? row['images']
+                .split('|')
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [],
+          tags: row['tags']
+            ? row['tags']
+                .split('|')
+                .map((s) => s.trim().toLowerCase())
+                .filter(Boolean)
+            : [],
         };
 
-        const existing = await this.prisma.product.findUnique({ where: { slug: data.slug } });
+        const existing = await this.prisma.product.findUnique({
+          where: { slug: data.slug },
+        });
         if (existing) {
-          await this.prisma.product.update({ where: { slug: data.slug }, data });
+          await this.prisma.product.update({
+            where: { slug: data.slug },
+            data,
+          });
           results.updated++;
         } else {
           await this.prisma.product.create({ data });
@@ -456,8 +566,10 @@ export class ProductsService {
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
-        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-        else inQuotes = !inQuotes;
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else inQuotes = !inQuotes;
       } else if (ch === ',' && !inQuotes) {
         result.push(current);
         current = '';
@@ -475,33 +587,62 @@ export class ProductsService {
    * given the current filter context (so counts reflect what's available, not total).
    */
   async getFacets(filters: {
-    search?: string; category?: string; brand?: string;
-    minPrice?: number; maxPrice?: number; size?: string; color?: string; tags?: string;
+    search?: string;
+    category?: string;
+    brand?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    size?: string;
+    color?: string;
+    tags?: string;
   }) {
     const where: any = { isActive: true };
     if (filters.category) where.category = { slug: filters.category };
     if (filters.brand) where.brand = { slug: filters.brand };
-    if (filters.tags) where.tags = { hasSome: filters.tags.split(',').map((t) => t.trim()) };
+    if (filters.tags)
+      where.tags = { hasSome: filters.tags.split(',').map((t) => t.trim()) };
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
       where.basePrice = {};
-      if (filters.minPrice !== undefined) where.basePrice.gte = Number(filters.minPrice);
-      if (filters.maxPrice !== undefined) where.basePrice.lte = Number(filters.maxPrice);
+      if (filters.minPrice !== undefined)
+        where.basePrice.gte = Number(filters.minPrice);
+      if (filters.maxPrice !== undefined)
+        where.basePrice.lte = Number(filters.maxPrice);
     }
     if (filters.size || filters.color) {
-      where.variants = { some: { ...(filters.size && { size: filters.size }), ...(filters.color && { color: filters.color }), stock: { gt: 0 } } };
+      where.variants = {
+        some: {
+          ...(filters.size && { size: filters.size }),
+          ...(filters.color && { color: filters.color }),
+          stock: { gt: 0 },
+        },
+      };
     }
 
     const [brands, categories, variants, priceRange] = await Promise.all([
       // Brand facet counts (exclude brand filter so user can switch)
       this.prisma.brand.findMany({
         where: { products: { some: { ...where, brand: undefined } } },
-        select: { id: true, name: true, slug: true, _count: { select: { products: { where: { ...where, brand: undefined } } } } },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          _count: {
+            select: { products: { where: { ...where, brand: undefined } } },
+          },
+        },
         orderBy: { name: 'asc' },
       }),
       // Category facet counts
       this.prisma.category.findMany({
         where: { products: { some: { ...where, category: undefined } } },
-        select: { id: true, name: true, slug: true, _count: { select: { products: { where: { ...where, category: undefined } } } } },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          _count: {
+            select: { products: { where: { ...where, category: undefined } } },
+          },
+        },
         orderBy: { name: 'asc' },
       }),
       // Size + color facets via raw groupBy on Variant table
@@ -527,11 +668,28 @@ export class ProductsService {
     }
 
     return {
-      brands: brands.map((b) => ({ id: b.id, name: b.name, slug: b.slug, count: b._count.products })),
-      categories: categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, count: c._count.products })),
-      sizes: [...sizeMap.entries()].map(([size, count]) => ({ size, count })).sort((a, b) => a.size.localeCompare(b.size)),
-      colors: [...colorMap.entries()].map(([color, count]) => ({ color, count })).sort((a, b) => a.color.localeCompare(b.color)),
-      priceRange: { min: priceRange._min.basePrice ?? 0, max: priceRange._max.basePrice ?? 0 },
+      brands: brands.map((b) => ({
+        id: b.id,
+        name: b.name,
+        slug: b.slug,
+        count: b._count.products,
+      })),
+      categories: categories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        count: c._count.products,
+      })),
+      sizes: [...sizeMap.entries()]
+        .map(([size, count]) => ({ size, count }))
+        .sort((a, b) => a.size.localeCompare(b.size)),
+      colors: [...colorMap.entries()]
+        .map(([color, count]) => ({ color, count }))
+        .sort((a, b) => a.color.localeCompare(b.color)),
+      priceRange: {
+        min: priceRange._min.basePrice ?? 0,
+        max: priceRange._max.basePrice ?? 0,
+      },
     };
   }
 
@@ -541,7 +699,15 @@ export class ProductsService {
       // F1-01: FTS-backed autocomplete — prefix match with :* operator
       const term = q.trim().replace(/[^a-zA-Z0-9\s]/g, '') + ':*';
       const rows = await this.prisma.$queryRaw<
-        { id: number; name: string; slug: string; images: string[]; basePrice: number; discountPct: number; categoryName: string }[]
+        {
+          id: number;
+          name: string;
+          slug: string;
+          images: string[];
+          basePrice: number;
+          discountPct: number;
+          categoryName: string;
+        }[]
       >`
         SELECT p.id, p.name, p.slug, p.images, p."basePrice", p."discountPct",
                c.name AS "categoryName"
@@ -572,7 +738,15 @@ export class ProductsService {
           isActive: true,
           name: { contains: q, mode: 'insensitive' },
         },
-        select: { id: true, name: true, slug: true, images: true, category: { select: { name: true } }, basePrice: true, discountPct: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          images: true,
+          category: { select: { name: true } },
+          basePrice: true,
+          discountPct: true,
+        },
         take: 8,
       });
     }
@@ -583,7 +757,11 @@ export class ProductsService {
   async logSearch(query: string, userId: number | null, resultCount: number) {
     if (!query || query.trim().length < 2) return;
     await this.prisma.searchLog.create({
-      data: { query: query.trim().toLowerCase(), userId: userId ?? undefined, resultCount },
+      data: {
+        query: query.trim().toLowerCase(),
+        userId: userId ?? undefined,
+        resultCount,
+      },
     });
   }
 
@@ -591,7 +769,9 @@ export class ProductsService {
     // Aggregate top queries from the last 7 days
     const since = new Date();
     since.setDate(since.getDate() - 7);
-    const rows = await this.prisma.$queryRaw<{ query: string; count: bigint }[]>`
+    const rows = await this.prisma.$queryRaw<
+      { query: string; count: bigint }[]
+    >`
       SELECT query, COUNT(*) AS count
       FROM "SearchLog"
       WHERE "createdAt" >= ${since} AND length(query) >= 3
@@ -599,7 +779,7 @@ export class ProductsService {
       ORDER BY count DESC
       LIMIT ${limit}
     `;
-    return rows.map(r => ({ query: r.query, count: Number(r.count) }));
+    return rows.map((r) => ({ query: r.query, count: Number(r.count) }));
   }
 
   // ─── F2-19: Loyalty tiers ────────────────────────────────────────────────────
@@ -609,12 +789,19 @@ export class ProductsService {
   }
 
   async getUserTier(loyaltyPoints: number) {
-    const tiers = await this.prisma.loyaltyTier.findMany({ orderBy: { minPoints: 'desc' } });
-    const tier = tiers.find(t => loyaltyPoints >= t.minPoints);
+    const tiers = await this.prisma.loyaltyTier.findMany({
+      orderBy: { minPoints: 'desc' },
+    });
+    const tier = tiers.find((t) => loyaltyPoints >= t.minPoints);
     return tier ?? null;
   }
 
-  async upsertLoyaltyTier(dto: { name: string; minPoints: number; earnMultiplier: number; perks: string[] }) {
+  async upsertLoyaltyTier(dto: {
+    name: string;
+    minPoints: number;
+    earnMultiplier: number;
+    perks: string[];
+  }) {
     return this.prisma.loyaltyTier.upsert({
       where: { name: dto.name },
       create: dto,

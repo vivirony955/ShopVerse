@@ -17,10 +17,17 @@ export class FaqsService {
   }
 
   async create(productId: number, dto: CreateFaqDto) {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
     if (!product) throw new NotFoundException('Product not found');
     return this.prisma.productFaq.create({
-      data: { productId, question: dto.question, answer: dto.answer, sortOrder: dto.sortOrder ?? 0 },
+      data: {
+        productId,
+        question: dto.question,
+        answer: dto.answer,
+        sortOrder: dto.sortOrder ?? 0,
+      },
     });
   }
 

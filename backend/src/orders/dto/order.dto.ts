@@ -1,7 +1,21 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { IsInt, IsPositive, IsOptional, IsString, MaxLength, IsIn, IsEmail, ValidateNested, IsArray, ArrayMinSize, Matches, IsNumber, Min } from 'class-validator';
+import {
+  IsInt,
+  IsPositive,
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsIn,
+  IsEmail,
+  ValidateNested,
+  IsArray,
+  ArrayMinSize,
+  Matches,
+  IsNumber,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class PlaceOrderDto {
@@ -19,7 +33,10 @@ export class PlaceOrderDto {
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  @Matches(/^[A-Z0-9_-]+$/i, { message: 'couponCode must contain only letters, numbers, hyphens, and underscores' })
+  @Matches(/^[A-Z0-9_-]+$/i, {
+    message:
+      'couponCode must contain only letters, numbers, hyphens, and underscores',
+  })
   couponCode?: string;
 
   // F1-15: wallet amount to apply toward this order (server-side clamp to min(balance, total))
@@ -31,7 +48,17 @@ export class PlaceOrderDto {
 
 export class UpdateOrderStatusDto {
   @IsString()
-  @IsIn(['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED', 'REFUNDED'])
+  @IsIn([
+    'PENDING',
+    'CONFIRMED',
+    'PROCESSING',
+    'SHIPPED',
+    'DELIVERED',
+    'CANCELLED',
+    'RETURN_REQUESTED',
+    'RETURNED',
+    'REFUNDED',
+  ])
   status: string;
 }
 
@@ -89,6 +116,9 @@ export class PlaceGuestOrderDto {
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  @Matches(/^[A-Z0-9_-]+$/i, { message: 'couponCode must contain only letters, numbers, hyphens, and underscores' })
+  @Matches(/^[A-Z0-9_-]+$/i, {
+    message:
+      'couponCode must contain only letters, numbers, hyphens, and underscores',
+  })
   couponCode?: string;
 }

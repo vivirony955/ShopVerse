@@ -14,10 +14,7 @@ describe('UsersService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [UsersService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
@@ -37,7 +34,9 @@ describe('UsersService', () => {
       prisma.user.findUnique.mockResolvedValue(user);
       const result = await service.findOneByEmail('user@example.com');
       expect(result).toEqual(user);
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: 'user@example.com' } });
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'user@example.com' },
+      });
     });
 
     it('returns null when email not found', async () => {
@@ -51,7 +50,12 @@ describe('UsersService', () => {
 
   describe('findById', () => {
     it('returns selected user fields by id', async () => {
-      const user = { id: 1, email: 'user@example.com', role: 'USER', createdAt: new Date() };
+      const user = {
+        id: 1,
+        email: 'user@example.com',
+        role: 'USER',
+        createdAt: new Date(),
+      };
       prisma.user.findUnique.mockResolvedValue(user);
       const result = await service.findById(1);
       expect(result).toEqual(user);
@@ -72,7 +76,10 @@ describe('UsersService', () => {
     it('creates a user with hashed password', async () => {
       const created = { id: 2, email: 'new@example.com', role: 'USER' };
       prisma.user.create.mockResolvedValue(created);
-      const result = await service.create({ email: 'new@example.com', password: 'hashed' });
+      const result = await service.create({
+        email: 'new@example.com',
+        password: 'hashed',
+      });
       expect(result).toEqual(created);
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: { email: 'new@example.com', password: 'hashed' },
@@ -84,12 +91,24 @@ describe('UsersService', () => {
 
   describe('updateProfile', () => {
     it('updates user fields and returns selected fields', async () => {
-      const updated = { id: 1, email: 'user@example.com', firstName: 'John', lastName: 'Doe', phone: null };
+      const updated = {
+        id: 1,
+        email: 'user@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        phone: null,
+      };
       prisma.user.update.mockResolvedValue(updated);
-      const result = await service.updateProfile(1, { firstName: 'John', lastName: 'Doe' });
+      const result = await service.updateProfile(1, {
+        firstName: 'John',
+        lastName: 'Doe',
+      });
       expect(result).toEqual(updated);
       expect(prisma.user.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 1 }, data: { firstName: 'John', lastName: 'Doe' } }),
+        expect.objectContaining({
+          where: { id: 1 },
+          data: { firstName: 'John', lastName: 'Doe' },
+        }),
       );
     });
 
@@ -110,7 +129,9 @@ describe('UsersService', () => {
       prisma.address.findMany.mockResolvedValue(addresses);
       const result = await service.getAddresses(1);
       expect(result).toEqual(addresses);
-      expect(prisma.address.findMany).toHaveBeenCalledWith({ where: { userId: 1 } });
+      expect(prisma.address.findMany).toHaveBeenCalledWith({
+        where: { userId: 1 },
+      });
     });
 
     it('returns empty array when user has no addresses', async () => {
@@ -121,8 +142,12 @@ describe('UsersService', () => {
 
   describe('addAddress', () => {
     const addrData = {
-      fullName: 'Jane Doe', phone: '9000000000',
-      line1: '1 Main St', city: 'Delhi', state: 'DL', pincode: '110001',
+      fullName: 'Jane Doe',
+      phone: '9000000000',
+      line1: '1 Main St',
+      city: 'Delhi',
+      state: 'DL',
+      pincode: '110001',
     };
 
     it('creates address without touching existing defaults', async () => {
@@ -146,7 +171,11 @@ describe('UsersService', () => {
 
   describe('updateAddress', () => {
     it('updates and returns the address', async () => {
-      prisma.address.findFirst.mockResolvedValue({ id: 1, userId: 1, city: 'Mumbai' });
+      prisma.address.findFirst.mockResolvedValue({
+        id: 1,
+        userId: 1,
+        city: 'Mumbai',
+      });
       prisma.address.update.mockResolvedValue({ id: 1, city: 'Pune' });
       const result = await service.updateAddress(1, 1, { city: 'Pune' });
       expect(result.city).toBe('Pune');
@@ -154,7 +183,9 @@ describe('UsersService', () => {
 
     it('throws NotFoundException when address not owned by user', async () => {
       prisma.address.findFirst.mockResolvedValue(null);
-      await expect(service.updateAddress(1, 99, { city: 'Pune' })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.updateAddress(1, 99, { city: 'Pune' }),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('resets other defaults when isDefault = true', async () => {
@@ -180,7 +211,9 @@ describe('UsersService', () => {
 
     it('throws NotFoundException for address not belonging to user', async () => {
       prisma.address.findFirst.mockResolvedValue(null);
-      await expect(service.deleteAddress(1, 99)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteAddress(1, 99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -203,7 +236,9 @@ describe('UsersService', () => {
 
     it('throws NotFoundException when address not owned by user', async () => {
       prisma.address.findFirst.mockResolvedValue(null);
-      await expect(service.setDefaultAddress(1, 99)).rejects.toThrow(NotFoundException);
+      await expect(service.setDefaultAddress(1, 99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

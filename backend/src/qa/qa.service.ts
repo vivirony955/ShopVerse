@@ -1,7 +1,11 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -9,9 +13,13 @@ export class QaService {
   constructor(private readonly prisma: PrismaService) {}
 
   async ask(userId: number, productId: number, question: string) {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
     if (!product) throw new NotFoundException('Product not found');
-    return this.prisma.productQuestion.create({ data: { userId, productId, question } });
+    return this.prisma.productQuestion.create({
+      data: { userId, productId, question },
+    });
   }
 
   async getForProduct(productId: number) {
@@ -25,19 +33,30 @@ export class QaService {
   async answer(id: number, adminId: number, answer: string) {
     return this.prisma.productQuestion.update({
       where: { id },
-      data: { answer, answeredBy: adminId, answeredAt: new Date(), isApproved: true },
+      data: {
+        answer,
+        answeredBy: adminId,
+        answeredAt: new Date(),
+        isApproved: true,
+      },
     });
   }
 
   async approve(id: number) {
-    return this.prisma.productQuestion.update({ where: { id }, data: { isApproved: true } });
+    return this.prisma.productQuestion.update({
+      where: { id },
+      data: { isApproved: true },
+    });
   }
 
   async getPending() {
     return this.prisma.productQuestion.findMany({
       where: { isApproved: false },
       orderBy: { createdAt: 'desc' },
-      include: { product: { select: { name: true } }, user: { select: { firstName: true, lastName: true } } },
+      include: {
+        product: { select: { name: true } },
+        user: { select: { firstName: true, lastName: true } },
+      },
     });
   }
 

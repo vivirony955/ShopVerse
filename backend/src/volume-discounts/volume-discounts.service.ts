@@ -8,7 +8,12 @@ import { PrismaService } from '../prisma/prisma.service';
 export class VolumeDiscountsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: { productId?: number; categoryId?: number; minQty: number; discountPct: number }) {
+  async create(dto: {
+    productId?: number;
+    categoryId?: number;
+    minQty: number;
+    discountPct: number;
+  }) {
     return this.prisma.volumeDiscount.create({ data: dto });
   }
 
@@ -24,16 +29,15 @@ export class VolumeDiscountsService {
   }
 
   async getForProduct(productId: number) {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
     if (!product) throw new NotFoundException('Product not found');
 
     const discounts = await this.prisma.volumeDiscount.findMany({
       where: {
         isActive: true,
-        OR: [
-          { productId },
-          { categoryId: product.categoryId },
-        ],
+        OR: [{ productId }, { categoryId: product.categoryId }],
       },
       orderBy: { minQty: 'asc' },
     });
@@ -43,12 +47,15 @@ export class VolumeDiscountsService {
   /** Given a quantity, find the best applicable volume discount percentage */
   async getBestDiscount(productId: number, qty: number): Promise<number> {
     const discounts = await this.getForProduct(productId);
-    const applicable = discounts.filter(d => qty >= d.minQty);
+    const applicable = discounts.filter((d) => qty >= d.minQty);
     if (!applicable.length) return 0;
-    return Math.max(...applicable.map(d => d.discountPct));
+    return Math.max(...applicable.map((d) => d.discountPct));
   }
 
-  async update(id: number, dto: Partial<{ minQty: number; discountPct: number; isActive: boolean }>) {
+  async update(
+    id: number,
+    dto: Partial<{ minQty: number; discountPct: number; isActive: boolean }>,
+  ) {
     return this.prisma.volumeDiscount.update({ where: { id }, data: dto });
   }
 

@@ -48,20 +48,33 @@ describe('AuthController (HTTP)', () => {
     });
 
     it('201 — passes firstName and lastName to service', async () => {
-      mockAuthService.register.mockResolvedValue({ id: 2, email: 'jane@example.com' });
+      mockAuthService.register.mockResolvedValue({
+        id: 2,
+        email: 'jane@example.com',
+      });
 
       await request(app.getHttpServer())
         .post('/auth/register')
-        .send({ email: 'jane@example.com', password: 'abc123', firstName: 'Jane', lastName: 'Doe' })
+        .send({
+          email: 'jane@example.com',
+          password: 'abc123',
+          firstName: 'Jane',
+          lastName: 'Doe',
+        })
         .expect(201);
 
       expect(mockAuthService.register).toHaveBeenCalledWith(
-        'jane@example.com', 'abc123', 'Jane', 'Doe',
+        'jane@example.com',
+        'abc123',
+        'Jane',
+        'Doe',
       );
     });
 
     it('409 — duplicate email returns ConflictException', async () => {
-      mockAuthService.register.mockRejectedValue(new ConflictException('Email already in use'));
+      mockAuthService.register.mockRejectedValue(
+        new ConflictException('Email already in use'),
+      );
 
       const res = await request(app.getHttpServer())
         .post('/auth/register')
@@ -76,8 +89,15 @@ describe('AuthController (HTTP)', () => {
 
   describe('POST /auth/login', () => {
     it('200 — returns access_token and refresh_token on valid credentials', async () => {
-      mockAuthService.validateUser.mockResolvedValue({ id: 1, email: 'user@example.com', role: 'USER' });
-      mockAuthService.login.mockResolvedValue({ access_token: 'at-tok', refresh_token: 'rt-tok' });
+      mockAuthService.validateUser.mockResolvedValue({
+        id: 1,
+        email: 'user@example.com',
+        role: 'USER',
+      });
+      mockAuthService.login.mockResolvedValue({
+        access_token: 'at-tok',
+        refresh_token: 'rt-tok',
+      });
 
       const res = await request(app.getHttpServer())
         .post('/auth/login')
@@ -100,14 +120,20 @@ describe('AuthController (HTTP)', () => {
     it('calls validateUser then login with the validated user', async () => {
       const user = { id: 1, email: 'user@example.com', role: 'USER' };
       mockAuthService.validateUser.mockResolvedValue(user);
-      mockAuthService.login.mockResolvedValue({ access_token: 'at', refresh_token: 'rt' });
+      mockAuthService.login.mockResolvedValue({
+        access_token: 'at',
+        refresh_token: 'rt',
+      });
 
       await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email: 'user@example.com', password: 'pass' })
         .expect(200);
 
-      expect(mockAuthService.validateUser).toHaveBeenCalledWith('user@example.com', 'pass');
+      expect(mockAuthService.validateUser).toHaveBeenCalledWith(
+        'user@example.com',
+        'pass',
+      );
       expect(mockAuthService.login).toHaveBeenCalledWith(user);
     });
   });
@@ -116,7 +142,9 @@ describe('AuthController (HTTP)', () => {
 
   describe('POST /auth/refresh', () => {
     it('200 — returns new access_token for valid refresh token', async () => {
-      mockAuthService.refreshToken.mockResolvedValue({ access_token: 'new-at' });
+      mockAuthService.refreshToken.mockResolvedValue({
+        access_token: 'new-at',
+      });
 
       const res = await request(app.getHttpServer())
         .post('/auth/refresh')

@@ -4,7 +4,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { TicketStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { AddNoteDto, AdminNoteDto, CreateTicketDto, UpdateTicketDto } from './dto/support.dto';
+import {
+  AddNoteDto,
+  AdminNoteDto,
+  CreateTicketDto,
+  UpdateTicketDto,
+} from './dto/support.dto';
 
 @Injectable()
 export class SupportService {
@@ -25,7 +30,9 @@ export class SupportService {
   async getMyTickets(userId: number) {
     return this.prisma.supportTicket.findMany({
       where: { userId },
-      include: { notes: { where: { isInternal: false }, orderBy: { createdAt: 'asc' } } },
+      include: {
+        notes: { where: { isInternal: false }, orderBy: { createdAt: 'asc' } },
+      },
       orderBy: { updatedAt: 'desc' },
     });
   }
@@ -33,7 +40,10 @@ export class SupportService {
   async getAllTickets(status?: TicketStatus) {
     return this.prisma.supportTicket.findMany({
       where: status ? { status } : {},
-      include: { notes: true, user: { select: { id: true, email: true, firstName: true } } },
+      include: {
+        notes: true,
+        user: { select: { id: true, email: true, firstName: true } },
+      },
       orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
     });
   }
@@ -56,11 +66,18 @@ export class SupportService {
   }
 
   async addNote(ticketId: number, authorId: number, dto: AddNoteDto) {
-    const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+    });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
     const note = await this.prisma.ticketNote.create({
-      data: { ticketId, authorId, body: dto.body, isInternal: dto.isInternal ?? true },
+      data: {
+        ticketId,
+        authorId,
+        body: dto.body,
+        isInternal: dto.isInternal ?? true,
+      },
     });
 
     // Move ticket to in-progress when staff responds
@@ -76,7 +93,12 @@ export class SupportService {
 
   async addAdminNote(authorId: number, dto: AdminNoteDto) {
     return this.prisma.adminNote.create({
-      data: { authorId, targetType: dto.targetType, targetId: dto.targetId, body: dto.body },
+      data: {
+        authorId,
+        targetType: dto.targetType,
+        targetId: dto.targetId,
+        body: dto.body,
+      },
     });
   }
 
@@ -98,9 +120,24 @@ export class SupportService {
       where: {
         status: { notIn: [TicketStatus.RESOLVED, TicketStatus.CLOSED] },
         OR: [
-          { priority: 'URGENT', createdAt: { lte: new Date(now.getTime() - urgentSlaHours * 3600_000) } },
-          { priority: 'HIGH', createdAt: { lte: new Date(now.getTime() - highSlaHours * 3600_000) } },
-          { priority: 'MEDIUM', createdAt: { lte: new Date(now.getTime() - medSlaHours * 3600_000) } },
+          {
+            priority: 'URGENT',
+            createdAt: {
+              lte: new Date(now.getTime() - urgentSlaHours * 3600_000),
+            },
+          },
+          {
+            priority: 'HIGH',
+            createdAt: {
+              lte: new Date(now.getTime() - highSlaHours * 3600_000),
+            },
+          },
+          {
+            priority: 'MEDIUM',
+            createdAt: {
+              lte: new Date(now.getTime() - medSlaHours * 3600_000),
+            },
+          },
         ],
       },
       include: { user: { select: { id: true, email: true } } },

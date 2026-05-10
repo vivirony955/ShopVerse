@@ -1,7 +1,13 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -22,7 +28,10 @@ export class ReviewsService {
         take: limit,
       }),
       this.prisma.review.count({ where: { productId } }),
-      this.prisma.review.aggregate({ where: { productId }, _avg: { rating: true } }),
+      this.prisma.review.aggregate({
+        where: { productId },
+        _avg: { rating: true },
+      }),
     ]);
     return { reviews, total, page, limit, avgRating: agg._avg.rating ?? 0 };
   }
@@ -56,7 +65,9 @@ export class ReviewsService {
     productId: number,
     data: { rating: number; title?: string; body?: string },
   ) {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
     if (!product) throw new NotFoundException('Product not found');
 
     // F1-08: Check if user has a delivered order containing this product
@@ -69,12 +80,17 @@ export class ReviewsService {
     const isVerifiedPurchase = purchaseCount > 0;
 
     return this.prisma.$transaction(async (tx) => {
-      const review = await tx.review.create({
-        data: { userId, productId, isVerifiedPurchase, ...data },
-      }).catch((e) => {
-        if (e?.code === 'P2002') throw new ConflictException('You have already reviewed this product');
-        throw e;
-      });
+      const review = await tx.review
+        .create({
+          data: { userId, productId, isVerifiedPurchase, ...data },
+        })
+        .catch((e) => {
+          if (e?.code === 'P2002')
+            throw new ConflictException(
+              'You have already reviewed this product',
+            );
+          throw e;
+        });
       await this.refreshProductRatingCache(tx, productId);
       return review;
     });
@@ -85,7 +101,9 @@ export class ReviewsService {
     reviewId: number,
     data: { rating?: number; title?: string; body?: string },
   ) {
-    const review = await this.prisma.review.findUnique({ where: { id: reviewId } });
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+    });
     if (!review) throw new NotFoundException('Review not found');
     if (review.userId !== userId) throw new ForbiddenException();
     return this.prisma.$transaction(async (tx) => {
@@ -103,38 +121,63 @@ export class ReviewsService {
    * Upserts so a user can change their vote. Updates helpfulCount atomically.
    */
   async voteReview(userId: number, reviewId: number, isHelpful: boolean) {
-    const review = await this.prisma.review.findUnique({ where: { id: reviewId } });
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+    });
     if (!review) throw new NotFoundException('Review not found');
-    if (review.userId === userId) throw new BadRequestException('Cannot vote on your own review');
+    if (review.userId === userId)
+      throw new BadRequestException('Cannot vote on your own review');
 
     return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.reviewVote.findUnique({ where: { reviewId_userId: { reviewId, userId } } });
+      const existing = await tx.reviewVote.findUnique({
+        where: { reviewId_userId: { reviewId, userId } },
+      });
 
       if (existing) {
         if (existing.isHelpful === isHelpful) {
           // Remove vote (toggle off)
-          await tx.reviewVote.delete({ where: { reviewId_userId: { reviewId, userId } } });
-          if (isHelpful) await tx.review.update({ where: { id: reviewId }, data: { helpfulCount: { decrement: 1 } } });
+          await tx.reviewVote.delete({
+            where: { reviewId_userId: { reviewId, userId } },
+          });
+          if (isHelpful)
+            await tx.review.update({
+              where: { id: reviewId },
+              data: { helpfulCount: { decrement: 1 } },
+            });
         } else {
           // Flip vote
-          await tx.reviewVote.update({ where: { reviewId_userId: { reviewId, userId } }, data: { isHelpful } });
+          await tx.reviewVote.update({
+            where: { reviewId_userId: { reviewId, userId } },
+            data: { isHelpful },
+          });
           await tx.review.update({
             where: { id: reviewId },
-            data: { helpfulCount: isHelpful ? { increment: 1 } : { decrement: 1 } },
+            data: {
+              helpfulCount: isHelpful ? { increment: 1 } : { decrement: 1 },
+            },
           });
         }
       } else {
         // New vote
         await tx.reviewVote.create({ data: { reviewId, userId, isHelpful } });
-        if (isHelpful) await tx.review.update({ where: { id: reviewId }, data: { helpfulCount: { increment: 1 } } });
+        if (isHelpful)
+          await tx.review.update({
+            where: { id: reviewId },
+            data: { helpfulCount: { increment: 1 } },
+          });
       }
 
-      return tx.review.findUnique({ where: { id: reviewId }, select: { id: true, helpfulCount: true } });
+      return tx.review.findUnique({
+        where: { id: reviewId },
+        select: { id: true, helpfulCount: true },
+      });
     });
   }
 
   async deleteReview(userId: number, reviewId: number, isAdmin = false) {
-    const review = await this.prisma.review.findUnique({ where: { id: reviewId } });
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+    });
     if (!review) throw new NotFoundException('Review not found');
     if (!isAdmin && review.userId !== userId) throw new ForbiddenException();
     return this.prisma.$transaction(async (tx) => {

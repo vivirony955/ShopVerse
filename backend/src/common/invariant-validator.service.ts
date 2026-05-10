@@ -23,7 +23,14 @@ export class InvariantValidatorService {
   // (via an admin endpoint) and page if any cron's lastRunAt falls behind its
   // expected cadence. Stored in-memory — good enough for single-pod detection;
   // multi-pod rollup goes via log aggregation on the `[INVARIANT_ALERT]` prefix.
-  private readonly heartbeats = new Map<string, { lastRunAt: Date; lastStatus: 'OK' | 'VIOLATIONS' | 'ERROR'; violationCount: number }>();
+  private readonly heartbeats = new Map<
+    string,
+    {
+      lastRunAt: Date;
+      lastStatus: 'OK' | 'VIOLATIONS' | 'ERROR';
+      violationCount: number;
+    }
+  >();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -45,12 +52,22 @@ export class InvariantValidatorService {
       if (rawCount === undefined) return;
       const violationCount = rawCount;
       const status = violationCount === 0 ? 'OK' : 'VIOLATIONS';
-      this.heartbeats.set(name, { lastRunAt: new Date(), lastStatus: status, violationCount });
+      this.heartbeats.set(name, {
+        lastRunAt: new Date(),
+        lastStatus: status,
+        violationCount,
+      });
       if (violationCount > 0) {
-        this.logger.warn(`[INVARIANT_ALERT] validator=${name} violations=${violationCount}`);
+        this.logger.warn(
+          `[INVARIANT_ALERT] validator=${name} violations=${violationCount}`,
+        );
       }
     } catch (e: any) {
-      this.heartbeats.set(name, { lastRunAt: new Date(), lastStatus: 'ERROR', violationCount: -1 });
+      this.heartbeats.set(name, {
+        lastRunAt: new Date(),
+        lastStatus: 'ERROR',
+        violationCount: -1,
+      });
       // ERROR level — the cron itself failed. Ops must investigate.
       this.logger.error(
         `[INVARIANT_ALERT] validator=${name} status=ERROR reason=${e?.message ?? e}`,
@@ -60,7 +77,10 @@ export class InvariantValidatorService {
   }
 
   /** Exposed for an admin/health endpoint so monitoring can poll run freshness. */
-  getHeartbeats(): Record<string, { lastRunAt: Date; lastStatus: string; violationCount: number }> {
+  getHeartbeats(): Record<
+    string,
+    { lastRunAt: Date; lastStatus: string; violationCount: number }
+  > {
     return Object.fromEntries(this.heartbeats);
   }
 
@@ -73,11 +93,20 @@ export class InvariantValidatorService {
   @Cron(CronExpression.EVERY_HOUR)
   async validateInventoryInvariants(): Promise<void> {
     await this.runValidator('inventory', () =>
-      this.cronLock.runExclusive('invariant-inventory', 14 * 60_000, async () => {
-      // I-1/I-2 cache drift
-      const drift = await this.prisma.$queryRaw<
-        { variantId: number; cacheStock: number; whStock: number; cacheReserved: number; whReserved: number }[]
-      >`
+      this.cronLock.runExclusive(
+        'invariant-inventory',
+        14 * 60_000,
+        async () => {
+          // I-1/I-2 cache drift
+          const drift = await this.prisma.$queryRaw<
+            {
+              variantId: number;
+              cacheStock: number;
+              whStock: number;
+              cacheReserved: number;
+              whReserved: number;
+            }[]
+          >`
         SELECT v.id AS "variantId",
                v."stock" AS "cacheStock",
                COALESCE(SUM(wi."stock"), 0)::int AS "whStock",
@@ -89,21 +118,25 @@ export class InvariantValidatorService {
         HAVING v."stock" <> COALESCE(SUM(wi."stock"), 0)::int
             OR v."reservedStock" <> COALESCE(SUM(wi."reserved"), 0)::int
       `;
-      for (const d of drift) {
-        this.logger.warn(
-          `I-1/I-2 drift variantId=${d.variantId} cacheStock=${d.cacheStock} vs whStock=${d.whStock}, ` +
-          `cacheReserved=${d.cacheReserved} vs whReserved=${d.whReserved}`,
-        );
-      }
+          for (const d of drift) {
+            this.logger.warn(
+              `I-1/I-2 drift variantId=${d.variantId} cacheStock=${d.cacheStock} vs whStock=${d.whStock}, ` +
+                `cacheReserved=${d.cacheReserved} vs whReserved=${d.whReserved}`,
+            );
+          }
 
-      // I-2 cross-check against OrderItem for active-order reserves.
-      // BUG-FIX: original LEFT JOIN on Order with status filter left oi.*
-      // in the result set when the order didn't match (REFUNDED, CANCELLED),
-      // so SUM counted items from ALL orders. CASE WHEN ensures only items
-      // from active-status orders are summed.
-      const ordDrift = await this.prisma.$queryRaw<
-        { variantId: number; cacheReserved: number; activeOrderQty: number }[]
-      >`
+          // I-2 cross-check against OrderItem for active-order reserves.
+          // BUG-FIX: original LEFT JOIN on Order with status filter left oi.*
+          // in the result set when the order didn't match (REFUNDED, CANCELLED),
+          // so SUM counted items from ALL orders. CASE WHEN ensures only items
+          // from active-status orders are summed.
+          const ordDrift = await this.prisma.$queryRaw<
+            {
+              variantId: number;
+              cacheReserved: number;
+              activeOrderQty: number;
+            }[]
+          >`
         SELECT v.id AS "variantId", v."reservedStock" AS "cacheReserved",
                COALESCE(SUM(
                  CASE WHEN o."status" IN ('PENDING','CONFIRMED','PROCESSING','PACKED','SHIPPED')
@@ -118,17 +151,19 @@ export class InvariantValidatorService {
                       THEN oi."quantity" ELSE 0 END
                ), 0)::int
       `;
-      for (const d of ordDrift) {
-        this.logger.warn(
-          `I-2 violation variantId=${d.variantId}: reservedStock=${d.cacheReserved} < activeOrderQty=${d.activeOrderQty}`,
-        );
-      }
+          for (const d of ordDrift) {
+            this.logger.warn(
+              `I-2 violation variantId=${d.variantId}: reservedStock=${d.cacheReserved} < activeOrderQty=${d.activeOrderQty}`,
+            );
+          }
 
-      if (drift.length === 0 && ordDrift.length === 0) {
-        this.logger.log('I-1/I-2 invariants OK');
-      }
-      return drift.length + ordDrift.length;
-    }));
+          if (drift.length === 0 && ordDrift.length === 0) {
+            this.logger.log('I-1/I-2 invariants OK');
+          }
+          return drift.length + ordDrift.length;
+        },
+      ),
+    );
   }
 
   /**
@@ -138,10 +173,13 @@ export class InvariantValidatorService {
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async validateWalletTrialBalance(): Promise<void> {
     await this.runValidator('wallet-trial', () =>
-      this.cronLock.runExclusive('invariant-wallet-trial', 9 * 60_000, async () => {
-      const diffs = await this.prisma.$queryRaw<
-        { walletId: number; balance: number; ledger: number }[]
-      >`
+      this.cronLock.runExclusive(
+        'invariant-wallet-trial',
+        9 * 60_000,
+        async () => {
+          const diffs = await this.prisma.$queryRaw<
+            { walletId: number; balance: number; ledger: number }[]
+          >`
         SELECT w.id AS "walletId", w."balance",
                COALESCE(SUM(CASE WHEN t."type" = 'CREDIT' THEN t."amount"
                                  WHEN t."type" = 'DEBIT'  THEN -t."amount"
@@ -153,14 +191,16 @@ export class InvariantValidatorService {
                                                    WHEN t."type" = 'DEBIT'  THEN -t."amount"
                                                    ELSE 0 END), 0)) > 0.01
       `;
-      for (const d of diffs) {
-        this.logger.warn(
-          `I-3 trial-balance mismatch walletId=${d.walletId} balance=${d.balance} ledger=${d.ledger}`,
-        );
-      }
-      if (diffs.length === 0) this.logger.log('I-3 trial balance OK');
-      return diffs.length;
-    }));
+          for (const d of diffs) {
+            this.logger.warn(
+              `I-3 trial-balance mismatch walletId=${d.walletId} balance=${d.balance} ledger=${d.ledger}`,
+            );
+          }
+          if (diffs.length === 0) this.logger.log('I-3 trial balance OK');
+          return diffs.length;
+        },
+      ),
+    );
   }
 
   /**
@@ -170,10 +210,13 @@ export class InvariantValidatorService {
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async validateRefundAmounts(): Promise<void> {
     await this.runValidator('refund-amounts', () =>
-      this.cronLock.runExclusive('invariant-refund-amounts', 9 * 60_000, async () => {
-      const violations = await this.prisma.$queryRaw<
-        { orderId: number; total: number; refunded: number }[]
-      >`
+      this.cronLock.runExclusive(
+        'invariant-refund-amounts',
+        9 * 60_000,
+        async () => {
+          const violations = await this.prisma.$queryRaw<
+            { orderId: number; total: number; refunded: number }[]
+          >`
         SELECT o.id AS "orderId", o."total",
                COALESCE(SUM(r."amount"), 0) AS "refunded"
         FROM "Order" o
@@ -182,14 +225,16 @@ export class InvariantValidatorService {
         GROUP BY o.id, o."total"
         HAVING COALESCE(SUM(r."amount"), 0) > o."total" + 0.01
       `;
-      for (const v of violations) {
-        this.logger.error(
-          `I-7 VIOLATION: orderId=${v.orderId} refunded=${v.refunded} > total=${v.total}`,
-        );
-      }
-      if (violations.length === 0) this.logger.log('I-7 refund bounds OK');
-      return violations.length;
-    }));
+          for (const v of violations) {
+            this.logger.error(
+              `I-7 VIOLATION: orderId=${v.orderId} refunded=${v.refunded} > total=${v.total}`,
+            );
+          }
+          if (violations.length === 0) this.logger.log('I-7 refund bounds OK');
+          return violations.length;
+        },
+      ),
+    );
   }
 
   /**
@@ -200,10 +245,13 @@ export class InvariantValidatorService {
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async validateOrderTotals(): Promise<void> {
     await this.runValidator('order-totals', () =>
-      this.cronLock.runExclusive('invariant-order-totals', 9 * 60_000, async () => {
-      const mismatches = await this.prisma.$queryRaw<
-        { orderId: number; total: number; computed: number }[]
-      >`
+      this.cronLock.runExclusive(
+        'invariant-order-totals',
+        9 * 60_000,
+        async () => {
+          const mismatches = await this.prisma.$queryRaw<
+            { orderId: number; total: number; computed: number }[]
+          >`
         SELECT o.id AS "orderId", o."total",
                (COALESCE(SUM(oi."price" * oi."quantity"), 0)
                 - o."discountAmount"
@@ -217,12 +265,17 @@ export class InvariantValidatorService {
                                 + o."shippingFee"
                                 + o."taxAmount")) > 0.01
       `;
-      for (const m of mismatches) {
-        this.logger.warn(`I-5 drift orderId=${m.orderId} stored=${m.total} computed=${m.computed}`);
-      }
-      if (mismatches.length === 0) this.logger.log('I-5 order-total formula OK');
-      return mismatches.length;
-    }));
+          for (const m of mismatches) {
+            this.logger.warn(
+              `I-5 drift orderId=${m.orderId} stored=${m.total} computed=${m.computed}`,
+            );
+          }
+          if (mismatches.length === 0)
+            this.logger.log('I-5 order-total formula OK');
+          return mismatches.length;
+        },
+      ),
+    );
   }
 
   /**
@@ -232,10 +285,18 @@ export class InvariantValidatorService {
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async validateInvoiceSequence(): Promise<void> {
     await this.runValidator('invoice-seq', () =>
-      this.cronLock.runExclusive('invariant-invoice-seq', 9 * 60_000, async () => {
-      const gaps = await this.prisma.$queryRaw<
-        { financialYear: string; maxSeq: number; count: number; gaps: number }[]
-      >`
+      this.cronLock.runExclusive(
+        'invariant-invoice-seq',
+        9 * 60_000,
+        async () => {
+          const gaps = await this.prisma.$queryRaw<
+            {
+              financialYear: string;
+              maxSeq: number;
+              count: number;
+              gaps: number;
+            }[]
+          >`
         SELECT "financialYear",
                MAX("sequence") AS "maxSeq",
                COUNT(*)::int   AS "count",
@@ -244,13 +305,15 @@ export class InvariantValidatorService {
         GROUP BY "financialYear"
         HAVING MAX("sequence") - COUNT(*)::int > 0
       `;
-      for (const g of gaps) {
-        this.logger.error(
-          `I-13 VIOLATION: financialYear=${g.financialYear} maxSeq=${g.maxSeq} count=${g.count} gaps=${g.gaps}`,
-        );
-      }
-      if (gaps.length === 0) this.logger.log('I-13 invoice sequence OK');
-      return gaps.length;
-    }));
+          for (const g of gaps) {
+            this.logger.error(
+              `I-13 VIOLATION: financialYear=${g.financialYear} maxSeq=${g.maxSeq} count=${g.count} gaps=${g.gaps}`,
+            );
+          }
+          if (gaps.length === 0) this.logger.log('I-13 invoice sequence OK');
+          return gaps.length;
+        },
+      ),
+    );
   }
 }

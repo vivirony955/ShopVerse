@@ -18,7 +18,12 @@ export class LegalService {
     });
 
     return this.prisma.policyDocument.create({
-      data: { type: dto.type, version: dto.version, content: dto.content, isActive: true },
+      data: {
+        type: dto.type,
+        version: dto.version,
+        content: dto.content,
+        isActive: true,
+      },
     });
   }
 
@@ -51,7 +56,11 @@ export class LegalService {
     });
   }
 
-  async recordCookieConsent(userId: number | undefined, ip: string, dto: CookieConsentDto) {
+  async recordCookieConsent(
+    userId: number | undefined,
+    ip: string,
+    dto: CookieConsentDto,
+  ) {
     return this.prisma.cookieConsent.create({
       data: {
         userId,

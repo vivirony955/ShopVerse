@@ -1,7 +1,17 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { WebhooksService } from './webhooks.service';
 import { CreateEndpointDto, UpdateEndpointDto } from './dto/webhook.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -25,7 +35,10 @@ export class WebhooksController {
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateEndpointDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateEndpointDto,
+  ) {
     return this.svc.updateEndpoint(id, dto);
   }
 

@@ -24,15 +24,28 @@ describe('PaymentsService', () => {
   let service: PaymentsService;
   let prisma: MockPrisma;
   let mockStripeInstance: {
-    paymentIntents: { create: jest.Mock; retrieve: jest.Mock; cancel: jest.Mock };
+    paymentIntents: {
+      create: jest.Mock;
+      retrieve: jest.Mock;
+      cancel: jest.Mock;
+    };
     webhooks: { constructEvent: jest.Mock };
     refunds: { create: jest.Mock };
   };
 
-  const mockEmailService = { sendOrderConfirmation: jest.fn().mockResolvedValue(undefined) };
-  const mockWebhooksService = { dispatch: jest.fn().mockResolvedValue(undefined) };
-  const mockWalletService = { credit: jest.fn().mockResolvedValue(undefined), debit: jest.fn().mockResolvedValue(undefined) };
-  const mockInvoicesService = { createInvoiceRecord: jest.fn().mockResolvedValue(undefined) };
+  const mockEmailService = {
+    sendOrderConfirmation: jest.fn().mockResolvedValue(undefined),
+  };
+  const mockWebhooksService = {
+    dispatch: jest.fn().mockResolvedValue(undefined),
+  };
+  const mockWalletService = {
+    credit: jest.fn().mockResolvedValue(undefined),
+    debit: jest.fn().mockResolvedValue(undefined),
+  };
+  const mockInvoicesService = {
+    createInvoiceRecord: jest.fn().mockResolvedValue(undefined),
+  };
   const mockLoyaltyService = { clawbackPoints: jest.fn().mockResolvedValue(0) };
 
   beforeEach(async () => {
@@ -40,11 +53,17 @@ describe('PaymentsService', () => {
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_mock';
     // Create a fresh Stripe-instance mock for each test
     mockStripeInstance = {
-      paymentIntents: { create: jest.fn(), retrieve: jest.fn(), cancel: jest.fn() },
+      paymentIntents: {
+        create: jest.fn(),
+        retrieve: jest.fn(),
+        cancel: jest.fn(),
+      },
       webhooks: { constructEvent: jest.fn() },
       refunds: { create: jest.fn() },
     };
-    (Stripe as unknown as jest.Mock).mockImplementation(() => mockStripeInstance);
+    (Stripe as unknown as jest.Mock).mockImplementation(
+      () => mockStripeInstance,
+    );
 
     prisma = createPrismaMock();
     const module: TestingModule = await Test.createTestingModule({
@@ -77,7 +96,10 @@ describe('PaymentsService', () => {
         id: 'pi_test123',
         client_secret: 'cs_test_secret',
       });
-      prisma.order.update.mockResolvedValue({ ...order, paymentId: 'pi_test123' });
+      prisma.order.update.mockResolvedValue({
+        ...order,
+        paymentId: 'pi_test123',
+      });
 
       const result = await service.createPaymentIntent(1, 1);
       expect(result).toEqual({ clientSecret: 'cs_test_secret', amount: 1500 });
@@ -93,7 +115,10 @@ describe('PaymentsService', () => {
 
     it('uses provided currency', async () => {
       prisma.order.findFirst.mockResolvedValue(order);
-      mockStripeInstance.paymentIntents.create.mockResolvedValue({ id: 'pi_2', client_secret: 'cs_2' });
+      mockStripeInstance.paymentIntents.create.mockResolvedValue({
+        id: 'pi_2',
+        client_secret: 'cs_2',
+      });
       prisma.order.update.mockResolvedValue({});
 
       await service.createPaymentIntent(1, 1, 'usd');
@@ -105,12 +130,19 @@ describe('PaymentsService', () => {
 
     it('throws NotFoundException when order not found or not owned', async () => {
       prisma.order.findFirst.mockResolvedValue(null);
-      await expect(service.createPaymentIntent(1, 99)).rejects.toThrow(NotFoundException);
+      await expect(service.createPaymentIntent(1, 99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws BadRequestException when order already paid', async () => {
-      prisma.order.findFirst.mockResolvedValue({ ...order, paymentStatus: 'PAID' });
-      await expect(service.createPaymentIntent(1, 1)).rejects.toThrow(BadRequestException);
+      prisma.order.findFirst.mockResolvedValue({
+        ...order,
+        paymentStatus: 'PAID',
+      });
+      await expect(service.createPaymentIntent(1, 1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -137,7 +169,9 @@ describe('PaymentsService', () => {
         data: { object: pi },
       });
       prisma.order.findUnique.mockResolvedValue({
-        id: 5, total: 500, paymentStatus: 'UNPAID',
+        id: 5,
+        total: 500,
+        paymentStatus: 'UNPAID',
         user: { id: 1, email: 'a@b.com', firstName: 'Alice' },
         items: [],
       });
@@ -147,7 +181,12 @@ describe('PaymentsService', () => {
 
       await service.handleWebhook(rawBody, signature);
       expect(prisma.order.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ paymentStatus: 'PAID', status: 'CONFIRMED' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            paymentStatus: 'PAID',
+            status: 'CONFIRMED',
+          }),
+        }),
       );
     });
 
@@ -169,7 +208,9 @@ describe('PaymentsService', () => {
         type: 'charge.refunded',
         data: { object: { payment_intent: 'pi_test123' } },
       });
-      prisma.order.findMany.mockResolvedValue([{ id: 5, paymentStatus: 'PAID' }]);
+      prisma.order.findMany.mockResolvedValue([
+        { id: 5, paymentStatus: 'PAID' },
+      ]);
       prisma.order.updateMany.mockResolvedValue({ count: 1 });
       prisma.paymentReconciliation.updateMany.mockResolvedValue({ count: 1 });
       await service.handleWebhook(rawBody, signature);
@@ -180,7 +221,9 @@ describe('PaymentsService', () => {
       mockStripeInstance.webhooks.constructEvent.mockImplementation(() => {
         throw new Error('Invalid signature');
       });
-      await expect(service.handleWebhook(rawBody, 'bad-sig')).rejects.toThrow(BadRequestException);
+      await expect(service.handleWebhook(rawBody, 'bad-sig')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('handles unknown event types gracefully (no db call)', async () => {

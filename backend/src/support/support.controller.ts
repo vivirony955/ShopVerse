@@ -1,9 +1,24 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { SupportService } from './support.service';
-import { AddNoteDto, AdminNoteDto, CreateTicketDto, UpdateTicketDto } from './dto/support.dto';
+import {
+  AddNoteDto,
+  AdminNoteDto,
+  CreateTicketDto,
+  UpdateTicketDto,
+} from './dto/support.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
@@ -50,7 +65,10 @@ export class SupportController {
   @Patch('admin/tickets/:id')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  updateTicket(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTicketDto) {
+  updateTicket(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTicketDto,
+  ) {
     return this.svc.updateTicket(id, dto);
   }
 
@@ -64,7 +82,10 @@ export class SupportController {
   @Get('admin/notes')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  getAdminNotes(@Query('type') type: string, @Query('targetId', ParseIntPipe) targetId: number) {
+  getAdminNotes(
+    @Query('type') type: string,
+    @Query('targetId', ParseIntPipe) targetId: number,
+  ) {
     return this.svc.getAdminNotes(type, targetId);
   }
 

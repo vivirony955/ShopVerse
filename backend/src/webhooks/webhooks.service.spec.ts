@@ -31,7 +31,13 @@ describe('WebhooksService', () => {
         WebhooksService,
         { provide: PrismaService, useValue: prisma },
         { provide: HttpService, useValue: httpService },
-        { provide: CronLockService, useValue: { acquire: jest.fn().mockResolvedValue(true), release: jest.fn() } },
+        {
+          provide: CronLockService,
+          useValue: {
+            acquire: jest.fn().mockResolvedValue(true),
+            release: jest.fn(),
+          },
+        },
       ],
     }).compile();
     service = module.get<WebhooksService>(WebhooksService);
@@ -80,7 +86,10 @@ describe('WebhooksService', () => {
         events: ['order.updated'],
       });
 
-      const result = await service.updateEndpoint(1, { isActive: false, events: ['order.updated'] });
+      const result = await service.updateEndpoint(1, {
+        isActive: false,
+        events: ['order.updated'],
+      });
       expect(result.isActive).toBe(false);
     });
   });
@@ -91,7 +100,9 @@ describe('WebhooksService', () => {
     it('deletes the endpoint', async () => {
       prisma.webhookEndpoint.delete.mockResolvedValue(mockEndpoint);
       await service.deleteEndpoint(1);
-      expect(prisma.webhookEndpoint.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(prisma.webhookEndpoint.delete).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
     });
   });
 
@@ -100,10 +111,20 @@ describe('WebhooksService', () => {
   describe('dispatch', () => {
     it('sends webhook to matching endpoints', async () => {
       prisma.webhookEndpoint.findMany.mockResolvedValue([mockEndpoint]);
-      prisma.webhookDelivery.create.mockResolvedValue({ id: 1, endpointId: 1, attempts: 0 });
-      prisma.webhookDelivery.update.mockResolvedValue({ id: 1, success: true, attempts: 1 });
+      prisma.webhookDelivery.create.mockResolvedValue({
+        id: 1,
+        endpointId: 1,
+        attempts: 0,
+      });
+      prisma.webhookDelivery.update.mockResolvedValue({
+        id: 1,
+        success: true,
+        attempts: 1,
+      });
 
-      (httpService.post as jest.Mock).mockReturnValue(of({ status: 200, data: 'ok' }));
+      (httpService.post as jest.Mock).mockReturnValue(
+        of({ status: 200, data: 'ok' }),
+      );
 
       await service.dispatch('order.created', { orderId: 42 });
 
@@ -111,7 +132,9 @@ describe('WebhooksService', () => {
         mockEndpoint.url,
         expect.stringContaining('order.created'),
         expect.objectContaining({
-          headers: expect.objectContaining({ 'X-Webhook-Signature': expect.any(String) }),
+          headers: expect.objectContaining({
+            'X-Webhook-Signature': expect.any(String),
+          }),
         }),
       );
     });
@@ -129,7 +152,11 @@ describe('WebhooksService', () => {
       prisma.webhookEndpoint.findMany.mockResolvedValue([
         { ...mockEndpoint, events: ['*'] },
       ]);
-      prisma.webhookDelivery.create.mockResolvedValue({ id: 1, endpointId: 1, attempts: 0 });
+      prisma.webhookDelivery.create.mockResolvedValue({
+        id: 1,
+        endpointId: 1,
+        attempts: 0,
+      });
       prisma.webhookDelivery.update.mockResolvedValue({ id: 1, success: true });
 
       (httpService.post as jest.Mock).mockReturnValue(of({ status: 200 }));
@@ -140,10 +167,20 @@ describe('WebhooksService', () => {
 
     it('schedules retry on delivery failure', async () => {
       prisma.webhookEndpoint.findMany.mockResolvedValue([mockEndpoint]);
-      prisma.webhookDelivery.create.mockResolvedValue({ id: 1, endpointId: 1, attempts: 0 });
-      prisma.webhookDelivery.update.mockResolvedValue({ id: 1, success: false, attempts: 1 });
+      prisma.webhookDelivery.create.mockResolvedValue({
+        id: 1,
+        endpointId: 1,
+        attempts: 0,
+      });
+      prisma.webhookDelivery.update.mockResolvedValue({
+        id: 1,
+        success: false,
+        attempts: 1,
+      });
 
-      (httpService.post as jest.Mock).mockReturnValue(throwError(() => new Error('timeout')));
+      (httpService.post as jest.Mock).mockReturnValue(
+        throwError(() => new Error('timeout')),
+      );
 
       await service.dispatch('order.created', { orderId: 42 });
 

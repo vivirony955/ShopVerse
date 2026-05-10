@@ -1,7 +1,12 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Prisma, RefundReason } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CouponsService } from '../coupons/coupons.service';
@@ -34,9 +39,9 @@ export class OrdersService {
   ) {}
 
   // ─── Business-rate constants (server-authoritative — never from client) ────
-  private static readonly FREE_SHIPPING_THRESHOLD = 500;   // INR
-  private static readonly SHIPPING_FEE = 49;               // INR flat rate below threshold
-  private static readonly GST_RATE = 0.18;                 // 18% GST
+  private static readonly FREE_SHIPPING_THRESHOLD = 500; // INR
+  private static readonly SHIPPING_FEE = 49; // INR flat rate below threshold
+  private static readonly GST_RATE = 0.18; // 18% GST
 
   async placeOrder(
     userId: number,
@@ -57,47 +62,77 @@ export class OrdersService {
       deviceFingerprint: meta?.deviceFingerprint,
     });
     if (fraudCheck.blocked) {
-      throw new BadRequestException(fraudCheck.reason ?? 'Order blocked by fraud detection');
+      throw new BadRequestException(
+        fraudCheck.reason ?? 'Order blocked by fraud detection',
+      );
     }
 
     // ─── FINAL §4.2: placeOrder REQUIRES a valid reservationId ─────────────────
     if (!dto.reservationId) {
-      throw new BadRequestException('reservationId is required — call POST /cart/reserve first');
+      throw new BadRequestException(
+        'reservationId is required — call POST /cart/reserve first',
+      );
     }
-    const check = await this.cartReservation.validateForCheckout(dto.reservationId, userId);
+    const check = await this.cartReservation.validateForCheckout(
+      dto.reservationId,
+      userId,
+    );
     if (!check.valid || !check.reservation) {
       if (check.changedItems?.length) {
         const items = check.changedItems
-          .map((i) => `variant #${i.variantId}: was ₹${i.lockedPrice.toFixed(2)}, now ₹${i.currentPrice.toFixed(2)}`)
+          .map(
+            (i) =>
+              `variant #${i.variantId}: was ₹${i.lockedPrice.toFixed(2)}, now ₹${i.currentPrice.toFixed(2)}`,
+          )
           .join('; ');
-        throw new BadRequestException(`Prices changed during checkout — please review your cart. ${items}`);
+        throw new BadRequestException(
+          `Prices changed during checkout — please review your cart. ${items}`,
+        );
       }
       throw new BadRequestException(check.reason ?? 'Invalid reservation');
     }
     const reservation = check.reservation;
 
     // Validate address belongs to user
-    const address = await this.prisma.address.findFirst({ where: { id: dto.addressId, userId } });
+    const address = await this.prisma.address.findFirst({
+      where: { id: dto.addressId, userId },
+    });
     if (!address) throw new NotFoundException('Address not found');
 
     // Build order items from the reservation — reservation is now the authoritative
     // source of price and quantity for this checkout.
-    const orderItems: Array<{ variantId: number; quantity: number; price: number }> = [];
+    const orderItems: Array<{
+      variantId: number;
+      quantity: number;
+      price: number;
+    }> = [];
     let subtotal = 0;
     for (const it of reservation.items) {
-      orderItems.push({ variantId: it.variantId, quantity: it.quantity, price: it.lockedPrice });
+      orderItems.push({
+        variantId: it.variantId,
+        quantity: it.quantity,
+        price: it.lockedPrice,
+      });
       subtotal += it.lockedPrice * it.quantity;
     }
 
     // Apply coupon (T-C02: pass userId for per-user limit check)
     let discountAmount = 0;
     if (dto.couponCode) {
-      discountAmount = await this.couponsService.applyDiscount(dto.couponCode, subtotal, userId);
+      discountAmount = await this.couponsService.applyDiscount(
+        dto.couponCode,
+        subtotal,
+        userId,
+      );
     }
     // T-P01 FIX: shipping and tax computed server-side — never trusted from client
     const taxableAmount = subtotal - discountAmount;
-    const shippingFee = taxableAmount >= OrdersService.FREE_SHIPPING_THRESHOLD ? 0 : OrdersService.SHIPPING_FEE;
-    const taxAmount = Math.round(taxableAmount * OrdersService.GST_RATE * 100) / 100;
+    const shippingFee =
+      taxableAmount >= OrdersService.FREE_SHIPPING_THRESHOLD
+        ? 0
+        : OrdersService.SHIPPING_FEE;
+    const taxAmount =
+      Math.round(taxableAmount * OrdersService.GST_RATE * 100) / 100;
     const total = taxableAmount + shippingFee + taxAmount;
 
     // F1-15: Validate and clamp wallet deduction
@@ -151,17 +186,29 @@ export class OrdersService {
             AND ("expiresAt" IS NULL OR "expiresAt" > NOW())
         `;
         if (rows === 0) {
-          throw new BadRequestException('Coupon is invalid, expired, or usage limit reached');
+          throw new BadRequestException(
+            'Coupon is invalid, expired, or usage limit reached',
+          );
         }
         // T-C02 / V-06 FIX: record per-user usage atomically with global increment.
         // P2002 means a concurrent request already recorded usage — treat as "already used".
-        const coupon = await tx.coupon.findUnique({ where: { code: dto.couponCode }, select: { id: true } });
+        const coupon = await tx.coupon.findUnique({
+          where: { code: dto.couponCode },
+          select: { id: true },
+        });
         if (coupon) {
           try {
-            await tx.couponUsage.create({ data: { couponId: coupon.id, userId } });
+            await tx.couponUsage.create({
+              data: { couponId: coupon.id, userId },
+            });
           } catch (e) {
-            if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-              throw new BadRequestException('Coupon already used by this account');
+            if (
+              e instanceof Prisma.PrismaClientKnownRequestError &&
+              e.code === 'P2002'
+            ) {
+              throw new BadRequestException(
+                'Coupon already used by this account',
+              );
             }
             throw e;
           }
@@ -174,22 +221,32 @@ export class OrdersService {
     // F1-15: Deduct wallet amount now that order is committed. Use orderId as reference
     // for idempotency (I-12: WalletTransaction.reference unique per non-auto operation).
     if (walletAmountUsed > 0) {
-      await this.walletService.debit({
-        userId,
-        amount: walletAmountUsed,
-        reference: `order:${order.id}:wallet`,
-        description: `Wallet payment for order #${order.id}`,
-      }).catch(() => {
-        // Non-fatal — order is placed. Log for reconciliation but don't fail.
-        // In production, this would trigger an alert for manual resolution.
-      });
+      await this.walletService
+        .debit({
+          userId,
+          amount: walletAmountUsed,
+          reference: `order:${order.id}:wallet`,
+          description: `Wallet payment for order #${order.id}`,
+        })
+        .catch(() => {
+          // Non-fatal — order is placed. Log for reconciliation but don't fail.
+          // In production, this would trigger an alert for manual resolution.
+        });
     }
 
     // B-06: post-tx side-effects. Best-effort — order is already placed.
-    await this.prisma.cartItem.deleteMany({ where: { cart: { userId } } }).catch(() => {});
-    await this.prisma.trackingEvent.create({
-      data: { orderId: order.id, status: 'PENDING', note: 'Order placed successfully' },
-    }).catch(() => {});
+    await this.prisma.cartItem
+      .deleteMany({ where: { cart: { userId } } })
+      .catch(() => {});
+    await this.prisma.trackingEvent
+      .create({
+        data: {
+          orderId: order.id,
+          status: 'PENDING',
+          note: 'Order placed successfully',
+        },
+      })
+      .catch(() => {});
 
     // GAP-F07: clear any abandoned-cart snapshot so the hourly reminder cron
     // does not email a customer who just completed checkout. Best-effort —
@@ -200,19 +257,28 @@ export class OrdersService {
     // F4-07: Cashback credit for CASHBACK-type coupons — post-order, wallet credit
     if (dto.couponCode) {
       try {
-        const coupon = await this.prisma.coupon.findUnique({ where: { code: dto.couponCode } });
+        const coupon = await this.prisma.coupon.findUnique({
+          where: { code: dto.couponCode },
+        });
         if (coupon && coupon.discountType === 'CASHBACK') {
-          const cashback = this.couponsService.calcCashback(coupon, order.subtotal);
+          const cashback = this.couponsService.calcCashback(
+            coupon,
+            order.subtotal,
+          );
           if (cashback > 0) {
-            await this.walletService.credit({
-              userId,
-              amount: cashback,
-              reference: `order:${order.id}:cashback`,
-              description: `Cashback for order #${order.id} (coupon ${dto.couponCode})`,
-            }).catch(() => {});
+            await this.walletService
+              .credit({
+                userId,
+                amount: cashback,
+                reference: `order:${order.id}:cashback`,
+                description: `Cashback for order #${order.id} (coupon ${dto.couponCode})`,
+              })
+              .catch(() => {});
           }
         }
-      } catch { /* non-fatal */ }
+      } catch {
+        /* non-fatal */
+      }
     }
 
     // B-07 PERF: fire-and-forget email. Migrate to BullMQ queue in Wave 5+.
@@ -229,7 +295,9 @@ export class OrdersService {
           include: {
             variant: {
               include: {
-                product: { select: { id: true, name: true, images: true, slug: true } },
+                product: {
+                  select: { id: true, name: true, images: true, slug: true },
+                },
               },
             },
           },
@@ -244,7 +312,9 @@ export class OrdersService {
       where: { id: orderId },
       include: {
         items: { include: { variant: { include: { product: true } } } },
-        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+        user: {
+          select: { id: true, email: true, firstName: true, lastName: true },
+        },
         trackingEvents: { orderBy: { createdAt: 'asc' } },
       },
     });
@@ -257,30 +327,53 @@ export class OrdersService {
     // FINAL §9.4 C-002: read + mutate atomically inside the transaction so a concurrent
     // admin/shipping action cannot flip the status between our read and our write.
     return this.prisma.$transaction(async (tx) => {
-      const order = await tx.order.findFirst({ where: { id: orderId, userId } });
+      const order = await tx.order.findFirst({
+        where: { id: orderId, userId },
+      });
       if (!order) throw new NotFoundException('Order not found');
       if (!['PENDING', 'CONFIRMED'].includes(order.status)) {
-        throw new BadRequestException('Order cannot be cancelled at this stage');
+        throw new BadRequestException(
+          'Order cannot be cancelled at this stage',
+        );
       }
-      const items = await tx.orderItem.findMany({ where: { orderId, cancelledAt: null } });
+      const items = await tx.orderItem.findMany({
+        where: { orderId, cancelledAt: null },
+      });
       // Pre-shipment cancel: release the reservation only (physical stock never moved).
       for (const item of items) {
         await this.inventoryService.release(tx, item.variantId, item.quantity);
       }
-      await tx.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' } });
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: 'CANCELLED' },
+      });
       return { message: 'Order cancelled successfully' };
     });
   }
 
-  async requestReturn(userId: number, orderId: number, reason = 'Customer requested return') {
+  async requestReturn(
+    userId: number,
+    orderId: number,
+    reason = 'Customer requested return',
+  ) {
     // FINAL §9.4 R-006: actually create the ReturnRequest row so ops has something to action.
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
         where: { id: orderId, userId },
         include: {
-          items: { include: { variant: { include: { product: { include: { category: true } } } } } },
+          items: {
+            include: {
+              variant: {
+                include: { product: { include: { category: true } } },
+              },
+            },
+          },
           returnRequest: true,
-          trackingEvents: { where: { status: 'DELIVERED' }, orderBy: { createdAt: 'desc' }, take: 1 },
+          trackingEvents: {
+            where: { status: 'DELIVERED' },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
         },
       });
       if (!order) throw new NotFoundException('Order not found');
@@ -288,7 +381,9 @@ export class OrdersService {
         throw new BadRequestException('Only delivered orders can be returned');
       }
       if (order.returnRequest) {
-        throw new BadRequestException('Return already requested for this order');
+        throw new BadRequestException(
+          'Return already requested for this order',
+        );
       }
 
       // FINAL §9.4 C-006: enforce per-category return window. The window is the MIN across
@@ -299,13 +394,17 @@ export class OrdersService {
         throw new BadRequestException('No items eligible for return');
       }
       const windowDays = Math.min(
-        ...activeItems.map((i) => i.variant.product.category.returnWindowDays ?? 7),
+        ...activeItems.map(
+          (i) => i.variant.product.category.returnWindowDays ?? 7,
+        ),
       );
       if (windowDays <= 0) {
         throw new BadRequestException('Items in this order are non-returnable');
       }
       const deliveredAt = order.trackingEvents[0]?.createdAt ?? order.updatedAt;
-      const deadline = new Date(deliveredAt.getTime() + windowDays * 86_400_000);
+      const deadline = new Date(
+        deliveredAt.getTime() + windowDays * 86_400_000,
+      );
       if (Date.now() > deadline.getTime()) {
         throw new BadRequestException(
           `Return window of ${windowDays} days has expired (delivered ${deliveredAt.toISOString().slice(0, 10)})`,
@@ -316,52 +415,95 @@ export class OrdersService {
           orderId,
           reason,
           items: {
-            create: activeItems.map((i) => ({ orderItemId: i.id, quantity: i.quantity })),
+            create: activeItems.map((i) => ({
+              orderItemId: i.id,
+              quantity: i.quantity,
+            })),
           },
         },
         include: { items: true },
       });
-      await tx.order.update({ where: { id: orderId }, data: { status: 'RETURN_REQUESTED' } });
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: 'RETURN_REQUESTED' },
+      });
       return returnRequest;
     });
   }
 
   async placeGuestOrder(dto: {
     email: string;
-    address: { fullName: string; line1: string; line2?: string; city: string; state: string; pincode: string; country: string; phone: string };
+    address: {
+      fullName: string;
+      line1: string;
+      line2?: string;
+      city: string;
+      state: string;
+      pincode: string;
+      country: string;
+      phone: string;
+    };
     items: Array<{ variantId: number; quantity: number }>;
     couponCode?: string;
     ip?: string;
   }) {
     // T-O01 FIX: guest orders now run through IP/device/email blacklist check
-    const fraudCheck = await this.fraudService.preGuestFraudCheck({ ip: dto.ip, email: dto.email });
+    const fraudCheck = await this.fraudService.preGuestFraudCheck({
+      ip: dto.ip,
+      email: dto.email,
+    });
     if (fraudCheck.blocked) {
-      throw new BadRequestException(fraudCheck.reason ?? 'Order blocked by fraud detection');
+      throw new BadRequestException(
+        fraudCheck.reason ?? 'Order blocked by fraud detection',
+      );
     }
 
     let subtotal = 0;
-    const orderItems: Array<{ variantId: number; quantity: number; price: number }> = [];
+    const orderItems: Array<{
+      variantId: number;
+      quantity: number;
+      price: number;
+    }> = [];
 
     for (const item of dto.items) {
-      const variant = await this.prisma.variant.findUnique({ where: { id: item.variantId }, include: { product: true } });
-      if (!variant) throw new NotFoundException(`Variant ${item.variantId} not found`);
+      const variant = await this.prisma.variant.findUnique({
+        where: { id: item.variantId },
+        include: { product: true },
+      });
+      if (!variant)
+        throw new NotFoundException(`Variant ${item.variantId} not found`);
       const sellable = variant.stock - variant.reservedStock;
       const hasStock = sellable >= item.quantity;
       const canBackorder = variant.backorderAllowed === true;
-      if (!hasStock && !canBackorder) throw new BadRequestException(`Insufficient stock for ${variant.product.name}`);
-      const unitPrice = variant.product.basePrice * (1 - variant.product.discountPct / 100);
+      if (!hasStock && !canBackorder)
+        throw new BadRequestException(
+          `Insufficient stock for ${variant.product.name}`,
+        );
+      const unitPrice =
+        variant.product.basePrice * (1 - variant.product.discountPct / 100);
       subtotal += unitPrice * item.quantity;
-      orderItems.push({ variantId: item.variantId, quantity: item.quantity, price: unitPrice });
+      orderItems.push({
+        variantId: item.variantId,
+        quantity: item.quantity,
+        price: unitPrice,
+      });
     }
 
     let discountAmount = 0;
     if (dto.couponCode) {
-      discountAmount = await this.couponsService.applyDiscount(dto.couponCode, subtotal);
+      discountAmount = await this.couponsService.applyDiscount(
+        dto.couponCode,
+        subtotal,
+      );
     }
     // T-O03 FIX: shipping and tax server-authoritative for guest orders too
     const taxableAmount = subtotal - discountAmount;
-    const shippingFee = taxableAmount >= OrdersService.FREE_SHIPPING_THRESHOLD ? 0 : OrdersService.SHIPPING_FEE;
-    const taxAmount = Math.round(taxableAmount * OrdersService.GST_RATE * 100) / 100;
+    const shippingFee =
+      taxableAmount >= OrdersService.FREE_SHIPPING_THRESHOLD
+        ? 0
+        : OrdersService.SHIPPING_FEE;
+    const taxAmount =
+      Math.round(taxableAmount * OrdersService.GST_RATE * 100) / 100;
     const total = taxableAmount + shippingFee + taxAmount;
 
     const order = await this.prisma.$transaction(async (tx) => {
@@ -381,7 +523,9 @@ export class OrdersService {
           couponCode: dto.couponCode,
           items: { create: orderItems },
         },
-        include: { items: { include: { variant: { include: { product: true } } } } },
+        include: {
+          items: { include: { variant: { include: { product: true } } } },
+        },
       });
       if (dto.couponCode) {
         const rows = await tx.$executeRaw`
@@ -391,16 +535,25 @@ export class OrdersService {
             AND ("maxUses" IS NULL OR "usedCount" < "maxUses")
             AND ("expiresAt" IS NULL OR "expiresAt" > NOW())
         `;
-        if (rows === 0) throw new BadRequestException('Coupon is invalid, expired, or usage limit reached');
+        if (rows === 0)
+          throw new BadRequestException(
+            'Coupon is invalid, expired, or usage limit reached',
+          );
       }
       return newOrder;
     });
 
     await this.prisma.trackingEvent.create({
-      data: { orderId: order.id, status: 'PENDING', note: 'Guest order placed successfully' },
+      data: {
+        orderId: order.id,
+        status: 'PENDING',
+        note: 'Guest order placed successfully',
+      },
     });
 
-    this.emailService.sendOrderConfirmation({ ...order, user: null }).catch(() => {});
+    this.emailService
+      .sendOrderConfirmation({ ...order, user: null })
+      .catch(() => {});
 
     return order;
   }
@@ -412,7 +565,9 @@ export class OrdersService {
     return this.prisma.order.findMany({
       where: status ? { status: status as any } : {},
       include: {
-        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+        user: {
+          select: { id: true, email: true, firstName: true, lastName: true },
+        },
         items: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -435,10 +590,17 @@ export class OrdersService {
     // FINAL §9.4 R-001: on SHIPPED, commit reservations → physical stock decrements.
     // Wrap the status mutation + inventory commit in one transaction so they can't drift.
     const updated = await this.prisma.$transaction(async (tx) => {
-      if (status === 'SHIPPED' && PRE_SHIPMENT_STATUSES.includes(order.status as any)) {
+      if (
+        status === 'SHIPPED' &&
+        PRE_SHIPMENT_STATUSES.includes(order.status as any)
+      ) {
         const activeItems = order.items.filter((i) => !i.cancelledAt);
         for (const item of activeItems) {
-          await this.inventoryService.commitShipment(tx, item.variantId, item.quantity);
+          await this.inventoryService.commitShipment(
+            tx,
+            item.variantId,
+            item.quantity,
+          );
         }
       }
       const row = await tx.order.update({
@@ -446,35 +608,53 @@ export class OrdersService {
         data: { status: status as any },
       });
       await tx.trackingEvent.create({
-        data: { orderId, status: status as any, note: `Status updated to ${status}` },
+        data: {
+          orderId,
+          status: status as any,
+          note: `Status updated to ${status}`,
+        },
       });
       return row;
     });
 
     // Trigger transactional emails based on status
     if (status === 'SHIPPED') {
-      this.emailService.sendOrderShipped({ ...order, trackingEvents: order.trackingEvents }).catch(() => {});
+      this.emailService
+        .sendOrderShipped({ ...order, trackingEvents: order.trackingEvents })
+        .catch(() => {});
     } else if (status === 'DELIVERED') {
       this.emailService.sendOrderDelivered(order).catch(() => {});
       // FINAL §9.4 R-005: loyalty points earned on delivery (revenue-recognized basis),
       // not at order placement. Idempotent — safe if admin toggles status repeatedly.
       if (order.userId) {
-        await this.loyaltyService.earnPoints(order.userId, order.id, order.total);
+        await this.loyaltyService.earnPoints(
+          order.userId,
+          order.id,
+          order.total,
+        );
         // FINAL §9.4 H-009: if this was a referred user's first delivered order, pay the bonus.
-        this.referralService.creditOnFirstDelivery(order.userId).catch(() => {});
+        this.referralService
+          .creditOnFirstDelivery(order.userId)
+          .catch(() => {});
       }
     } else if (status === 'REFUNDED') {
       this.emailService.sendRefundConfirmation(order).catch(() => {});
       // V-08 FIX: claw back loyalty points earned on delivery when order is refunded
       if (order.userId) {
-        this.loyaltyService.clawbackPoints(order.userId, order.id).catch(() => {});
+        this.loyaltyService
+          .clawbackPoints(order.userId, order.id)
+          .catch(() => {});
       }
     }
 
     return updated;
   }
 
-  async updatePaymentStatus(orderId: number, paymentId: string, paymentStatus: string) {
+  async updatePaymentStatus(
+    orderId: number,
+    paymentId: string,
+    paymentStatus: string,
+  ) {
     return this.prisma.order.update({
       where: { id: orderId },
       data: { paymentId, paymentStatus: paymentStatus as any },
@@ -492,12 +672,15 @@ export class OrdersService {
     });
     if (!order) throw new NotFoundException('Order not found');
     if (!['PENDING', 'CONFIRMED', 'PROCESSING'].includes(order.status)) {
-      throw new BadRequestException('Items can only be cancelled before shipment');
+      throw new BadRequestException(
+        'Items can only be cancelled before shipment',
+      );
     }
 
     const item = order.items.find((i) => i.id === itemId);
     if (!item) throw new NotFoundException('Order item not found');
-    if (item.cancelledAt) throw new BadRequestException('Item already cancelled');
+    if (item.cancelledAt)
+      throw new BadRequestException('Item already cancelled');
 
     await this.prisma.$transaction(async (tx) => {
       // Mark item cancelled
@@ -511,7 +694,10 @@ export class OrdersService {
       // Recalculate order total
       const remainingItems = order.items.filter((i) => i.id !== itemId);
       const allCancelled = remainingItems.every((i) => !!i.cancelledAt);
-      const newTotal = remainingItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+      const newTotal = remainingItems.reduce(
+        (sum, i) => sum + i.price * i.quantity,
+        0,
+      );
       await tx.order.update({
         where: { id: orderId },
         data: {
@@ -528,14 +714,21 @@ export class OrdersService {
    * Refund a single cancelled/returned item to the user's wallet.
    * Admin-only operation.
    */
-  async refundOrderItem(orderId: number, itemId: number, reason: RefundReason = RefundReason.ADMIN_ADJUSTMENT) {
+  async refundOrderItem(
+    orderId: number,
+    itemId: number,
+    reason: RefundReason = RefundReason.ADMIN_ADJUSTMENT,
+  ) {
     const item = await this.prisma.orderItem.findFirst({
       where: { id: itemId, orderId },
     });
     if (!item) throw new NotFoundException('Order item not found');
-    if (item.refundedAt) return { message: 'Already refunded', refundedAt: item.refundedAt };
+    if (item.refundedAt)
+      return { message: 'Already refunded', refundedAt: item.refundedAt };
 
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order || !order.userId) throw new NotFoundException('Order not found');
 
     const refundAmount = item.price * item.quantity;
@@ -589,8 +782,13 @@ export class OrdersService {
         });
       } catch (e) {
         // Wallet insert lost the race — item marker rolls back via txn and caller can retry.
-        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-          throw new BadRequestException('Refund already recorded for this item');
+        if (
+          e instanceof Prisma.PrismaClientKnownRequestError &&
+          e.code === 'P2002'
+        ) {
+          throw new BadRequestException(
+            'Refund already recorded for this item',
+          );
         }
         throw e;
       }
@@ -608,7 +806,12 @@ export class OrdersService {
       // Roll up order paymentStatus based on refunded line totals.
       const lines = await tx.orderItem.findMany({
         where: { orderId },
-        select: { price: true, quantity: true, refundedAt: true, cancelledAt: true },
+        select: {
+          price: true,
+          quantity: true,
+          refundedAt: true,
+          cancelledAt: true,
+        },
       });
       const eligible = lines.filter((l) => !l.cancelledAt);
       const refundedCount = eligible.filter((l) => l.refundedAt).length;
@@ -616,8 +819,8 @@ export class OrdersService {
         eligible.length > 0 && refundedCount === eligible.length
           ? 'REFUNDED'
           : refundedCount > 0
-          ? 'PARTIALLY_REFUNDED'
-          : order.paymentStatus;
+            ? 'PARTIALLY_REFUNDED'
+            : order.paymentStatus;
       if (nextStatus !== order.paymentStatus) {
         await tx.order.update({
           where: { id: orderId },

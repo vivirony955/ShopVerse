@@ -40,11 +40,21 @@ describe('ReviewsController', () => {
 
   describe('getProductReviews', () => {
     it('returns paginated reviews for a product', async () => {
-      const response = { reviews: [], total: 0, avgRating: 0, page: 1, limit: 10 };
+      const response = {
+        reviews: [],
+        total: 0,
+        avgRating: 0,
+        page: 1,
+        limit: 10,
+      };
       mockReviewsService.getProductReviews.mockResolvedValue(response);
       const result = await controller.getProductReviews(10, 1, 10);
       expect(result).toEqual(response);
-      expect(mockReviewsService.getProductReviews).toHaveBeenCalledWith(10, 1, 10);
+      expect(mockReviewsService.getProductReviews).toHaveBeenCalledWith(
+        10,
+        1,
+        10,
+      );
     });
   });
 
@@ -52,9 +62,15 @@ describe('ReviewsController', () => {
     it('creates a review for the current user', async () => {
       const review = { id: 1, userId: 1, productId: 5, rating: 5 };
       mockReviewsService.createReview.mockResolvedValue(review);
-      const result = await controller.createReview(mockReq, 5, { rating: 5, body: 'Great!' });
+      const result = await controller.createReview(mockReq, 5, {
+        rating: 5,
+        body: 'Great!',
+      });
       expect(result).toEqual(review);
-      expect(mockReviewsService.createReview).toHaveBeenCalledWith(1, 5, { rating: 5, body: 'Great!' });
+      expect(mockReviewsService.createReview).toHaveBeenCalledWith(1, 5, {
+        rating: 5,
+        body: 'Great!',
+      });
     });
   });
 
@@ -64,7 +80,9 @@ describe('ReviewsController', () => {
       mockReviewsService.updateReview.mockResolvedValue(updated);
       const result = await controller.updateReview(mockReq, 1, { rating: 4 });
       expect(result).toEqual(updated);
-      expect(mockReviewsService.updateReview).toHaveBeenCalledWith(1, 1, { rating: 4 });
+      expect(mockReviewsService.updateReview).toHaveBeenCalledWith(1, 1, {
+        rating: 4,
+      });
     });
   });
 

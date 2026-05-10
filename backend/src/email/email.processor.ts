@@ -7,7 +7,14 @@ import { Logger } from '@nestjs/common';
 import { EmailService } from './email.service';
 
 export interface EmailJobData {
-  type: 'orderConfirmation' | 'orderShipped' | 'orderDelivered' | 'refundConfirmation' | 'abandonedCartReminder' | 'lowStockAlert' | 'referralBonus';
+  type:
+    | 'orderConfirmation'
+    | 'orderShipped'
+    | 'orderDelivered'
+    | 'refundConfirmation'
+    | 'abandonedCartReminder'
+    | 'lowStockAlert'
+    | 'referralBonus';
   payload: Record<string, any>;
 }
 

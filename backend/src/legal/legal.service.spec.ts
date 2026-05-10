@@ -25,10 +25,7 @@ describe('LegalService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        LegalService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [LegalService, { provide: PrismaService, useValue: prisma }],
     }).compile();
     service = module.get<LegalService>(LegalService);
   });
@@ -64,14 +61,18 @@ describe('LegalService', () => {
   describe('getActivePolicy', () => {
     it('returns the active policy for a type', async () => {
       prisma.policyDocument.findFirst.mockResolvedValue(mockPolicy);
-      const result = await service.getActivePolicy(PolicyType.TERMS_AND_CONDITIONS);
+      const result = await service.getActivePolicy(
+        PolicyType.TERMS_AND_CONDITIONS,
+      );
       expect(result.version).toBe('2.0');
       expect(result.isActive).toBe(true);
     });
 
     it('throws NotFoundException when no active policy exists', async () => {
       prisma.policyDocument.findFirst.mockResolvedValue(null);
-      await expect(service.getActivePolicy(PolicyType.PRIVACY_POLICY)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.getActivePolicy(PolicyType.PRIVACY_POLICY),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -81,7 +82,12 @@ describe('LegalService', () => {
     it('returns active policy summary for each type', async () => {
       prisma.policyDocument.findFirst.mockImplementation(({ where }: any) => {
         if (where.type === PolicyType.TERMS_AND_CONDITIONS) {
-          return Promise.resolve({ id: 1, type: PolicyType.TERMS_AND_CONDITIONS, version: '2.0', publishedAt: new Date() });
+          return Promise.resolve({
+            id: 1,
+            type: PolicyType.TERMS_AND_CONDITIONS,
+            version: '2.0',
+            publishedAt: new Date(),
+          });
         }
         return Promise.resolve(null);
       });
@@ -89,7 +95,9 @@ describe('LegalService', () => {
       const result = await service.getAllPolicies();
       // Only non-null results
       expect(result.length).toBeGreaterThan(0);
-      const tos = result.find((p: any) => p?.type === PolicyType.TERMS_AND_CONDITIONS);
+      const tos = result.find(
+        (p: any) => p?.type === PolicyType.TERMS_AND_CONDITIONS,
+      );
       expect(tos).toBeDefined();
     });
   });
@@ -102,7 +110,9 @@ describe('LegalService', () => {
         { ...mockPolicy, version: '2.0' },
         { ...mockPolicy, id: 2, version: '1.0', isActive: false },
       ]);
-      const result = await service.getPolicyHistory(PolicyType.TERMS_AND_CONDITIONS);
+      const result = await service.getPolicyHistory(
+        PolicyType.TERMS_AND_CONDITIONS,
+      );
       expect(result).toHaveLength(2);
       expect(result[0].version).toBe('2.0');
     });
@@ -139,11 +149,15 @@ describe('LegalService', () => {
         ip: '192.168.1.1',
       });
 
-      const result = await service.recordCookieConsent(undefined, '192.168.1.1', {
-        analytics: false,
-        marketing: true,
-        sessionId: 'sess-abc',
-      });
+      const result = await service.recordCookieConsent(
+        undefined,
+        '192.168.1.1',
+        {
+          analytics: false,
+          marketing: true,
+          sessionId: 'sess-abc',
+        },
+      );
       expect(result.userId).toBeNull();
       expect(result.sessionId).toBe('sess-abc');
     });

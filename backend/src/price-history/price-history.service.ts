@@ -32,7 +32,7 @@ export class PriceHistoryService {
     for (let i = 0; i < products.length; i += chunkSize) {
       const chunk = products.slice(i, i + chunkSize);
       await this.prisma.priceHistory.createMany({
-        data: chunk.map(p => ({
+        data: chunk.map((p) => ({
           productId: p.id,
           price: p.basePrice,
           discountPct: p.discountPct,

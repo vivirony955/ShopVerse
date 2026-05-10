@@ -17,7 +17,9 @@ async function main() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@store.com';
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@123456';
 
-  const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
+  const existing = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  });
   if (existing) {
     console.log(`Admin already exists: ${adminEmail}`);
     return;
@@ -42,4 +44,6 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => {
+    void prisma.$disconnect();
+  });

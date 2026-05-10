@@ -1,7 +1,11 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { EmailService } from '../email/email.service';
@@ -22,18 +26,28 @@ export class ReferralService {
     if (!user) throw new NotFoundException('User not found');
     if (user.referralCode) return { referralCode: user.referralCode };
     const code = `SV-${userId}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-    await this.prisma.user.update({ where: { id: userId }, data: { referralCode: code } });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { referralCode: code },
+    });
     return { referralCode: code };
   }
 
   async getMyCode(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { referralCode: true, loyaltyPoints: true, referrals: { select: { id: true, createdAt: true } } },
+      select: {
+        referralCode: true,
+        loyaltyPoints: true,
+        referrals: { select: { id: true, createdAt: true } },
+      },
     });
     if (!user) throw new NotFoundException('User not found');
     if (!user.referralCode) return this.generateCode(userId);
-    return { referralCode: user.referralCode, referralCount: user.referrals.length };
+    return {
+      referralCode: user.referralCode,
+      referralCount: user.referrals.length,
+    };
   }
 
   /**
@@ -43,19 +57,36 @@ export class ReferralService {
    * payouts.
    */
   async applyReferral(newUserId: number, referralCode: string) {
-    const referrer = await this.prisma.user.findUnique({ where: { referralCode } });
+    const referrer = await this.prisma.user.findUnique({
+      where: { referralCode },
+    });
     if (!referrer) throw new NotFoundException('Invalid referral code');
-    if (referrer.id === newUserId) throw new BadRequestException('Cannot use your own referral code');
+    if (referrer.id === newUserId)
+      throw new BadRequestException('Cannot use your own referral code');
 
-    const existing = await this.prisma.referralCredit.findUnique({ where: { newUserId } });
+    const existing = await this.prisma.referralCredit.findUnique({
+      where: { newUserId },
+    });
     if (existing) throw new BadRequestException('Referral already applied');
 
     await this.prisma.$transaction([
-      this.prisma.referralCredit.create({ data: { referrerId: referrer.id, newUserId, creditAmount: REFERRER_BONUS_POINTS } }),
-      this.prisma.user.update({ where: { id: newUserId }, data: { referredById: referrer.id } }),
+      this.prisma.referralCredit.create({
+        data: {
+          referrerId: referrer.id,
+          newUserId,
+          creditAmount: REFERRER_BONUS_POINTS,
+        },
+      }),
+      this.prisma.user.update({
+        where: { id: newUserId },
+        data: { referredById: referrer.id },
+      }),
     ]);
 
-    return { message: 'Referral linked — bonus credits on first delivered order', bonusPoints: REFEREE_BONUS_POINTS };
+    return {
+      message: 'Referral linked — bonus credits on first delivered order',
+      bonusPoints: REFEREE_BONUS_POINTS,
+    };
   }
 
   /**

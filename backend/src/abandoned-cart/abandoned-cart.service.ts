@@ -7,7 +7,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { CronLockService } from '../common/cron-lock.service';
 
-interface GuestSnapshotItem { variantId: number; name: string; quantity: number }
+interface GuestSnapshotItem {
+  variantId: number;
+  name: string;
+  quantity: number;
+}
 
 @Injectable()
 export class AbandonedCartService {
@@ -44,15 +48,29 @@ export class AbandonedCartService {
   async snapshotCart(userId: number) {
     const cart = await this.prisma.cart.findUnique({
       where: { userId },
-      include: { items: { include: { variant: { include: { product: { select: { name: true } } } } } } },
+      include: {
+        items: {
+          include: {
+            variant: { include: { product: { select: { name: true } } } },
+          },
+        },
+      },
     });
     if (!cart || cart.items.length === 0) {
       await this.prisma.abandonedCart.deleteMany({ where: { userId } });
       return;
     }
-    const snapshot = cart.items.map((i) => ({ name: i.variant.product.name, quantity: i.quantity, variantId: i.variantId }));
+    const snapshot = cart.items.map((i) => ({
+      name: i.variant.product.name,
+      quantity: i.quantity,
+      variantId: i.variantId,
+    }));
     await this.prisma.abandonedCart.upsert({
-      where: { id: (await this.prisma.abandonedCart.findFirst({ where: { userId } }))?.id ?? 0 },
+      where: {
+        id:
+          (await this.prisma.abandonedCart.findFirst({ where: { userId } }))
+            ?.id ?? 0,
+      },
       update: { cartSnapshot: snapshot, reminderSentAt: null },
       create: { userId, cartSnapshot: snapshot },
     });
@@ -66,25 +84,35 @@ export class AbandonedCartService {
   async sendReminders() {
     // FINAL §9.4 R-010 / M-005: wrap cron body in distributed lock so only one backend
     // instance sends reminders per tick, even in a multi-replica deployment.
-    await this.cronLock.runExclusive('abandoned-cart-reminders', 10 * 60_000, async () => {
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      const records = await this.prisma.abandonedCart.findMany({
-        where: { reminderSentAt: null, updatedAt: { lte: oneHourAgo } },
-        include: { user: { select: { email: true, firstName: true } } },
-      });
-
-      for (const record of records) {
-        const email = record.user?.email ?? record.guestEmail;
-        if (!email) continue;
-        const items = (record.cartSnapshot as any[]).map((i) => ({ name: i.name, quantity: i.quantity }));
-        await this.emailService.sendAbandonedCartReminder({
-          to: email,
-          firstName: record.user?.firstName ?? undefined,
-          items,
+    await this.cronLock.runExclusive(
+      'abandoned-cart-reminders',
+      10 * 60_000,
+      async () => {
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const records = await this.prisma.abandonedCart.findMany({
+          where: { reminderSentAt: null, updatedAt: { lte: oneHourAgo } },
+          include: { user: { select: { email: true, firstName: true } } },
         });
-        await this.prisma.abandonedCart.update({ where: { id: record.id }, data: { reminderSentAt: new Date() } });
-        this.logger.log(`Sent abandoned cart reminder to ${email}`);
-      }
-    });
+
+        for (const record of records) {
+          const email = record.user?.email ?? record.guestEmail;
+          if (!email) continue;
+          const items = (record.cartSnapshot as any[]).map((i) => ({
+            name: i.name,
+            quantity: i.quantity,
+          }));
+          await this.emailService.sendAbandonedCartReminder({
+            to: email,
+            firstName: record.user?.firstName ?? undefined,
+            items,
+          });
+          await this.prisma.abandonedCart.update({
+            where: { id: record.id },
+            data: { reminderSentAt: new Date() },
+          });
+          this.logger.log(`Sent abandoned cart reminder to ${email}`);
+        }
+      },
+    );
   }
 }

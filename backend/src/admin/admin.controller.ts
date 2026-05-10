@@ -1,7 +1,20 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Controller, Get, Post, Patch, Body, Query, Param, ParseIntPipe, DefaultValuePipe, UseGuards, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Query,
+  Param,
+  ParseIntPipe,
+  DefaultValuePipe,
+  UseGuards,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { AdminService } from './admin.service';
 import { ErrorTrackingService } from '../common/error-tracking.service';
@@ -19,18 +32,27 @@ export class AdminController {
   ) {}
 
   @Get('dashboard')
-  getDashboard() { return this.adminService.getDashboardStats(); }
+  getDashboard() {
+    return this.adminService.getDashboardStats();
+  }
 
   @Get('low-stock')
-  getLowStock(@Query('threshold', new DefaultValuePipe(5), ParseIntPipe) threshold: number) {
+  getLowStock(
+    @Query('threshold', new DefaultValuePipe(5), ParseIntPipe)
+    threshold: number,
+  ) {
     return this.adminService.getLowStockVariants(threshold);
   }
 
   @Get('out-of-stock')
-  getOutOfStock() { return this.adminService.getOutOfStockVariants(); }
+  getOutOfStock() {
+    return this.adminService.getOutOfStockVariants();
+  }
 
   @Get('revenue-report')
-  getRevenueReport(@Query('days', new DefaultValuePipe(30), ParseIntPipe) days: number) {
+  getRevenueReport(
+    @Query('days', new DefaultValuePipe(30), ParseIntPipe) days: number,
+  ) {
     return this.adminService.getRevenueReport(days);
   }
 
@@ -45,7 +67,11 @@ export class AdminController {
     if (Array.isArray(report)) {
       if (report.length > 0) rows.push(Object.keys(report[0]).join(','));
       for (const row of report) {
-        rows.push(Object.values(row).map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
+        rows.push(
+          Object.values(row)
+            .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
+            .join(','),
+        );
       }
     } else {
       // report is an object — flatten keys
@@ -56,24 +82,37 @@ export class AdminController {
     }
     const csv = rows.join('\n');
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="revenue-report-${days}d.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="revenue-report-${days}d.csv"`,
+    );
     res.send(csv);
   }
 
   @Get('finance-dashboard')
-  getFinanceDashboard() { return this.adminService.getFinanceDashboard(); }
+  getFinanceDashboard() {
+    return this.adminService.getFinanceDashboard();
+  }
 
   @Get('ops-dashboard')
-  getOpsDashboard() { return this.adminService.getOpsDashboard(); }
+  getOpsDashboard() {
+    return this.adminService.getOpsDashboard();
+  }
 
   @Get('live-metrics')
-  getLiveMetrics() { return this.adminService.getLiveMetrics(); }
+  getLiveMetrics() {
+    return this.adminService.getLiveMetrics();
+  }
 
   @Get('customer-analytics')
-  getCustomerAnalytics() { return this.adminService.getCustomerAnalytics(); }
+  getCustomerAnalytics() {
+    return this.adminService.getCustomerAnalytics();
+  }
 
   @Get('funnel')
-  getFunnel(@Query('days', new DefaultValuePipe(7), ParseIntPipe) days: number) {
+  getFunnel(
+    @Query('days', new DefaultValuePipe(7), ParseIntPipe) days: number,
+  ) {
     return this.adminService.getFunnelAnalytics(days);
   }
 
@@ -84,7 +123,12 @@ export class AdminController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(30), ParseIntPipe) limit?: number,
   ) {
-    return this.adminService.getAllOrders({ status, page, limit, requestedBy: req.user.id });
+    return this.adminService.getAllOrders({
+      status,
+      page,
+      limit,
+      requestedBy: req.user.id,
+    });
   }
 
   @Patch('orders/:id/status')
@@ -103,7 +147,12 @@ export class AdminController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(30), ParseIntPipe) limit?: number,
   ) {
-    return this.adminService.getAllUsers({ search, page, limit, requestedBy: req.user.id });
+    return this.adminService.getAllUsers({
+      search,
+      page,
+      limit,
+      requestedBy: req.user.id,
+    });
   }
 
   @Get('audit-logs')
@@ -126,7 +175,9 @@ export class AdminController {
   }
 
   @Get('errors/stats')
-  getErrorStats(@Query('window', new DefaultValuePipe(60), ParseIntPipe) window: number) {
+  getErrorStats(
+    @Query('window', new DefaultValuePipe(60), ParseIntPipe) window: number,
+  ) {
     return this.errorTracking.getErrorStats(window);
   }
 
@@ -144,7 +195,12 @@ export class AdminController {
     @Body() body: { orderId: number; amount: number; reason: string },
     @Req() req: any,
   ) {
-    return this.adminService.requestHighValueRefund(body.orderId, body.amount, body.reason, req.user.id);
+    return this.adminService.requestHighValueRefund(
+      body.orderId,
+      body.amount,
+      body.reason,
+      req.user.id,
+    );
   }
 
   /** FINANCE: list pending refund approvals. */

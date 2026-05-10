@@ -1,7 +1,11 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -10,21 +14,31 @@ export class CouponsService {
 
   async validateCoupon(code: string, orderAmount: number, userId?: number) {
     const coupon = await this.prisma.coupon.findUnique({ where: { code } });
-    if (!coupon || !coupon.isActive) throw new NotFoundException('Invalid or inactive coupon');
-    if (coupon.expiresAt && coupon.expiresAt < new Date()) throw new BadRequestException('Coupon has expired');
+    if (!coupon || !coupon.isActive)
+      throw new NotFoundException('Invalid or inactive coupon');
+    if (coupon.expiresAt && coupon.expiresAt < new Date())
+      throw new BadRequestException('Coupon has expired');
     if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
       throw new BadRequestException('Coupon usage limit reached');
     }
     if (orderAmount < coupon.minOrderAmount) {
-      throw new BadRequestException(`Minimum order amount is ₹${coupon.minOrderAmount}`);
+      throw new BadRequestException(
+        `Minimum order amount is ₹${coupon.minOrderAmount}`,
+      );
     }
     // T-C02: per-user usage enforcement
-    if (userId && coupon.maxUsesPerUser !== null && coupon.maxUsesPerUser !== undefined) {
+    if (
+      userId &&
+      coupon.maxUsesPerUser !== null &&
+      coupon.maxUsesPerUser !== undefined
+    ) {
       const userUsage = await this.prisma.couponUsage.count({
         where: { couponId: coupon.id, userId },
       });
       if (userUsage >= coupon.maxUsesPerUser) {
-        throw new BadRequestException('You have reached the usage limit for this coupon');
+        throw new BadRequestException(
+          'You have reached the usage limit for this coupon',
+        );
       }
     }
     // CPN-E09: firstOrderOnly — coupon only valid when user has no prior DELIVERED orders
@@ -33,14 +47,20 @@ export class CouponsService {
         where: { userId, status: 'DELIVERED' },
       });
       if (deliveredCount > 0) {
-        throw new BadRequestException('This coupon is valid for first-time orders only');
+        throw new BadRequestException(
+          'This coupon is valid for first-time orders only',
+        );
       }
     }
     const discount = this.calcDiscount(coupon, orderAmount);
     return { valid: true, discount, coupon };
   }
 
-  async applyDiscount(code: string, orderAmount: number, userId?: number): Promise<number> {
+  async applyDiscount(
+    code: string,
+    orderAmount: number,
+    userId?: number,
+  ): Promise<number> {
     const { coupon } = await this.validateCoupon(code, orderAmount, userId);
     return this.calcDiscount(coupon, orderAmount);
   }

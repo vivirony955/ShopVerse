@@ -1,7 +1,13 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { IsString, IsOptional, IsBoolean, MaxLength, Matches } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 
 export class CreateAddressDto {
   @IsString()
@@ -9,7 +15,9 @@ export class CreateAddressDto {
   fullName: string;
 
   @IsString()
-  @Matches(/^\+?[0-9]{7,15}$/, { message: 'phone must be a valid phone number' })
+  @Matches(/^\+?[0-9]{7,15}$/, {
+    message: 'phone must be a valid phone number',
+  })
   phone: string;
 
   @IsString()
@@ -46,7 +54,9 @@ export class UpdateAddressDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^\+?[0-9]{7,15}$/, { message: 'phone must be a valid phone number' })
+  @Matches(/^\+?[0-9]{7,15}$/, {
+    message: 'phone must be a valid phone number',
+  })
   phone?: string;
 
   @IsOptional()

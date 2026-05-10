@@ -14,10 +14,7 @@ describe('ReviewsService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ReviewsService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [ReviewsService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
     service = module.get<ReviewsService>(ReviewsService);
@@ -32,7 +29,12 @@ describe('ReviewsService', () => {
   describe('getProductReviews', () => {
     it('returns reviews with total count and average rating', async () => {
       const reviews = [
-        { id: 1, rating: 5, body: 'Great!', user: { id: 1, firstName: 'Jane' } },
+        {
+          id: 1,
+          rating: 5,
+          body: 'Great!',
+          user: { id: 1, firstName: 'Jane' },
+        },
         { id: 2, rating: 3, body: 'OK', user: { id: 2, firstName: 'Bob' } },
       ];
       prisma.review.findMany.mockResolvedValue(reviews);
@@ -72,17 +74,30 @@ describe('ReviewsService', () => {
   describe('createReview', () => {
     it('creates a review for an existing product', async () => {
       prisma.product.findUnique.mockResolvedValue({ id: 10, name: 'Polo' });
-      prisma.review.create.mockResolvedValue({ id: 1, userId: 1, productId: 10, rating: 5 });
-      prisma.review.aggregate.mockResolvedValue({ _avg: { rating: 5 }, _count: { _all: 1 } });
+      prisma.review.create.mockResolvedValue({
+        id: 1,
+        userId: 1,
+        productId: 10,
+        rating: 5,
+      });
+      prisma.review.aggregate.mockResolvedValue({
+        _avg: { rating: 5 },
+        _count: { _all: 1 },
+      });
       prisma.product.update.mockResolvedValue({});
 
-      const result = await service.createReview(1, 10, { rating: 5, body: 'Excellent!' });
+      const result = await service.createReview(1, 10, {
+        rating: 5,
+        body: 'Excellent!',
+      });
       expect(result).toHaveProperty('rating', 5);
     });
 
     it('throws NotFoundException for unknown product', async () => {
       prisma.product.findUnique.mockResolvedValue(null);
-      await expect(service.createReview(1, 999, { rating: 4 })).rejects.toThrow(NotFoundException);
+      await expect(service.createReview(1, 999, { rating: 4 })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -90,12 +105,28 @@ describe('ReviewsService', () => {
 
   describe('updateReview', () => {
     it('allows owner to update their review', async () => {
-      prisma.review.findUnique.mockResolvedValue({ id: 1, userId: 1, rating: 3, productId: 10 });
-      prisma.review.update.mockResolvedValue({ id: 1, userId: 1, rating: 5, body: 'Updated' });
-      prisma.review.aggregate.mockResolvedValue({ _avg: { rating: 5 }, _count: { _all: 1 } });
+      prisma.review.findUnique.mockResolvedValue({
+        id: 1,
+        userId: 1,
+        rating: 3,
+        productId: 10,
+      });
+      prisma.review.update.mockResolvedValue({
+        id: 1,
+        userId: 1,
+        rating: 5,
+        body: 'Updated',
+      });
+      prisma.review.aggregate.mockResolvedValue({
+        _avg: { rating: 5 },
+        _count: { _all: 1 },
+      });
       prisma.product.update.mockResolvedValue({});
 
-      const result = await service.updateReview(1, 1, { rating: 5, body: 'Updated' });
+      const result = await service.updateReview(1, 1, {
+        rating: 5,
+        body: 'Updated',
+      });
       expect(result.rating).toBe(5);
       expect(prisma.review.update).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -104,13 +135,21 @@ describe('ReviewsService', () => {
     });
 
     it('throws ForbiddenException when non-owner tries to update', async () => {
-      prisma.review.findUnique.mockResolvedValue({ id: 1, userId: 99, rating: 3 });
-      await expect(service.updateReview(1, 1, { rating: 5 })).rejects.toThrow(ForbiddenException);
+      prisma.review.findUnique.mockResolvedValue({
+        id: 1,
+        userId: 99,
+        rating: 3,
+      });
+      await expect(service.updateReview(1, 1, { rating: 5 })).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('throws NotFoundException for unknown review', async () => {
       prisma.review.findUnique.mockResolvedValue(null);
-      await expect(service.updateReview(1, 999, { rating: 5 })).rejects.toThrow(NotFoundException);
+      await expect(service.updateReview(1, 999, { rating: 5 })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -118,9 +157,16 @@ describe('ReviewsService', () => {
 
   describe('deleteReview', () => {
     it('allows owner to delete their review', async () => {
-      prisma.review.findUnique.mockResolvedValue({ id: 1, userId: 1, productId: 10 });
+      prisma.review.findUnique.mockResolvedValue({
+        id: 1,
+        userId: 1,
+        productId: 10,
+      });
       prisma.review.delete.mockResolvedValue({ id: 1 });
-      prisma.review.aggregate.mockResolvedValue({ _avg: { rating: null }, _count: { _all: 0 } });
+      prisma.review.aggregate.mockResolvedValue({
+        _avg: { rating: null },
+        _count: { _all: 0 },
+      });
       prisma.product.update.mockResolvedValue({});
 
       const result = await service.deleteReview(1, 1);
@@ -128,9 +174,16 @@ describe('ReviewsService', () => {
     });
 
     it('allows admin to delete any review', async () => {
-      prisma.review.findUnique.mockResolvedValue({ id: 1, userId: 99, productId: 10 });
+      prisma.review.findUnique.mockResolvedValue({
+        id: 1,
+        userId: 99,
+        productId: 10,
+      });
       prisma.review.delete.mockResolvedValue({ id: 1 });
-      prisma.review.aggregate.mockResolvedValue({ _avg: { rating: null }, _count: { _all: 0 } });
+      prisma.review.aggregate.mockResolvedValue({
+        _avg: { rating: null },
+        _count: { _all: 0 },
+      });
       prisma.product.update.mockResolvedValue({});
 
       const result = await service.deleteReview(1, 1, true);
@@ -139,12 +192,16 @@ describe('ReviewsService', () => {
 
     it('throws ForbiddenException when non-owner, non-admin deletes', async () => {
       prisma.review.findUnique.mockResolvedValue({ id: 1, userId: 99 });
-      await expect(service.deleteReview(1, 1, false)).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteReview(1, 1, false)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('throws NotFoundException for unknown review', async () => {
       prisma.review.findUnique.mockResolvedValue(null);
-      await expect(service.deleteReview(1, 999)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteReview(1, 999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

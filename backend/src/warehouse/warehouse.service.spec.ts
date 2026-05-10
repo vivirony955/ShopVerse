@@ -70,7 +70,9 @@ describe('WarehouseService', () => {
     it('returns only active warehouses', async () => {
       prisma.warehouse.findMany.mockResolvedValue([mockWarehouse]);
       const result = await service.listWarehouses();
-      expect(prisma.warehouse.findMany).toHaveBeenCalledWith({ where: { isActive: true } });
+      expect(prisma.warehouse.findMany).toHaveBeenCalledWith({
+        where: { isActive: true },
+      });
       expect(result).toHaveLength(1);
     });
   });
@@ -89,7 +91,9 @@ describe('WarehouseService', () => {
 
     it('throws NotFoundException for unknown warehouse', async () => {
       prisma.warehouse.findUnique.mockResolvedValue(null);
-      await expect(service.getWarehouse(999)).rejects.toThrow(NotFoundException);
+      await expect(service.getWarehouse(999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -97,8 +101,17 @@ describe('WarehouseService', () => {
 
   describe('updateInventory', () => {
     it('upserts warehouse inventory', async () => {
-      prisma.warehouseInventory.upsert.mockResolvedValue({ warehouseId: 1, variantId: 10, stock: 100, reserved: 0 });
-      const result = await service.updateInventory({ warehouseId: 1, variantId: 10, stock: 100 });
+      prisma.warehouseInventory.upsert.mockResolvedValue({
+        warehouseId: 1,
+        variantId: 10,
+        stock: 100,
+        reserved: 0,
+      });
+      const result = await service.updateInventory({
+        warehouseId: 1,
+        variantId: 10,
+        stock: 100,
+      });
       expect(prisma.warehouseInventory.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { warehouseId_variantId: { warehouseId: 1, variantId: 10 } },
@@ -154,7 +167,9 @@ describe('WarehouseService', () => {
 
     it('throws NotFoundException when order does not exist', async () => {
       prisma.order.findUnique.mockResolvedValue(null);
-      await expect(service.routeOrder(999, '110001')).rejects.toThrow(NotFoundException);
+      await expect(service.routeOrder(999, '110001')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws BadRequestException when stock is insufficient across all warehouses', async () => {
@@ -168,7 +183,9 @@ describe('WarehouseService', () => {
           ],
         },
       ]);
-      await expect(service.routeOrder(5, '110001')).rejects.toThrow(BadRequestException);
+      await expect(service.routeOrder(5, '110001')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -201,15 +218,23 @@ describe('WarehouseService', () => {
       ]);
       prisma.warehouseInventory.updateMany.mockResolvedValue({ count: 1 });
 
-      const result = await service.updateShipmentStatus(1, ShipmentStatus.DELIVERED);
+      const result = await service.updateShipmentStatus(
+        1,
+        ShipmentStatus.DELIVERED,
+      );
       expect(result.status).toBe(ShipmentStatus.DELIVERED);
       expect(prisma.warehouseInventory.updateMany).toHaveBeenCalled();
     });
 
     it('releases reservation on RTO without decrementing stock', async () => {
       prisma.shipment.findUnique.mockResolvedValue(mockShipment);
-      prisma.shipment.update.mockResolvedValue({ ...mockShipment, status: ShipmentStatus.RTO });
-      prisma.shipmentItem.findMany.mockResolvedValue([{ variantId: 10, quantity: 3 }]);
+      prisma.shipment.update.mockResolvedValue({
+        ...mockShipment,
+        status: ShipmentStatus.RTO,
+      });
+      prisma.shipmentItem.findMany.mockResolvedValue([
+        { variantId: 10, quantity: 3 },
+      ]);
       prisma.warehouseInventory.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.updateShipmentStatus(1, ShipmentStatus.RTO);

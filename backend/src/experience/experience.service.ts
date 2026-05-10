@@ -1,9 +1,17 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AddGiftOptionDto, CreateDeliverySlotDto, SaveForLaterDto } from './dto/experience.dto';
+import {
+  AddGiftOptionDto,
+  CreateDeliverySlotDto,
+  SaveForLaterDto,
+} from './dto/experience.dto';
 
 @Injectable()
 export class ExperienceService {
@@ -29,7 +37,9 @@ export class ExperienceService {
   }
 
   async removeSavedForLater(userId: number, variantId: number) {
-    return this.prisma.savedForLater.deleteMany({ where: { userId, variantId } });
+    return this.prisma.savedForLater.deleteMany({
+      where: { userId, variantId },
+    });
   }
 
   /** Move saved item back to cart */
@@ -51,7 +61,9 @@ export class ExperienceService {
       update: { quantity: { increment: 1 } },
     });
 
-    await this.prisma.savedForLater.delete({ where: { userId_variantId: { userId, variantId } } });
+    await this.prisma.savedForLater.delete({
+      where: { userId_variantId: { userId, variantId } },
+    });
 
     return { moved: true };
   }
@@ -108,7 +120,12 @@ export class ExperienceService {
     // FINAL §9.4 H-011: atomic conditional increment — prevents overbooking when two
     // customers race for the last slot. The DB, not our read-then-write, enforces capacity.
     const result = await this.prisma.$queryRaw<
-      Array<{ id: number; bookedCount: number; maxOrders: number; isActive: boolean }>
+      Array<{
+        id: number;
+        bookedCount: number;
+        maxOrders: number;
+        isActive: boolean;
+      }>
     >`
       UPDATE "DeliverySlot"
       SET "bookedCount" = "bookedCount" + 1
@@ -119,7 +136,9 @@ export class ExperienceService {
     `;
     if (result.length === 0) {
       // Distinguish "not found" from "full/inactive" for a clearer error.
-      const slot = await this.prisma.deliverySlot.findUnique({ where: { id: slotId } });
+      const slot = await this.prisma.deliverySlot.findUnique({
+        where: { id: slotId },
+      });
       if (!slot) throw new NotFoundException('Slot not found');
       if (!slot.isActive) throw new BadRequestException('Slot not available');
       throw new BadRequestException('Slot fully booked');
@@ -130,7 +149,9 @@ export class ExperienceService {
   // ─── Gift Options ─────────────────────────────────────────────────────────
 
   async addGiftOption(dto: AddGiftOptionDto) {
-    const order = await this.prisma.order.findUnique({ where: { id: dto.orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: dto.orderId },
+    });
     if (!order) throw new NotFoundException('Order not found');
 
     return this.prisma.giftOption.upsert({
@@ -170,19 +191,35 @@ export class ExperienceService {
       take: 20,
       include: {
         product: {
-          select: { id: true, name: true, slug: true, basePrice: true, discountPct: true, images: true, brand: { select: { name: true } } },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            basePrice: true,
+            discountPct: true,
+            images: true,
+            brand: { select: { name: true } },
+          },
         },
       },
     });
-    return rows.map(r => r.product);
+    return rows.map((r) => r.product);
   }
 
   // ─── F2-13: Delivery Rating ───────────────────────────────────────────────
 
-  async rateDelivery(userId: number, orderId: number, rating: number, comment?: string) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+  async rateDelivery(
+    userId: number,
+    orderId: number,
+    rating: number,
+    comment?: string,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order || order.userId !== userId) throw new Error('Order not found');
-    if (order.status !== 'DELIVERED') throw new Error('Can only rate delivered orders');
+    if (order.status !== 'DELIVERED')
+      throw new Error('Can only rate delivered orders');
     return this.prisma.deliveryRating.upsert({
       where: { orderId },
       create: { orderId, rating, comment },

@@ -23,7 +23,7 @@ import { UsersModule } from '../users/users.module';
         if (!secret || secret.length < 32) {
           throw new Error(
             'SECURITY: JWT_SECRET env var is missing or too short (min 32 chars). ' +
-            'Generate one with: openssl rand -base64 32',
+              'Generate one with: openssl rand -base64 32',
           );
         }
         return { secret, signOptions: { expiresIn: '15m' } };

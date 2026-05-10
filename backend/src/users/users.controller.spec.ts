@@ -55,9 +55,13 @@ describe('UsersController', () => {
     it('updates and returns the updated profile', async () => {
       const updated = { id: 1, email: 'user@example.com', firstName: 'John' };
       mockUsersService.updateProfile.mockResolvedValue(updated);
-      const result = await controller.updateProfile(mockReq, { firstName: 'John' });
+      const result = await controller.updateProfile(mockReq, {
+        firstName: 'John',
+      });
       expect(result).toEqual(updated);
-      expect(mockUsersService.updateProfile).toHaveBeenCalledWith(1, { firstName: 'John' });
+      expect(mockUsersService.updateProfile).toHaveBeenCalledWith(1, {
+        firstName: 'John',
+      });
     });
   });
 
@@ -74,8 +78,19 @@ describe('UsersController', () => {
 
   describe('addAddress', () => {
     it('creates and returns new address', async () => {
-      const addr = { fullName: 'Jane', phone: '9000000000', line1: '1 Main St', city: 'Delhi', state: 'DL', pincode: '110001' };
-      mockUsersService.addAddress.mockResolvedValue({ id: 2, userId: 1, ...addr });
+      const addr = {
+        fullName: 'Jane',
+        phone: '9000000000',
+        line1: '1 Main St',
+        city: 'Delhi',
+        state: 'DL',
+        pincode: '110001',
+      };
+      mockUsersService.addAddress.mockResolvedValue({
+        id: 2,
+        userId: 1,
+        ...addr,
+      });
       const result = await controller.addAddress(mockReq, addr);
       expect(result).toHaveProperty('id');
       expect(mockUsersService.addAddress).toHaveBeenCalledWith(1, addr);

@@ -2,8 +2,18 @@
 // See LICENSE in the project root for license information.
 
 import {
-  IsString, IsIn, IsNumber, IsOptional, IsBoolean,
-  IsInt, Min, Max, IsDateString, MaxLength, IsPositive, ValidateIf,
+  IsString,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  IsInt,
+  Min,
+  Max,
+  IsDateString,
+  MaxLength,
+  IsPositive,
+  ValidateIf,
 } from 'class-validator';
 
 export class ValidateCouponDto {

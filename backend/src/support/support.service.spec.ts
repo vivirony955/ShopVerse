@@ -29,10 +29,7 @@ describe('SupportService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SupportService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [SupportService, { provide: PrismaService, useValue: prisma }],
     }).compile();
     service = module.get<SupportService>(SupportService);
   });
@@ -51,13 +48,18 @@ describe('SupportService', () => {
         description: 'My order #42 has not arrived',
       });
       expect(prisma.supportTicket.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ userId: 1 }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ userId: 1 }),
+        }),
       );
       expect(result.status).toBe(TicketStatus.OPEN);
     });
 
     it('includes orderId when provided', async () => {
-      prisma.supportTicket.create.mockResolvedValue({ ...mockTicket, orderId: 42 });
+      prisma.supportTicket.create.mockResolvedValue({
+        ...mockTicket,
+        orderId: 42,
+      });
       const result = await service.createTicket(1, {
         orderId: 42,
         subject: 'Missing item',
@@ -127,7 +129,9 @@ describe('SupportService', () => {
         ...mockTicket,
         status: TicketStatus.IN_PROGRESS,
       });
-      const result = await service.updateTicket(1, { status: TicketStatus.IN_PROGRESS });
+      const result = await service.updateTicket(1, {
+        status: TicketStatus.IN_PROGRESS,
+      });
       expect(result.status).toBe(TicketStatus.IN_PROGRESS);
     });
 
@@ -137,7 +141,9 @@ describe('SupportService', () => {
         status: TicketStatus.RESOLVED,
         resolvedAt: new Date(),
       });
-      const result = await service.updateTicket(1, { status: TicketStatus.RESOLVED });
+      const result = await service.updateTicket(1, {
+        status: TicketStatus.RESOLVED,
+      });
       expect(result.resolvedAt).toBeDefined();
       expect(prisma.supportTicket.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -168,11 +174,24 @@ describe('SupportService', () => {
     });
 
     it('moves ticket to IN_PROGRESS when staff sends public reply to OPEN ticket', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue({ ...mockTicket, status: TicketStatus.OPEN });
-      prisma.ticketNote.create.mockResolvedValue({ id: 1, body: 'We are looking into it', isInternal: false });
-      prisma.supportTicket.update.mockResolvedValue({ ...mockTicket, status: TicketStatus.IN_PROGRESS });
+      prisma.supportTicket.findUnique.mockResolvedValue({
+        ...mockTicket,
+        status: TicketStatus.OPEN,
+      });
+      prisma.ticketNote.create.mockResolvedValue({
+        id: 1,
+        body: 'We are looking into it',
+        isInternal: false,
+      });
+      prisma.supportTicket.update.mockResolvedValue({
+        ...mockTicket,
+        status: TicketStatus.IN_PROGRESS,
+      });
 
-      await service.addNote(1, 2, { body: 'We are looking into it', isInternal: false });
+      await service.addNote(1, 2, {
+        body: 'We are looking into it',
+        isInternal: false,
+      });
       expect(prisma.supportTicket.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: { status: TicketStatus.IN_PROGRESS },
@@ -181,7 +200,10 @@ describe('SupportService', () => {
     });
 
     it('does not change status for internal-only notes', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue({ ...mockTicket, status: TicketStatus.OPEN });
+      prisma.supportTicket.findUnique.mockResolvedValue({
+        ...mockTicket,
+        status: TicketStatus.OPEN,
+      });
       prisma.ticketNote.create.mockResolvedValue({ id: 1, isInternal: true });
 
       await service.addNote(1, 2, { body: 'Checking logs', isInternal: true });
@@ -190,7 +212,9 @@ describe('SupportService', () => {
 
     it('throws NotFoundException for unknown ticket', async () => {
       prisma.supportTicket.findUnique.mockResolvedValue(null);
-      await expect(service.addNote(999, 2, { body: 'test' })).rejects.toThrow(NotFoundException);
+      await expect(service.addNote(999, 2, { body: 'test' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -235,8 +259,16 @@ describe('SupportService', () => {
   describe('getSlaReport', () => {
     it('returns breached tickets count', async () => {
       prisma.supportTicket.findMany.mockResolvedValue([
-        { id: 1, priority: 'URGENT', createdAt: new Date(Date.now() - 5 * 3600_000) },
-        { id: 2, priority: 'HIGH', createdAt: new Date(Date.now() - 10 * 3600_000) },
+        {
+          id: 1,
+          priority: 'URGENT',
+          createdAt: new Date(Date.now() - 5 * 3600_000),
+        },
+        {
+          id: 2,
+          priority: 'HIGH',
+          createdAt: new Date(Date.now() - 10 * 3600_000),
+        },
       ]);
       const result = await service.getSlaReport();
       expect(result.breachedCount).toBe(2);

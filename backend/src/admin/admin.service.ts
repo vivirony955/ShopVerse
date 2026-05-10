@@ -1,7 +1,12 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
@@ -24,28 +29,35 @@ export class AdminService {
   async getDashboardStats() {
     // Canonical GMV (FINAL §16.2): Order.status ∈ {CONFIRMED, PROCESSING, SHIPPED, DELIVERED}.
     // Legacy `totalRevenue` is preserved for API backward-compat but now reflects canonical GMV.
-    const [totalOrders, totalUsers, totalProducts, gmvAgg, recentOrders, orderStatusBreakdown, topProducts] =
-      await Promise.all([
-        this.prisma.order.count(),
-        this.prisma.user.count({ where: { role: 'USER' } }),
-        this.prisma.product.count({ where: { isActive: true } }),
-        this.prisma.order.aggregate({
-          _sum: { total: true },
-          where: { status: { in: AnalyticsService.GMV_STATUSES as any } },
-        }),
-        this.prisma.order.findMany({
-          take: 5,
-          orderBy: { createdAt: 'desc' },
-          include: { user: { select: { email: true, firstName: true } } },
-        }),
-        this.prisma.order.groupBy({ by: ['status'], _count: { id: true } }),
-        this.prisma.orderItem.groupBy({
-          by: ['variantId'],
-          _sum: { quantity: true },
-          orderBy: { _sum: { quantity: 'desc' } },
-          take: 5,
-        }),
-      ]);
+    const [
+      totalOrders,
+      totalUsers,
+      totalProducts,
+      gmvAgg,
+      recentOrders,
+      orderStatusBreakdown,
+      topProducts,
+    ] = await Promise.all([
+      this.prisma.order.count(),
+      this.prisma.user.count({ where: { role: 'USER' } }),
+      this.prisma.product.count({ where: { isActive: true } }),
+      this.prisma.order.aggregate({
+        _sum: { total: true },
+        where: { status: { in: AnalyticsService.GMV_STATUSES as any } },
+      }),
+      this.prisma.order.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { email: true, firstName: true } } },
+      }),
+      this.prisma.order.groupBy({ by: ['status'], _count: { id: true } }),
+      this.prisma.orderItem.groupBy({
+        by: ['variantId'],
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: 'desc' } },
+        take: 5,
+      }),
+    ]);
 
     const revenueByDay = await this.analytics.getRevenueSeries(30);
     const lowStockVariants = await this.getLowStockVariants(5);
@@ -87,19 +99,27 @@ export class AdminService {
   async getRevenueReport(days = 30) {
     const series = await this.analytics.getRevenueSeries(days);
     // Back-compat response shape: { date, revenue, orders }
-    return series.map((r) => ({ date: r.date, revenue: r.gmv, orders: r.orders }));
+    return series.map((r) => ({
+      date: r.date,
+      revenue: r.gmv,
+      orders: r.orders,
+    }));
   }
 
   @Cron('0 9 * * *') // Daily at 9 AM
   async sendLowStockAlertEmail() {
     // FINAL §9.4 R-010 / M-005: single-fire per tick across replicas.
-    await this.cronLock.runExclusive('low-stock-alert-daily', 30 * 60_000, async () => {
-      const adminEmail = this.config.get<string>('SEED_ADMIN_EMAIL');
-      if (!adminEmail) return;
-      const variants = await this.getLowStockVariants(5);
-      if (variants.length === 0) return;
-      await this.emailService.sendLowStockAlert({ adminEmail, variants });
-    });
+    await this.cronLock.runExclusive(
+      'low-stock-alert-daily',
+      30 * 60_000,
+      async () => {
+        const adminEmail = this.config.get<string>('SEED_ADMIN_EMAIL');
+        if (!adminEmail) return;
+        const variants = await this.getLowStockVariants(5);
+        if (variants.length === 0) return;
+        await this.emailService.sendLowStockAlert({ adminEmail, variants });
+      },
+    );
   }
 
   /**
@@ -117,7 +137,9 @@ export class AdminService {
     ] = await Promise.all([
       this.analytics.getFinanceSummary(),
       this.prisma.paymentReconciliation.count({ where: { status: 'PENDING' } }),
-      this.prisma.paymentReconciliation.count({ where: { status: 'DISCREPANCY' } }),
+      this.prisma.paymentReconciliation.count({
+        where: { status: 'DISCREPANCY' },
+      }),
       this.prisma.wallet.aggregate({ _sum: { balance: true } }),
       this.prisma.affiliateAccount.findMany({
         orderBy: { totalEarned: 'desc' },
@@ -162,13 +184,25 @@ export class AdminService {
     ] = await Promise.all([
       this.prisma.order.count({ where: { status: 'PENDING' } }),
       this.prisma.order.count({ where: { status: 'PROCESSING' } }),
-      this.prisma.shipment.count({ where: { status: 'IN_TRANSIT' } }).catch(() => 0),
+      this.prisma.shipment
+        .count({ where: { status: 'IN_TRANSIT' } })
+        .catch(() => 0),
       // Shipments in transit for > 2 days = potentially overdue
       this.prisma.shipment
-        .count({ where: { status: 'IN_TRANSIT', updatedAt: { lte: twoDaysAgo } } })
+        .count({
+          where: { status: 'IN_TRANSIT', updatedAt: { lte: twoDaysAgo } },
+        })
         .catch(() => 0),
-      this.prisma.supportTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
-      this.prisma.order.count({ where: { paymentMethod: 'COD', paymentStatus: 'UNPAID', status: 'DELIVERED' } }),
+      this.prisma.supportTicket.count({
+        where: { status: { in: ['OPEN', 'IN_PROGRESS'] } },
+      }),
+      this.prisma.order.count({
+        where: {
+          paymentMethod: 'COD',
+          paymentStatus: 'UNPAID',
+          status: 'DELIVERED',
+        },
+      }),
     ]);
 
     return {
@@ -191,8 +225,8 @@ export class AdminService {
   async getCustomerAnalytics() {
     const now = new Date();
     const d30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const d60 = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-    const d90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const _d60 = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const _d90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
     const [
       totalCustomers,
@@ -228,7 +262,15 @@ export class AdminService {
       `,
 
       // Top 10 customers by LTV
-      this.prisma.$queryRaw<{ userId: number; email: string; firstName: string; total_spend: number; order_count: bigint }[]>`
+      this.prisma.$queryRaw<
+        {
+          userId: number;
+          email: string;
+          firstName: string;
+          total_spend: number;
+          order_count: bigint;
+        }[]
+      >`
         SELECT u.id as "userId", u.email, u."firstName", SUM(o.total) as total_spend, COUNT(o.id) as order_count
         FROM "User" u
         JOIN "Order" o ON o."userId" = u.id
@@ -244,10 +286,16 @@ export class AdminService {
     ]);
 
     // RFM segmentation
-    const rfmRaw = await this.prisma.$queryRaw<{
-      userId: number; email: string; firstName: string;
-      last_order: Date; order_count: bigint; total_spend: number;
-    }[]>`
+    const rfmRaw = await this.prisma.$queryRaw<
+      {
+        userId: number;
+        email: string;
+        firstName: string;
+        last_order: Date;
+        order_count: bigint;
+        total_spend: number;
+      }[]
+    >`
       SELECT u.id as "userId", u.email, u."firstName",
         MAX(o."createdAt") as last_order,
         COUNT(o.id) as order_count,
@@ -258,19 +306,36 @@ export class AdminService {
       GROUP BY u.id, u.email, u."firstName"
     `;
 
-    const segments = { champions: 0, loyal: 0, atRisk: 0, lost: 0, newCustomers: 0, others: 0 };
+    const segments = {
+      champions: 0,
+      loyal: 0,
+      atRisk: 0,
+      lost: 0,
+      newCustomers: 0,
+      others: 0,
+    };
     for (const r of rfmRaw) {
       const lastOrder = r.last_order ? new Date(r.last_order) : null;
       const count = Number(r.order_count);
       const spend = r.total_spend;
-      if (!lastOrder || count === 0) { segments.others++; continue; }
+      if (!lastOrder || count === 0) {
+        segments.others++;
+        continue;
+      }
       const daysSince = (now.getTime() - lastOrder.getTime()) / 86400000;
-      if (daysSince <= 30 && count >= 3 && spend > 2000) { segments.champions++; }
-      else if (count >= 2 && daysSince <= 60) { segments.loyal++; }
-      else if (daysSince > 60 && daysSince <= 90 && spend > 1000) { segments.atRisk++; }
-      else if (daysSince > 90) { segments.lost++; }
-      else if (daysSince <= 30 && count === 1) { segments.newCustomers++; }
-      else { segments.others++; }
+      if (daysSince <= 30 && count >= 3 && spend > 2000) {
+        segments.champions++;
+      } else if (count >= 2 && daysSince <= 60) {
+        segments.loyal++;
+      } else if (daysSince > 60 && daysSince <= 90 && spend > 1000) {
+        segments.atRisk++;
+      } else if (daysSince > 90) {
+        segments.lost++;
+      } else if (daysSince <= 30 && count === 1) {
+        segments.newCustomers++;
+      } else {
+        segments.others++;
+      }
     }
 
     return {
@@ -298,7 +363,12 @@ export class AdminService {
   }
 
   /** All orders — admin view with pagination and status filter */
-  async getAllOrders(filters: { status?: string; page?: number; limit?: number; requestedBy: number }) {
+  async getAllOrders(filters: {
+    status?: string;
+    page?: number;
+    limit?: number;
+    requestedBy: number;
+  }) {
     const { status, page = 1, requestedBy } = filters;
     // H2-07: hard cap at 100 rows per request — prevents full-table silent exfiltration
     const limit = Math.min(Number(filters.limit ?? 30), 100);
@@ -324,14 +394,21 @@ export class AdminService {
       skip,
       take: limit,
       include: {
-        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+        user: {
+          select: { id: true, email: true, firstName: true, lastName: true },
+        },
         items: { select: { id: true, quantity: true, price: true } },
       },
     });
   }
 
   /** All users — admin view with pagination */
-  async getAllUsers(filters: { page?: number; limit?: number; search?: string; requestedBy: number }) {
+  async getAllUsers(filters: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    requestedBy: number;
+  }) {
     const { page = 1, search, requestedBy } = filters;
     // H2-07: hard cap at 100 rows per request
     const limit = Math.min(Number(filters.limit ?? 30), 100);
@@ -363,8 +440,13 @@ export class AdminService {
       skip,
       take: limit,
       select: {
-        id: true, email: true, firstName: true, lastName: true,
-        phone: true, createdAt: true, loyaltyPoints: true,
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        createdAt: true,
+        loyaltyPoints: true,
         _count: { select: { orders: true } },
       },
     });
@@ -379,7 +461,9 @@ export class AdminService {
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
-      include: { admin: { select: { id: true, email: true, firstName: true } } },
+      include: {
+        admin: { select: { id: true, email: true, firstName: true } },
+      },
     });
   }
 
@@ -393,28 +477,24 @@ export class AdminService {
     const d = Math.max(1, Math.min(90, Math.trunc(days)));
     const since = new Date(Date.now() - d * 86_400_000);
 
-    const [
-      activeCarts,
-      ordersPlaced,
-      ordersCommitted,
-      ordersDelivered,
-    ] = await Promise.all([
-      // Carts touched in the window (proxy for add-to-cart activity)
-      this.prisma.cart.count({ where: { updatedAt: { gte: since } } }),
-      // All orders created in window
-      this.prisma.order.count({ where: { createdAt: { gte: since } } }),
-      // Committed orders per canonical GMV statuses (FINAL §16.2)
-      this.prisma.order.count({
-        where: {
-          createdAt: { gte: since },
-          status: { in: AnalyticsService.GMV_STATUSES as any },
-        },
-      }),
-      // Revenue-recognized (delivered)
-      this.prisma.order.count({
-        where: { createdAt: { gte: since }, status: 'DELIVERED' },
-      }),
-    ]);
+    const [activeCarts, ordersPlaced, ordersCommitted, ordersDelivered] =
+      await Promise.all([
+        // Carts touched in the window (proxy for add-to-cart activity)
+        this.prisma.cart.count({ where: { updatedAt: { gte: since } } }),
+        // All orders created in window
+        this.prisma.order.count({ where: { createdAt: { gte: since } } }),
+        // Committed orders per canonical GMV statuses (FINAL §16.2)
+        this.prisma.order.count({
+          where: {
+            createdAt: { gte: since },
+            status: { in: AnalyticsService.GMV_STATUSES as any },
+          },
+        }),
+        // Revenue-recognized (delivered)
+        this.prisma.order.count({
+          where: { createdAt: { gte: since }, status: 'DELIVERED' },
+        }),
+      ]);
 
     const pct = (num: number, den: number) =>
       den > 0 ? Math.round((num / den) * 100) : 0;
@@ -469,10 +549,14 @@ export class AdminService {
     reason: string,
     requestedBy: number,
   ) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order) throw new NotFoundException(`Order ${orderId} not found`);
     if (amount <= AdminService.HIGH_VALUE_THRESHOLD) {
-      throw new BadRequestException(`Amount ₹${amount} is ≤ threshold ₹${AdminService.HIGH_VALUE_THRESHOLD} — process directly`);
+      throw new BadRequestException(
+        `Amount ₹${amount} is ≤ threshold ₹${AdminService.HIGH_VALUE_THRESHOLD} — process directly`,
+      );
     }
 
     return this.prisma.refundApproval.create({
@@ -486,13 +570,18 @@ export class AdminService {
       where: { id: approvalId },
       include: { order: true },
     });
-    if (!approval) throw new NotFoundException(`RefundApproval ${approvalId} not found`);
+    if (!approval)
+      throw new NotFoundException(`RefundApproval ${approvalId} not found`);
     if (approval.status !== 'PENDING') {
-      throw new BadRequestException(`Approval ${approvalId} is already ${approval.status}`);
+      throw new BadRequestException(
+        `Approval ${approvalId} is already ${approval.status}`,
+      );
     }
     // T-AD01 FIX: maker-checker — approver must be a different person than the requester
     if (approval.requestedBy === approvedBy) {
-      throw new ForbiddenException('Self-approval is not permitted. A different FINANCE user must approve this request.');
+      throw new ForbiddenException(
+        'Self-approval is not permitted. A different FINANCE user must approve this request.',
+      );
     }
 
     // V-01 FIX: approval must actually execute the refund (not just update status).
@@ -514,9 +603,15 @@ export class AdminService {
 
     // Execute the wallet credit (guest orders have no userId — fall back to manual process)
     if (!approval.order.userId) {
-      throw new BadRequestException('Order has no registered user — cannot credit wallet. Process refund manually.');
+      throw new BadRequestException(
+        'Order has no registered user — cannot credit wallet. Process refund manually.',
+      );
     }
-    await this.walletService.refundToWallet(approval.order.userId, approval.amount, approval.orderId);
+    await this.walletService.refundToWallet(
+      approval.order.userId,
+      approval.amount,
+      approval.orderId,
+    );
 
     // Mark RefundRequest as COMPLETED and RefundApproval as EXECUTED atomically
     await this.prisma.$transaction([
@@ -535,24 +630,44 @@ export class AdminService {
       }),
     ]);
 
-    return { approved: true, refundRequestId: refundRequest.id, amount: approval.amount };
+    return {
+      approved: true,
+      refundRequestId: refundRequest.id,
+      amount: approval.amount,
+    };
   }
 
   /** FINANCE role: reject a pending high-value refund. */
-  async rejectRefundRequest(approvalId: number, rejectedBy: number, rejectedReason: string) {
-    const approval = await this.prisma.refundApproval.findUnique({ where: { id: approvalId } });
-    if (!approval) throw new NotFoundException(`RefundApproval ${approvalId} not found`);
+  async rejectRefundRequest(
+    approvalId: number,
+    rejectedBy: number,
+    rejectedReason: string,
+  ) {
+    const approval = await this.prisma.refundApproval.findUnique({
+      where: { id: approvalId },
+    });
+    if (!approval)
+      throw new NotFoundException(`RefundApproval ${approvalId} not found`);
     if (approval.status !== 'PENDING') {
-      throw new BadRequestException(`Approval ${approvalId} is already ${approval.status}`);
+      throw new BadRequestException(
+        `Approval ${approvalId} is already ${approval.status}`,
+      );
     }
     // T-AD01 FIX: rejector must also differ from requester
     if (approval.requestedBy === rejectedBy) {
-      throw new ForbiddenException('Self-rejection is not permitted. A different user must action this request.');
+      throw new ForbiddenException(
+        'Self-rejection is not permitted. A different user must action this request.',
+      );
     }
 
     return this.prisma.refundApproval.update({
       where: { id: approvalId },
-      data: { status: 'REJECTED', rejectedBy, rejectedAt: new Date(), rejectedReason },
+      data: {
+        status: 'REJECTED',
+        rejectedBy,
+        rejectedAt: new Date(),
+        rejectedReason,
+      },
     });
   }
 

@@ -5,18 +5,24 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
-const POINTS_PER_RUPEE = 0.1;   // 1 point per ₹10 spent
-const POINT_VALUE = 0.5;         // Each point = ₹0.50
+const POINTS_PER_RUPEE = 0.1; // 1 point per ₹10 spent
+const POINT_VALUE = 0.5; // Each point = ₹0.50
 // FINAL §9.4 M-003: cap redemption at 20% of order subtotal to protect margin.
-const MAX_REDEEM_PCT_OF_SUBTOTAL = 0.20;
+const MAX_REDEEM_PCT_OF_SUBTOTAL = 0.2;
 
 @Injectable()
 export class LoyaltyService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getBalance(userId: number) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { loyaltyPoints: true } });
-    return { points: user?.loyaltyPoints ?? 0, valueInRupees: (user?.loyaltyPoints ?? 0) * POINT_VALUE };
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { loyaltyPoints: true },
+    });
+    return {
+      points: user?.loyaltyPoints ?? 0,
+      valueInRupees: (user?.loyaltyPoints ?? 0) * POINT_VALUE,
+    };
   }
 
   getHistory(userId: number) {
@@ -37,14 +43,28 @@ export class LoyaltyService {
     try {
       await this.prisma.$transaction([
         this.prisma.loyaltyTransaction.create({
-          data: { userId, orderId, points, type: 'EARN', note: `Earned on order #${orderId}`, reference },
+          data: {
+            userId,
+            orderId,
+            points,
+            type: 'EARN',
+            note: `Earned on order #${orderId}`,
+            reference,
+          },
         }),
-        this.prisma.user.update({ where: { id: userId }, data: { loyaltyPoints: { increment: points } } }),
+        this.prisma.user.update({
+          where: { id: userId },
+          data: { loyaltyPoints: { increment: points } },
+        }),
       ]);
       return points;
     } catch (e) {
       // P2002 = unique violation on `reference` → already credited. Idempotent no-op.
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return 0;
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      )
+        return 0;
       throw e;
     }
   }
@@ -54,8 +74,13 @@ export class LoyaltyService {
    * with a row-level lock via raw UPDATE to prevent double-spend races (FINAL §9.4 C-008).
    * If `orderSubtotal` is provided, redemption is capped at MAX_REDEEM_PCT_OF_SUBTOTAL (M-003).
    */
-  async redeemPoints(userId: number, pointsToRedeem: number, orderSubtotal?: number): Promise<number> {
-    if (pointsToRedeem <= 0) throw new BadRequestException('Points to redeem must be positive');
+  async redeemPoints(
+    userId: number,
+    pointsToRedeem: number,
+    orderSubtotal?: number,
+  ): Promise<number> {
+    if (pointsToRedeem <= 0)
+      throw new BadRequestException('Points to redeem must be positive');
 
     // Enforce max-redeem cap when order subtotal is known.
     if (orderSubtotal != null) {
@@ -125,21 +150,37 @@ export class LoyaltyService {
       ]);
       return earnTx.points;
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return 0;
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      )
+        return 0;
       throw e;
     }
   }
 
-  async addBonus(userId: number, points: number, note: string, reference?: string) {
+  async addBonus(
+    userId: number,
+    points: number,
+    note: string,
+    reference?: string,
+  ) {
     try {
       await this.prisma.$transaction([
         this.prisma.loyaltyTransaction.create({
           data: { userId, points, type: 'REFERRAL_BONUS', note, reference },
         }),
-        this.prisma.user.update({ where: { id: userId }, data: { loyaltyPoints: { increment: points } } }),
+        this.prisma.user.update({
+          where: { id: userId },
+          data: { loyaltyPoints: { increment: points } },
+        }),
       ]);
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      )
+        return;
       throw e;
     }
   }

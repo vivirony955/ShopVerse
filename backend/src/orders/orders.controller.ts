@@ -2,15 +2,31 @@
 // See LICENSE in the project root for license information.
 
 import {
-  Controller, Get, Post, Patch, Headers,
-  Param, Body, Query, UseGuards, Req, Ip, ParseIntPipe, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Headers,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+  Ip,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles, Role } from '../auth/roles.decorator';
 import { OrdersService } from './orders.service';
-import { PlaceOrderDto, UpdateOrderStatusDto, PlaceGuestOrderDto } from './dto/order.dto';
+import {
+  PlaceOrderDto,
+  UpdateOrderStatusDto,
+  PlaceGuestOrderDto,
+} from './dto/order.dto';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -59,7 +75,10 @@ export class OrdersController {
     @Headers('x-device-fingerprint') fingerprint?: string,
   ) {
     const ip = req.ip ?? req.headers['x-forwarded-for'];
-    return this.ordersService.placeOrder(req.user.id, dto, { ip, deviceFingerprint: fingerprint });
+    return this.ordersService.placeOrder(req.user.id, dto, {
+      ip,
+      deviceFingerprint: fingerprint,
+    });
   }
 
   @Patch(':id/cancel')
@@ -91,7 +110,11 @@ export class OrdersController {
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() body: { reason?: string } = {},
   ) {
-    return this.ordersService.refundOrderItem(orderId, itemId, body.reason as any);
+    return this.ordersService.refundOrderItem(
+      orderId,
+      itemId,
+      body.reason as any,
+    );
   }
 
   // FINAL §9.4 M-002: public endpoint — rate-limit to curb card-testing / fake-order abuse.

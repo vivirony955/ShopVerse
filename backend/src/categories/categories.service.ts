@@ -28,7 +28,10 @@ export class CategoriesService {
     return this.prisma.category.create({ data });
   }
 
-  async update(id: number, data: { name?: string; slug?: string; parentId?: number }) {
+  async update(
+    id: number,
+    data: { name?: string; slug?: string; parentId?: number },
+  ) {
     const cat = await this.prisma.category.findUnique({ where: { id } });
     if (!cat) throw new NotFoundException('Category not found');
     return this.prisma.category.update({ where: { id }, data });

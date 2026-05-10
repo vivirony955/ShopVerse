@@ -32,7 +32,12 @@ describe('CategoriesService', () => {
   describe('findAll', () => {
     it('returns root categories with children', async () => {
       const tree = [
-        { id: 1, name: 'Men', parentId: null, children: [{ id: 3, name: 'Shirts', parentId: 1 }] },
+        {
+          id: 1,
+          name: 'Men',
+          parentId: null,
+          children: [{ id: 3, name: 'Shirts', parentId: 1 }],
+        },
         { id: 2, name: 'Women', parentId: null, children: [] },
       ];
       prisma.category.findMany.mockResolvedValue(tree);
@@ -54,7 +59,13 @@ describe('CategoriesService', () => {
 
   describe('findOne', () => {
     it('returns category with parent and children', async () => {
-      const cat = { id: 3, name: 'Shirts', parentId: 1, parent: { id: 1, name: 'Men' }, children: [] };
+      const cat = {
+        id: 3,
+        name: 'Shirts',
+        parentId: 1,
+        parent: { id: 1, name: 'Men' },
+        children: [],
+      };
       prisma.category.findUnique.mockResolvedValue(cat);
       const result = await service.findOne(3);
       expect(result).toEqual(cat);
@@ -81,11 +92,22 @@ describe('CategoriesService', () => {
     });
 
     it('creates a child category with parentId', async () => {
-      const created = { id: 4, name: 'T-Shirts', slug: 't-shirts', parentId: 1 };
+      const created = {
+        id: 4,
+        name: 'T-Shirts',
+        slug: 't-shirts',
+        parentId: 1,
+      };
       prisma.category.create.mockResolvedValue(created);
-      const result = await service.create({ name: 'T-Shirts', slug: 't-shirts', parentId: 1 });
+      const result = await service.create({
+        name: 'T-Shirts',
+        slug: 't-shirts',
+        parentId: 1,
+      });
       expect(result).toEqual(created);
-      expect(prisma.category.create).toHaveBeenCalledWith({ data: { name: 'T-Shirts', slug: 't-shirts', parentId: 1 } });
+      expect(prisma.category.create).toHaveBeenCalledWith({
+        data: { name: 'T-Shirts', slug: 't-shirts', parentId: 1 },
+      });
     });
   });
 
@@ -93,16 +115,29 @@ describe('CategoriesService', () => {
 
   describe('update', () => {
     it('updates and returns category', async () => {
-      prisma.category.findUnique.mockResolvedValue({ id: 1, name: 'Men', slug: 'men' });
-      prisma.category.update.mockResolvedValue({ id: 1, name: 'Mens', slug: 'mens' });
+      prisma.category.findUnique.mockResolvedValue({
+        id: 1,
+        name: 'Men',
+        slug: 'men',
+      });
+      prisma.category.update.mockResolvedValue({
+        id: 1,
+        name: 'Mens',
+        slug: 'mens',
+      });
       const result = await service.update(1, { name: 'Mens', slug: 'mens' });
       expect(result.name).toBe('Mens');
-      expect(prisma.category.update).toHaveBeenCalledWith({ where: { id: 1 }, data: { name: 'Mens', slug: 'mens' } });
+      expect(prisma.category.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { name: 'Mens', slug: 'mens' },
+      });
     });
 
     it('throws NotFoundException for missing category', async () => {
       prisma.category.findUnique.mockResolvedValue(null);
-      await expect(service.update(999, { name: 'X' })).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, { name: 'X' })).rejects.toThrow(
+        NotFoundException,
+      );
       expect(prisma.category.update).not.toHaveBeenCalled();
     });
   });

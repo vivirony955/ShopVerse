@@ -1,9 +1,23 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ExperienceService } from './experience.service';
-import { AddGiftOptionDto, CreateDeliverySlotDto, SaveForLaterDto } from './dto/experience.dto';
+import {
+  AddGiftOptionDto,
+  CreateDeliverySlotDto,
+  SaveForLaterDto,
+} from './dto/experience.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
@@ -26,12 +40,18 @@ export class ExperienceController {
   }
 
   @Delete('saved/:variantId')
-  removeSaved(@CurrentUser() user: any, @Param('variantId', ParseIntPipe) variantId: number) {
+  removeSaved(
+    @CurrentUser() user: any,
+    @Param('variantId', ParseIntPipe) variantId: number,
+  ) {
     return this.svc.removeSavedForLater(user.id, variantId);
   }
 
   @Post('saved/:variantId/move-to-cart')
-  moveToCart(@CurrentUser() user: any, @Param('variantId', ParseIntPipe) variantId: number) {
+  moveToCart(
+    @CurrentUser() user: any,
+    @Param('variantId', ParseIntPipe) variantId: number,
+  ) {
     return this.svc.moveToCart(user.id, variantId);
   }
 
@@ -73,7 +93,10 @@ export class ExperienceController {
 
   // F1-04: Recently viewed
   @Post('recently-viewed/:productId')
-  trackView(@CurrentUser() user: any, @Param('productId', ParseIntPipe) productId: number) {
+  trackView(
+    @CurrentUser() user: any,
+    @Param('productId', ParseIntPipe) productId: number,
+  ) {
     return this.svc.trackRecentlyViewed(user.id, productId);
   }
 

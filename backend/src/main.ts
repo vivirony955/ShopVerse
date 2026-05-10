@@ -4,6 +4,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import express from 'express';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { LoggingInterceptor } from './common/logging.interceptor';
@@ -24,7 +25,9 @@ if (process.env.NODE_ENV === 'production') {
 }
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
-    throw new Error(`FATAL: Missing required env var: ${key}. App cannot start safely.`);
+    throw new Error(
+      `FATAL: Missing required env var: ${key}. App cannot start safely.`,
+    );
   }
 }
 
@@ -43,35 +46,37 @@ async function bootstrap() {
   // Webhook route gets its own raw limit; all other routes capped at 100kb.
   expressApp.use((req: any, res: any, next: any) => {
     if (req.path === '/api/payments/webhook') return next();
-    require('express').json({ limit: '100kb' })(req, res, next);
+    express.json({ limit: '100kb' })(req, res, next);
   });
 
   // ─── Security headers ────────────────────────────────────────────────────────
   // V-07: no unsafe-inline in scriptSrc.
   // H2-11: full CSP — frameAncestors, objectSrc, baseUri, formAction added.
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc:   ["'self'"],
-        scriptSrc:    ["'self'", 'js.stripe.com'],
-        frameSrc:     ["'self'", 'js.stripe.com'],
-        imgSrc:       ["'self'", 'data:', 'https:'],
-        connectSrc:   ["'self'", 'api.stripe.com'],
-        objectSrc:    ["'none'"],
-        baseUri:      ["'self'"],
-        formAction:   ["'self'"],
-        frameAncestors: ["'none'"],          // prevents clickjacking
-        upgradeInsecureRequests: [],
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", 'js.stripe.com'],
+          frameSrc: ["'self'", 'js.stripe.com'],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'api.stripe.com'],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+          frameAncestors: ["'none'"], // prevents clickjacking
+          upgradeInsecureRequests: [],
+        },
       },
-    },
-    hsts: {
-      maxAge: 31536000,                      // 1 year
-      includeSubDomains: true,
-      preload: true,
-    },
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    crossOriginEmbedderPolicy: false,        // Stripe requires disabled
-  }));
+      hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+      },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      crossOriginEmbedderPolicy: false, // Stripe requires disabled
+    }),
+  );
 
   // ─── Global validation pipe ─────────────────────────────────────────────────
   app.useGlobalPipes(

@@ -11,8 +11,12 @@ export class LoyaltyController {
   constructor(private readonly loyaltyService: LoyaltyService) {}
 
   @Get('balance')
-  getBalance(@Request() req: any) { return this.loyaltyService.getBalance(req.user.id); }
+  getBalance(@Request() req: any) {
+    return this.loyaltyService.getBalance(req.user.id);
+  }
 
   @Get('history')
-  getHistory(@Request() req: any) { return this.loyaltyService.getHistory(req.user.id); }
+  getHistory(@Request() req: any) {
+    return this.loyaltyService.getHistory(req.user.id);
+  }
 }

@@ -20,7 +20,11 @@ describe('OrdersController', () => {
     updateOrderStatus: jest.fn(),
   };
 
-  const mockReq = { user: { id: 1, role: 'USER' }, ip: '127.0.0.1', headers: {} };
+  const mockReq = {
+    user: { id: 1, role: 'USER' },
+    ip: '127.0.0.1',
+    headers: {},
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -72,9 +76,16 @@ describe('OrdersController', () => {
     it('places an order and returns it', async () => {
       const order = { id: 5, total: 1499, status: 'PENDING' };
       mockOrdersService.placeOrder.mockResolvedValue(order);
-      const result = await controller.placeOrder(mockReq, { addressId: 2, reservationId: 1 });
+      const result = await controller.placeOrder(mockReq, {
+        addressId: 2,
+        reservationId: 1,
+      });
       expect(result).toEqual(order);
-      expect(mockOrdersService.placeOrder).toHaveBeenCalledWith(1, { addressId: 2, reservationId: 1 }, expect.any(Object));
+      expect(mockOrdersService.placeOrder).toHaveBeenCalledWith(
+        1,
+        { addressId: 2, reservationId: 1 },
+        expect.any(Object),
+      );
     });
   });
 
@@ -82,7 +93,9 @@ describe('OrdersController', () => {
 
   describe('cancelOrder', () => {
     it('cancels an order and returns message', async () => {
-      mockOrdersService.cancelOrder.mockResolvedValue({ message: 'Order cancelled successfully' });
+      mockOrdersService.cancelOrder.mockResolvedValue({
+        message: 'Order cancelled successfully',
+      });
       const result = await controller.cancelOrder(mockReq, 1);
       expect(result).toEqual({ message: 'Order cancelled successfully' });
     });
@@ -107,7 +120,10 @@ describe('OrdersController', () => {
       mockOrdersService.updateOrderStatus.mockResolvedValue(updated);
       const result = await controller.updateStatus(1, { status: 'SHIPPED' });
       expect(result).toEqual(updated);
-      expect(mockOrdersService.updateOrderStatus).toHaveBeenCalledWith(1, 'SHIPPED');
+      expect(mockOrdersService.updateOrderStatus).toHaveBeenCalledWith(
+        1,
+        'SHIPPED',
+      );
     });
   });
 });

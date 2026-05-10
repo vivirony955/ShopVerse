@@ -1,7 +1,11 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AttributionType, LedgerType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAffiliateDto, TrackAttributionDto } from './dto/affiliate.dto';
@@ -12,8 +16,11 @@ export class AffiliateService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createAccount(dto: CreateAffiliateDto) {
-    const existing = await this.prisma.affiliateAccount.findUnique({ where: { userId: dto.userId } });
-    if (existing) throw new BadRequestException('Affiliate account already exists');
+    const existing = await this.prisma.affiliateAccount.findUnique({
+      where: { userId: dto.userId },
+    });
+    if (existing)
+      throw new BadRequestException('Affiliate account already exists');
 
     const code = randomBytes(4).toString('hex').toUpperCase();
     return this.prisma.affiliateAccount.create({
@@ -42,7 +49,9 @@ export class AffiliateService {
         affiliateId = affiliate.id;
 
         if (dto.orderId) {
-          const order = await this.prisma.order.findUnique({ where: { id: dto.orderId } });
+          const order = await this.prisma.order.findUnique({
+            where: { id: dto.orderId },
+          });
           if (order) {
             commissionAmount = (order.total * affiliate.commissionPct) / 100;
             // Credit total earned
@@ -82,8 +91,14 @@ export class AffiliateService {
       where: { utmCampaign },
       include: { order: { select: { id: true, total: true, status: true } } },
     });
-    const totalRevenue = attributions.reduce((sum, a) => sum + (a.order?.total ?? 0), 0);
-    const totalCommission = attributions.reduce((sum, a) => sum + (a.commissionAmount ?? 0), 0);
+    const totalRevenue = attributions.reduce(
+      (sum, a) => sum + (a.order?.total ?? 0),
+      0,
+    );
+    const totalCommission = attributions.reduce(
+      (sum, a) => sum + (a.commissionAmount ?? 0),
+      0,
+    );
     return {
       campaign: utmCampaign,
       conversions: attributions.length,
@@ -163,7 +178,9 @@ export class AffiliateService {
 
   /** Get payout summary for a single affiliate */
   async getPayoutSummary(userId: number) {
-    const account = await this.prisma.affiliateAccount.findUnique({ where: { userId } });
+    const account = await this.prisma.affiliateAccount.findUnique({
+      where: { userId },
+    });
     if (!account) throw new NotFoundException('Affiliate account not found');
     return {
       totalEarned: account.totalEarned,

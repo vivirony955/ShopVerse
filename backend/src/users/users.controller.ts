@@ -2,8 +2,16 @@
 // See LICENSE in the project root for license information.
 
 import {
-  Controller, Get, Patch, Post, Delete,
-  Body, Param, UseGuards, Req, ParseIntPipe,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from './users.service';

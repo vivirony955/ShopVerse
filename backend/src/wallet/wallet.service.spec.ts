@@ -6,7 +6,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, MockPrisma } from '../test-utils/prisma.mock';
-import { LedgerType, Prisma, ReconcileStatus, WalletTxType } from '@prisma/client';
+import { Prisma, ReconcileStatus, WalletTxType } from '@prisma/client';
 
 describe('WalletService', () => {
   let service: WalletService;
@@ -17,10 +17,7 @@ describe('WalletService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        WalletService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [WalletService, { provide: PrismaService, useValue: prisma }],
     }).compile();
     service = module.get<WalletService>(WalletService);
   });
@@ -33,7 +30,10 @@ describe('WalletService', () => {
 
   describe('getWallet', () => {
     it('upserts and returns wallet with transactions', async () => {
-      prisma.wallet.upsert.mockResolvedValue({ ...mockWallet, transactions: [] });
+      prisma.wallet.upsert.mockResolvedValue({
+        ...mockWallet,
+        transactions: [],
+      });
       const result = await service.getWallet(1);
       expect(prisma.wallet.upsert).toHaveBeenCalledWith(
         expect.objectContaining({ where: { userId: 1 } }),
@@ -50,7 +50,9 @@ describe('WalletService', () => {
       prisma.$transaction.mockImplementation((cb: any) =>
         cb({
           wallet: {
-            upsert: jest.fn().mockResolvedValue({ ...mockWallet, balance: 600 }),
+            upsert: jest
+              .fn()
+              .mockResolvedValue({ ...mockWallet, balance: 600 }),
           },
           walletTransaction: {
             create: jest.fn().mockResolvedValue({
@@ -73,11 +75,18 @@ describe('WalletService', () => {
     it('returns existing transaction for duplicate reference (idempotency)', async () => {
       const existing = { id: 5, amount: 100, type: WalletTxType.CREDIT };
       // Simulate P2002 unique constraint violation on duplicate reference
-      const p2002 = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: '0.0.0', meta: {} });
+      const p2002 = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed',
+        { code: 'P2002', clientVersion: '0.0.0', meta: {} },
+      );
       prisma.$transaction.mockRejectedValue(p2002);
       prisma.walletTransaction.findFirst.mockResolvedValue(existing);
 
-      const result = await service.credit({ userId: 1, amount: 100, reference: 'ref-001' });
+      const result = await service.credit({
+        userId: 1,
+        amount: 100,
+        reference: 'ref-001',
+      });
       expect(result).toEqual(existing);
     });
   });
@@ -89,13 +98,19 @@ describe('WalletService', () => {
       const updatedWallet = { ...mockWallet, balance: 400 };
       const txMock = {
         wallet: {
-          findUnique: jest.fn()
-            .mockResolvedValueOnce(mockWallet)      // initial lookup
-            .mockResolvedValueOnce(updatedWallet),  // refresh after updateMany
+          findUnique: jest
+            .fn()
+            .mockResolvedValueOnce(mockWallet) // initial lookup
+            .mockResolvedValueOnce(updatedWallet), // refresh after updateMany
           updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         },
         walletTransaction: {
-          create: jest.fn().mockResolvedValue({ id: 11, amount: 100, type: WalletTxType.DEBIT, balanceAfter: 400 }),
+          create: jest.fn().mockResolvedValue({
+            id: 11,
+            amount: 100,
+            type: WalletTxType.DEBIT,
+            balanceAfter: 400,
+          }),
         },
         ledgerEntry: { create: jest.fn() },
       };
@@ -109,13 +124,17 @@ describe('WalletService', () => {
     it('throws BadRequestException when balance is insufficient', async () => {
       const txMock = {
         wallet: {
-          findUnique: jest.fn().mockResolvedValue({ ...mockWallet, balance: 50 }),
+          findUnique: jest
+            .fn()
+            .mockResolvedValue({ ...mockWallet, balance: 50 }),
           updateMany: jest.fn().mockResolvedValue({ count: 0 }),
         },
       };
       prisma.$transaction.mockImplementation((cb: any) => cb(txMock));
 
-      await expect(service.debit({ userId: 1, amount: 200 })).rejects.toThrow(BadRequestException);
+      await expect(service.debit({ userId: 1, amount: 200 })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws NotFoundException when wallet does not exist', async () => {
@@ -124,7 +143,9 @@ describe('WalletService', () => {
       };
       prisma.$transaction.mockImplementation((cb: any) => cb(txMock));
 
-      await expect(service.debit({ userId: 1, amount: 50 })).rejects.toThrow(NotFoundException);
+      await expect(service.debit({ userId: 1, amount: 50 })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -136,7 +157,14 @@ describe('WalletService', () => {
       prisma.$transaction.mockImplementation((cb: any) =>
         cb({
           wallet: { upsert: jest.fn().mockResolvedValue(mockWallet) },
-          walletTransaction: { create: jest.fn().mockResolvedValue({ id: 12, amount: 250, type: WalletTxType.CREDIT, balanceAfter: 750 }) },
+          walletTransaction: {
+            create: jest.fn().mockResolvedValue({
+              id: 12,
+              amount: 250,
+              type: WalletTxType.CREDIT,
+              balanceAfter: 750,
+            }),
+          },
           ledgerEntry: { create: jest.fn() },
         }),
       );
@@ -147,7 +175,10 @@ describe('WalletService', () => {
 
     it('is idempotent for the same order refund', async () => {
       const existing = { id: 5, amount: 250, type: WalletTxType.CREDIT };
-      const p2002 = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: '0.0.0', meta: {} });
+      const p2002 = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed',
+        { code: 'P2002', clientVersion: '0.0.0', meta: {} },
+      );
       prisma.$transaction.mockRejectedValue(p2002);
       prisma.walletTransaction.findFirst.mockResolvedValue(existing);
 
@@ -235,7 +266,9 @@ describe('WalletService', () => {
 
     it('throws NotFoundException when wallet does not exist', async () => {
       prisma.wallet.findUnique.mockResolvedValue(null);
-      await expect(service.getTransactionHistory(999)).rejects.toThrow(NotFoundException);
+      await expect(service.getTransactionHistory(999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

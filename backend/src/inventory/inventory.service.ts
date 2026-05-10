@@ -36,7 +36,9 @@ export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Resolve (and cache) the Phase-1 DEFAULT warehouse id. */
-  private async getDefaultWarehouseId(tx: Prisma.TransactionClient): Promise<number> {
+  private async getDefaultWarehouseId(
+    tx: Prisma.TransactionClient,
+  ): Promise<number> {
     if (this.defaultWarehouseId !== null) return this.defaultWarehouseId;
     const wh = await tx.warehouse.findUnique({ where: { code: 'DEFAULT' } });
     if (!wh) {
@@ -68,7 +70,8 @@ export class InventoryService {
     qty: number,
     opts: { allowBackorder?: boolean } = {},
   ): Promise<void> {
-    if (qty <= 0) throw new BadRequestException('Reserve quantity must be positive');
+    if (qty <= 0)
+      throw new BadRequestException('Reserve quantity must be positive');
     const whId = await this.getDefaultWarehouseId(tx);
     await this.ensureRow(tx, whId, variantId);
 
@@ -99,7 +102,9 @@ export class InventoryService {
         AND ("stock" - "reserved") >= ${qty}
     `;
     if (rows === 0) {
-      throw new BadRequestException(`Insufficient sellable stock for variant ${variantId}`);
+      throw new BadRequestException(
+        `Insufficient sellable stock for variant ${variantId}`,
+      );
     }
     // Write-through cache update on Variant. The CHECK on Variant (reservedStock ≤ stock)
     // is preserved because we just debited the same amount from WI which obeys its own CHECK.
@@ -109,7 +114,11 @@ export class InventoryService {
   }
 
   /** Release `qty` previously-reserved units (pre-shipment cancel / reservation expiry). */
-  async release(tx: Prisma.TransactionClient, variantId: number, qty: number): Promise<void> {
+  async release(
+    tx: Prisma.TransactionClient,
+    variantId: number,
+    qty: number,
+  ): Promise<void> {
     if (qty <= 0) return;
     const whId = await this.getDefaultWarehouseId(tx);
     // Clamp at zero so double-release can't drive reserved negative.
@@ -119,7 +128,9 @@ export class InventoryService {
       WHERE "warehouseId" = ${whId} AND "variantId" = ${variantId}
     `;
     if (rows === 0) {
-      this.logger.warn(`release() no-op: WI row missing for variant ${variantId}`);
+      this.logger.warn(
+        `release() no-op: WI row missing for variant ${variantId}`,
+      );
       return;
     }
     await tx.$executeRaw`
@@ -164,7 +175,11 @@ export class InventoryService {
   }
 
   /** Add `qty` units back to physical stock (return intake, RTO, PO receipt). */
-  async restock(tx: Prisma.TransactionClient, variantId: number, qty: number): Promise<void> {
+  async restock(
+    tx: Prisma.TransactionClient,
+    variantId: number,
+    qty: number,
+  ): Promise<void> {
     if (qty <= 0) return;
     const whId = await this.getDefaultWarehouseId(tx);
     await this.ensureRow(tx, whId, variantId);

@@ -39,7 +39,10 @@ export class CronLockService {
       });
       return true;
     } catch (e) {
-      if (!(e instanceof Prisma.PrismaClientKnownRequestError) || e.code !== 'P2002') {
+      if (
+        !(e instanceof Prisma.PrismaClientKnownRequestError) ||
+        e.code !== 'P2002'
+      ) {
         throw e;
       }
     }
@@ -55,11 +58,17 @@ export class CronLockService {
 
   /** Release a lock we own. No-op if we no longer own it. */
   async release(name: string): Promise<void> {
-    await this.prisma.cronLock.deleteMany({ where: { name, holder: this.holderId } });
+    await this.prisma.cronLock.deleteMany({
+      where: { name, holder: this.holderId },
+    });
   }
 
   /** Run `fn` only if we acquire the lock. Returns fn's result, or undefined if skipped. */
-  async runExclusive<T>(name: string, ttlMs: number, fn: () => Promise<T>): Promise<T | undefined> {
+  async runExclusive<T>(
+    name: string,
+    ttlMs: number,
+    fn: () => Promise<T>,
+  ): Promise<T | undefined> {
     const got = await this.acquire(name, ttlMs);
     if (!got) {
       this.logger.debug(`cron '${name}' skipped — held by another instance`);
@@ -69,7 +78,9 @@ export class CronLockService {
       return await fn();
     } finally {
       await this.release(name).catch((err) =>
-        this.logger.warn(`failed to release cron lock '${name}': ${err?.message ?? err}`),
+        this.logger.warn(
+          `failed to release cron lock '${name}': ${err?.message ?? err}`,
+        ),
       );
     }
   }

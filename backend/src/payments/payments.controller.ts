@@ -1,7 +1,17 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Controller, Post, Body, Param, ParseIntPipe, Req, UseGuards, Headers, RawBodyRequest } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  Req,
+  UseGuards,
+  Headers,
+  RawBodyRequest,
+} from '@nestjs/common';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PaymentsService } from './payments.service';
@@ -16,7 +26,11 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @Post('create-intent')
   createPaymentIntent(@Req() req: any, @Body() dto: CreatePaymentIntentDto) {
-    return this.paymentsService.createPaymentIntent(req.user.id, dto.orderId, dto.currency);
+    return this.paymentsService.createPaymentIntent(
+      req.user.id,
+      dto.orderId,
+      dto.currency,
+    );
   }
 
   // 5 retries per minute — prevent retry spam

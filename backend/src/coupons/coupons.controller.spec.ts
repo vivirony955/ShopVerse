@@ -38,11 +38,21 @@ describe('CouponsController', () => {
 
   describe('validate', () => {
     it('validates a coupon and returns discount info', async () => {
-      const response = { valid: true, discount: 200, coupon: { code: 'SAVE20' } };
+      const response = {
+        valid: true,
+        discount: 200,
+        coupon: { code: 'SAVE20' },
+      };
       mockCouponsService.validateCoupon.mockResolvedValue(response);
-      const result = await controller.validate({ code: 'SAVE20', orderAmount: 1000 });
+      const result = await controller.validate({
+        code: 'SAVE20',
+        orderAmount: 1000,
+      });
       expect(result).toEqual(response);
-      expect(mockCouponsService.validateCoupon).toHaveBeenCalledWith('SAVE20', 1000);
+      expect(mockCouponsService.validateCoupon).toHaveBeenCalledWith(
+        'SAVE20',
+        1000,
+      );
     });
   });
 
@@ -58,7 +68,11 @@ describe('CouponsController', () => {
     it('creates and returns coupon', async () => {
       const created = { id: 5, code: 'FLAT50' };
       mockCouponsService.create.mockResolvedValue(created);
-      const result = await controller.create({ code: 'FLAT50', discountType: 'FIXED', discountValue: 50 });
+      const result = await controller.create({
+        code: 'FLAT50',
+        discountType: 'FIXED',
+        discountValue: 50,
+      });
       expect(result).toEqual(created);
     });
   });
@@ -69,7 +83,9 @@ describe('CouponsController', () => {
       mockCouponsService.update.mockResolvedValue(updated);
       const result = await controller.update(1, { isActive: false });
       expect(result).toEqual(updated);
-      expect(mockCouponsService.update).toHaveBeenCalledWith(1, { isActive: false });
+      expect(mockCouponsService.update).toHaveBeenCalledWith(1, {
+        isActive: false,
+      });
     });
   });
 

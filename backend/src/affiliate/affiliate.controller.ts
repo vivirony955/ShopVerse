@@ -1,7 +1,16 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AffiliateService } from './affiliate.service';
 import { CreateAffiliateDto, TrackAttributionDto } from './dto/affiliate.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
