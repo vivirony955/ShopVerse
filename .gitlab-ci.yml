@@ -1,22 +1,353 @@
+# Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+# See LICENSE in the project root for license information.
+#
+# ShopVerse — GitLab CI/CD Pipeline
+#
+# Stages:
+#   validate  → typecheck, lint, schema (parallel, fast — ~2 min)
+#   test      → 638 integration tests against real PostgreSQL (~3 min)
+#   build     → Docker images for backend + frontend pushed to GitLab Registry
+#   release   → GitLab release + tagged image aliases (on v* tags only)
+#   deploy    → Manual triggers for staging and production
+#
+# Required GitLab CI/CD variables (Settings → CI/CD → Variables):
+#   STRIPE_SECRET_KEY        — Stripe test secret key (sk_test_...)
+#   STRIPE_WEBHOOK_SECRET    — Stripe webhook secret (whsec_...)
+#   STAGING_SSH_KEY          — Private SSH key for staging server (deploy stage)
+#   STAGING_HOST             — Staging server IP/hostname
+#   PRODUCTION_SSH_KEY       — Private SSH key for production server
+#   PRODUCTION_HOST          — Production server IP/hostname
+#
+# Auto-provided by GitLab (no setup needed):
+#   CI_REGISTRY, CI_REGISTRY_USER, CI_REGISTRY_PASSWORD, CI_COMMIT_SHA,
+#   CI_COMMIT_TAG, CI_COMMIT_BRANCH, CI_PROJECT_PATH
+
 stages:
-  - install
+  - validate
   - test
   - build
+  - release
+  - deploy
 
-install_dependencies:
-  stage: install
+# ─── GLOBAL DEFAULTS ─────────────────────────────────────────────────────────
+
+default:
+  image: node:20-alpine
+  interruptible: true
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend
+  FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend
+  # CI defaults — all dummy values, tests mock external services
+  NODE_ENV: test
+  JWT_SECRET: "ci-jwt-secret-32-chars-minimum-ok"
+  JWT_REFRESH_SECRET: "ci-refresh-secret-32-chars-min-ok"
+  STRIPE_SECRET_KEY: "sk_test_dummy_ci_value_not_used"
+  STRIPE_WEBHOOK_SECRET: "whsec_dummy_ci_value_not_used"
+  SMTP_HOST: "localhost"
+  SMTP_PORT: "25"
+  SMTP_USER: "ci@shopverse.dev"
+  SMTP_PASS: "ci-pass"
+  SMTP_FROM: "ci@shopverse.dev"
+  REDIS_URL: ""
+
+# ─── VALIDATE STAGE ──────────────────────────────────────────────────────────
+# All three jobs run in parallel. Stage completes in ~60s (fastest job wins).
+
+typecheck:
+  stage: validate
+  cache:
+    key:
+      files:
+        - backend/package-lock.json
+    paths:
+      - backend/node_modules/
+    policy: pull-push
+  before_script:
+    - cd backend && npm ci --prefer-offline --silent && cd ..
   script:
-    - cd frontend && npm install
-    - cd ../backend && npm install
+    - cd backend && npx tsc --noEmit
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
 
-run_tests:
+lint:
+  stage: validate
+  cache:
+    key:
+      files:
+        - backend/package-lock.json
+    paths:
+      - backend/node_modules/
+    policy: pull
+  before_script:
+    - cd backend && npm ci --prefer-offline --silent && cd ..
+  script:
+    - cd backend && npm run lint -- --max-warnings=0
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+schema:validate:
+  stage: validate
+  cache:
+    key:
+      files:
+        - backend/package-lock.json
+    paths:
+      - backend/node_modules/
+    policy: pull
+  before_script:
+    - cd backend && npm ci --prefer-offline --silent && cd ..
+  script:
+    - cd backend && npx prisma validate --schema=../prisma/schema.prisma
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+# ─── TEST STAGE ──────────────────────────────────────────────────────────────
+
+integration:
   stage: test
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: shopverse_test
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_HOST_AUTH_METHOD: trust
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/shopverse_test?connection_limit=30"
+  cache:
+    key:
+      files:
+        - backend/package-lock.json
+        - test/package-lock.json
+    paths:
+      - backend/node_modules/
+      - test/node_modules/
+    policy: pull-push
+  before_script:
+    # Install pg client for the readiness check
+    - apk add --no-cache postgresql-client
+    # Install backend deps (test suite resolves @nestjs/* from backend/node_modules)
+    - cd backend && npm ci --prefer-offline --silent && cd ..
+    # Install test suite deps (includes jest-junit)
+    - cd test && npm ci --prefer-offline --silent && cd ..
+    # Generate Prisma client against the test DB schema
+    - cd backend && npx prisma generate --schema=../prisma/schema.prisma && cd ..
+    # Wait for PostgreSQL service to accept connections
+    - |
+      echo "Waiting for PostgreSQL..."
+      for i in $(seq 1 30); do
+        pg_isready -h postgres -U postgres -d shopverse_test && break
+        sleep 2
+      done
+    # Apply all migrations to the test database
+    - cd backend && npx prisma migrate deploy --schema=../prisma/schema.prisma && cd ..
   script:
-    - cd frontend && npm run test
-    - cd ../backend && npm run test
+    - |
+      cd test && npx jest \
+        --runInBand \
+        --forceExit \
+        --ci \
+        --reporters=default \
+        --reporters=jest-junit \
+        --testResultsProcessor=jest-junit
+  after_script:
+    - cp test/junit.xml junit.xml 2>/dev/null || true
+  artifacts:
+    when: always
+    reports:
+      junit: junit.xml
+    paths:
+      - junit.xml
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
 
-build_projects:
+# ─── BUILD STAGE ─────────────────────────────────────────────────────────────
+# Build multi-stage Docker images and push to GitLab Container Registry.
+# Runs on: pushes to main, and all version tags.
+
+.docker_build: &docker_build
   stage: build
+  image: docker:24-cli
+  services:
+    - name: docker:24-dind
+      alias: docker
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  needs:
+    - typecheck
+    - lint
+    - schema:validate
+    - integration
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+
+build:backend:
+  <<: *docker_build
   script:
-    - cd frontend && npm run build
-    - cd ../backend && npm run build
+    - |
+      docker pull "$BACKEND_IMAGE:latest" || true
+
+      TAGS="-t $BACKEND_IMAGE:$CI_COMMIT_SHA -t $BACKEND_IMAGE:latest"
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        TAGS="$TAGS -t $BACKEND_IMAGE:$CI_COMMIT_TAG"
+      fi
+
+      # Build context is repo root (Dockerfile references prisma/ + backend/)
+      DOCKER_BUILDKIT=1 docker build \
+        --cache-from "$BACKEND_IMAGE:latest" \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        $TAGS \
+        -f Dockerfile \
+        .
+
+      docker push "$BACKEND_IMAGE:$CI_COMMIT_SHA"
+      docker push "$BACKEND_IMAGE:latest"
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        docker push "$BACKEND_IMAGE:$CI_COMMIT_TAG"
+      fi
+
+build:frontend:
+  <<: *docker_build
+  script:
+    - |
+      docker pull "$FRONTEND_IMAGE:latest" || true
+
+      TAGS="-t $FRONTEND_IMAGE:$CI_COMMIT_SHA -t $FRONTEND_IMAGE:latest"
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        TAGS="$TAGS -t $FRONTEND_IMAGE:$CI_COMMIT_TAG"
+      fi
+
+      DOCKER_BUILDKIT=1 docker build \
+        --cache-from "$FRONTEND_IMAGE:latest" \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --build-arg NEXT_PUBLIC_BACKEND_URL="${NEXT_PUBLIC_BACKEND_URL:-/api}" \
+        $TAGS \
+        -f frontend/Dockerfile \
+        frontend/
+
+      docker push "$FRONTEND_IMAGE:$CI_COMMIT_SHA"
+      docker push "$FRONTEND_IMAGE:latest"
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        docker push "$FRONTEND_IMAGE:$CI_COMMIT_TAG"
+      fi
+
+# ─── RELEASE STAGE ───────────────────────────────────────────────────────────
+# Runs only on semver tags: v1.0.0, v1.5.0-rc.1, etc.
+# Creates a GitLab Release entry with image pull instructions.
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - build:backend
+    - build:frontend
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+  script:
+    - echo "Creating GitLab release for $CI_COMMIT_TAG"
+  release:
+    tag_name: "$CI_COMMIT_TAG"
+    name: "ShopVerse $CI_COMMIT_TAG"
+    description: |
+      ## ShopVerse $CI_COMMIT_TAG
+
+      ### Pull Docker images
+
+      ```bash
+      docker pull $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_TAG
+      docker pull $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_TAG
+      ```
+
+      ### Upgrade existing deployment
+
+      ```bash
+      git fetch --tags && git checkout $CI_COMMIT_TAG
+      docker compose pull
+      docker compose run --rm backend \
+        npx prisma migrate deploy --schema=../prisma/schema.prisma
+      docker compose up -d --remove-orphans
+      docker image prune -f
+      ```
+
+      See [DEPLOYMENT.md](DEPLOYMENT.md) for rollback instructions.
+
+# ─── DEPLOY STAGE ────────────────────────────────────────────────────────────
+# SSH into the target server, pull new images, run migrations, restart.
+# Both jobs require manual approval — no automatic production deploys.
+#
+# One-time server setup:
+#   mkdir -p /opt/shopverse && cd /opt/shopverse
+#   cp docker-compose.yml .env /opt/shopverse/
+#   docker compose up -d
+#
+# GitLab variables needed (masked + protected):
+#   STAGING_SSH_KEY, STAGING_HOST, PRODUCTION_SSH_KEY, PRODUCTION_HOST
+
+.deploy: &deploy
+  stage: deploy
+  image: alpine:3.19
+  script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_SSH_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+    - |
+      ssh "deploy@$DEPLOY_HOST" bash -s << ENDSSH
+        set -e
+        cd /opt/shopverse
+        echo "$CI_REGISTRY_PASSWORD" | docker login \
+          -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+        export BACKEND_TAG=$CI_COMMIT_SHA
+        export FRONTEND_TAG=$CI_COMMIT_SHA
+        docker compose pull
+        docker compose run --rm backend \
+          npx prisma migrate deploy --schema=../prisma/schema.prisma
+        docker compose up -d --remove-orphans
+        docker image prune -f
+        echo "Deploy complete: $CI_COMMIT_SHA"
+      ENDSSH
+
+deploy:staging:
+  <<: *deploy
+  environment:
+    name: staging
+    url: https://staging.shopverse.dev
+  variables:
+    DEPLOY_SSH_KEY: $STAGING_SSH_KEY
+    DEPLOY_HOST: $STAGING_HOST
+  needs:
+    - build:backend
+    - build:frontend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+  allow_failure: false
+
+deploy:production:
+  <<: *deploy
+  environment:
+    name: production
+    url: https://shopverse.dev
+  variables:
+    DEPLOY_SSH_KEY: $PRODUCTION_SSH_KEY
+    DEPLOY_HOST: $PRODUCTION_HOST
+  needs:
+    - release
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+      when: manual
+  allow_failure: false

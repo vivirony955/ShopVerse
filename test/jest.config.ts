@@ -1,3 +1,6 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
 import type { Config } from 'jest';
 
 const config: Config = {
@@ -43,6 +46,16 @@ const config: Config = {
     '!../backend/src/prisma/seed.ts',
   ],
   testTimeout: 30000,
+  reporters: [
+    'default',
+    ['jest-junit', {
+      outputDirectory: '.',
+      outputName: 'junit.xml',
+      classNameTemplate: '{classname}',
+      titleTemplate: '{title}',
+      ancestorSeparator: ' › ',
+    }],
+  ],
 };
 
 export default config;

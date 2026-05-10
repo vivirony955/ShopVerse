@@ -1,0 +1,52 @@
+# Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+# See LICENSE in the project root for license information.
+
+# Root .dockerignore — for the backend Dockerfile (context is repo root)
+
+# Git
+.git
+.gitignore
+.gitlab-ci.yml
+.github
+
+# Frontend (backend Dockerfile doesn't need it)
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/.env*
+frontend/playwright-report
+frontend/test-results
+frontend/cypress
+
+# Test suite
+test/node_modules
+test/coverage
+test/junit.xml
+
+# Backend dev artifacts
+backend/node_modules
+backend/dist
+backend/.env*
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Docs and tooling
+*.md
+CLAUDE.md
+PRIOR_ART.md
+DEPLOYMENT.md
+ROADMAP.md
+GOVERNANCE.md
+CONTRIBUTING.md
+SECURITY.md
+COMMERCIAL_*.md
+ansible
+docs
+node_modules
+
+# OS
+.DS_Store
+Thumbs.db

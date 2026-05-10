@@ -1,0 +1,30 @@
+# Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+# See LICENSE in the project root for license information.
+
+# Frontend .dockerignore — context is frontend/ directory
+
+# Build output (rebuilt inside Docker)
+.next
+out
+
+# Dependencies (reinstalled inside Docker)
+node_modules
+
+# Test artifacts
+playwright-report
+test-results
+cypress
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Dev tooling
+*.md
+.git
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db

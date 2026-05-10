@@ -1,0 +1,65 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting, check [MASTER_TRACKER.md](../MASTER_TRACKER.md) and [ROADMAP.md](../ROADMAP.md) — the feature may already be planned.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the problem or limitation you're experiencing.
+      placeholder: "When a customer cancels an order after it's PACKED, there's no cancellation fee applied..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: What would you like to happen?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Which roadmap phase does this fit?
+      options:
+        - Phase 1 (MVP+ / current)
+        - Phase 2 (Growth — Razorpay, social login, notifications)
+        - Phase 3 (Scale — personalization, i18n, subscriptions)
+        - Phase 4 (Innovation — AI, visual search)
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stack
+    attributes:
+      label: What area of the stack?
+      options:
+        - Backend only
+        - Frontend only
+        - Full-stack (both)
+        - Database / Schema
+        - Infrastructure / Deployment
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What other approaches did you consider?
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to submit a PR for this feature
+          required: false
