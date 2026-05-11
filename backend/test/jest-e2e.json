@@ -5,5 +5,9 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
-  }
+  },
+  "reporters": [
+    "default",
+    ["jest-junit", { "outputDirectory": "..", "outputName": "junit-e2e.xml" }]
+  ]
 }
