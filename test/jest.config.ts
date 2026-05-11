@@ -10,12 +10,13 @@ const config: Config = {
   transform: {
     '^.+\\.(t|j)s$': ['ts-jest', {
       tsconfig: '<rootDir>/tsconfig.json',
-      // Integration tests validate runtime behaviour; type-checking is handled
-      // separately by the CI typecheck job (tsc --noEmit on the backend).
-      // Disabling diagnostics here allows ts-jest to transpile frontend files
-      // (e.g. frontend/src/lib/api.ts) whose deps live in frontend/node_modules
-      // rather than test/node_modules, without failing the compilation step.
-      diagnostics: false,
+      // Suppress TS2307 ("Cannot find module") only.
+      // frontend/src/lib/api.ts imports 'axios' and 'next-auth/react' whose
+      // type declarations live in frontend/node_modules (not installed in CI).
+      // moduleNameMapper resolves both at runtime; the compiler only needs to
+      // transpile the file, not type-check cross-context deps.
+      // All other TypeScript errors in test files are still reported.
+      diagnostics: { ignoreCodes: [2307] },
     }],
   },
   testEnvironment: 'node',
