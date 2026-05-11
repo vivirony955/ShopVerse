@@ -133,7 +133,6 @@ integration:
       files:
         - backend/package-lock.json
         - test/package-lock.json
-        - frontend/package-lock.json
     paths:
       - backend/node_modules/
       - test/node_modules/
