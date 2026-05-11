@@ -126,29 +126,35 @@ integration:
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
     POSTGRES_HOST_AUTH_METHOD: trust
-    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/shopverse_test?connection_limit=30"
+    # connection_limit=3: with 39 sequential specs each booting a NestJS PrismaService
+    # (3 conns) plus globalThis.__testPrisma (3 conns), max in-flight = 6, well under
+    # PG's default max_connections=100. pool_timeout=30 surfaces exhaustion immediately.
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/shopverse_test?connection_limit=3&pool_timeout=30"
     REDIS_URL: "redis://redis:6379"
+  # One cache entry per lockfile — each invalidates independently when its deps change.
+  # next-auth and axios are declared in test/package.json (not frontend), so no
+  # frontend/node_modules cache entry is needed.
   cache:
-    key:
-      files:
-        - backend/package-lock.json
-        - test/package-lock.json
-    paths:
-      - backend/node_modules/
-      - test/node_modules/
-      - frontend/node_modules/
-    policy: pull-push
+    - key:
+        files:
+          - backend/package-lock.json
+      paths:
+        - backend/node_modules/
+      policy: pull-push
+    - key:
+        files:
+          - test/package-lock.json
+      paths:
+        - test/node_modules/
+      policy: pull-push
   before_script:
     # Install pg client for the readiness check
     - apk add --no-cache postgresql-client
-    # Install backend deps (test suite resolves @nestjs/* from backend/node_modules)
+    # Install backend deps (test suite resolves @nestjs/* and @prisma/client from here)
     - cd backend && npm ci --prefer-offline --silent && cd ..
-    # Install test suite deps (includes jest-junit)
+    # Install test suite deps — includes next-auth and axios declared in test/package.json,
+    # so frontend-api.spec.ts has no dependency on frontend/node_modules
     - cd test && npm ci --prefer-offline --silent && cd ..
-    # Install frontend deps — frontend-api.spec.ts imports ../frontend/src/lib/api
-    # which depends on axios and next-auth (mapped via jest.config.ts moduleNameMapper
-    # to frontend/node_modules/next-auth). Without this, CI fails to resolve next-auth.
-    - cd frontend && npm ci --prefer-offline --silent && cd ..
     # Generate Prisma client against the test DB schema
     - cd backend && npx prisma generate --schema=../prisma/schema.prisma && cd ..
     # Wait for PostgreSQL service to accept connections

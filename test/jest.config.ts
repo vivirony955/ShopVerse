@@ -33,9 +33,13 @@ const config: Config = {
     '^rxjs$': '<rootDir>/../backend/node_modules/rxjs',
     '^rxjs/(.*)$': '<rootDir>/../backend/node_modules/rxjs/$1',
     '^reflect-metadata$': '<rootDir>/../backend/node_modules/reflect-metadata',
-    // next-auth is only installed in the frontend; route it there for frontend-api tests.
-    '^next-auth$': '<rootDir>/../frontend/node_modules/next-auth',
-    '^next-auth/(.*)$': '<rootDir>/../frontend/node_modules/next-auth/$1',
+    // next-auth and axios are declared in test/package.json so they resolve from
+    // test/node_modules — no dependency on frontend/node_modules. Explicit mapper
+    // also prevents the wrong version being picked up via directory traversal.
+    '^next-auth$': '<rootDir>/node_modules/next-auth',
+    '^next-auth/(.*)$': '<rootDir>/node_modules/next-auth/$1',
+    '^axios$': '<rootDir>/node_modules/axios',
+    '^axios/(.*)$': '<rootDir>/node_modules/axios/$1',
     // Use the backend's Prisma client so new models (Notification, BlogPost,
     // VolumeDiscount, etc.) added to schema.prisma are available in test helpers.
     // The subpath map ensures PrismaClientKnownRequestError from runtime/library
