@@ -13,6 +13,14 @@ const config: Config = {
     }],
   },
   testEnvironment: 'node',
+  // Only run spec files that live inside test/ — prevent backend unit tests
+  // (backend/src/**/*.spec.ts) from leaking in via symlink or path traversal.
+  roots: ['<rootDir>'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '<rootDir>/../backend/src/',
+    '<rootDir>/../frontend/',
+  ],
   moduleNameMapper: {
     '^@backend/(.*)$': '<rootDir>/../backend/src/$1',
     // Force a single copy of every @nestjs/* package to prevent "two Nest

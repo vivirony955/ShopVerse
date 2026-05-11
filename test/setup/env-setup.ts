@@ -32,12 +32,23 @@ if (process.env.TEST_DATABASE_URL) {
   process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 }
 
-// Cap Prisma connection pool so 37 spec files + NestJS don't exceed PG max_connections.
-// With --runInBand (single process) every spec's NestJS app and PrismaClient share the
-// same PG server. Default pool is 5; capping at 3 stays well under 100.
-if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('connection_limit')) {
-  const sep = process.env.DATABASE_URL.includes('?') ? '&' : '?';
-  process.env.DATABASE_URL += `${sep}connection_limit=3&pool_timeout=30`;
+// Force Prisma connection pool to 3 for tests.
+// CI sets connection_limit=30 which exhausts PG's max_connections=100 across 39 sequential
+// specs (each spec's NestJS PrismaService opens up to 30 connections). Use URL.searchParams
+// to unconditionally replace any existing value rather than the previous append-if-absent guard.
+if (process.env.DATABASE_URL) {
+  try {
+    const dbUrl = new URL(process.env.DATABASE_URL);
+    dbUrl.searchParams.set('connection_limit', '3');
+    dbUrl.searchParams.set('pool_timeout', '30');
+    process.env.DATABASE_URL = dbUrl.toString();
+  } catch {
+    // Non-URL format: fall back to append-if-absent
+    if (!process.env.DATABASE_URL.includes('connection_limit')) {
+      const sep = process.env.DATABASE_URL.includes('?') ? '&' : '?';
+      process.env.DATABASE_URL += `${sep}connection_limit=3&pool_timeout=30`;
+    }
+  }
 }
 
 // Mark process as test environment so BullMQ skips Redis retry (ECONNREFUSED noise).
