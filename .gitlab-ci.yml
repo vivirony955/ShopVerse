@@ -119,12 +119,15 @@ integration:
   services:
     - name: postgres:16-alpine
       alias: postgres
+    - name: redis:7-alpine
+      alias: redis
   variables:
     POSTGRES_DB: shopverse_test
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
     POSTGRES_HOST_AUTH_METHOD: trust
     DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/shopverse_test?connection_limit=30"
+    REDIS_URL: "redis://redis:6379"
   cache:
     key:
       files:
