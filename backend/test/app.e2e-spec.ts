@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { Server } from 'http';
 import * as request from 'supertest';
 import { AuthController } from '../src/auth/auth.controller';
 import { AuthService } from '../src/auth/auth.service';
@@ -39,7 +40,7 @@ describe('Auth endpoints (e2e smoke)', () => {
       email: 'new@example.com',
       role: 'USER',
     });
-    await request(app.getHttpServer())
+    await request(app.getHttpServer() as Server)
       .post('/auth/register')
       .send({ email: 'new@example.com', password: 'secret123' })
       .expect(201);
@@ -49,7 +50,7 @@ describe('Auth endpoints (e2e smoke)', () => {
     mockAuthService.register.mockRejectedValue(
       new ConflictException('Email already in use'),
     );
-    await request(app.getHttpServer())
+    await request(app.getHttpServer() as Server)
       .post('/auth/register')
       .send({ email: 'taken@example.com', password: 'secret123' })
       .expect(409);
@@ -65,7 +66,7 @@ describe('Auth endpoints (e2e smoke)', () => {
       access_token: 'at',
       refresh_token: 'rt',
     });
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as Server)
       .post('/auth/login')
       .send({ email: 'user@example.com', password: 'pass123' })
       .expect(200);
@@ -75,7 +76,7 @@ describe('Auth endpoints (e2e smoke)', () => {
 
   it('POST /auth/login → 401 on invalid credentials', async () => {
     mockAuthService.validateUser.mockResolvedValue(null);
-    await request(app.getHttpServer())
+    await request(app.getHttpServer() as Server)
       .post('/auth/login')
       .send({ email: 'user@example.com', password: 'wrong' })
       .expect(401);
@@ -83,7 +84,7 @@ describe('Auth endpoints (e2e smoke)', () => {
 
   it('POST /auth/refresh → 200 with new access_token', async () => {
     mockAuthService.refreshToken.mockResolvedValue({ access_token: 'new-at' });
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as Server)
       .post('/auth/refresh')
       .send({ refresh_token: 'valid-rt' })
       .expect(200);
@@ -94,7 +95,7 @@ describe('Auth endpoints (e2e smoke)', () => {
     mockAuthService.refreshToken.mockRejectedValue(
       new UnauthorizedException('Invalid or expired refresh token'),
     );
-    await request(app.getHttpServer())
+    await request(app.getHttpServer() as Server)
       .post('/auth/refresh')
       .send({ refresh_token: 'bad' })
       .expect(401);
