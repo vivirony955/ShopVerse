@@ -52,6 +52,8 @@ variables:
   SMTP_PASS: "ci-pass"
   SMTP_FROM: "ci@shopverse.dev"
   REDIS_URL: ""
+  # Dummy value — prisma validate resolves env vars but never opens a connection
+  DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci_dummy"
 
 # ─── VALIDATE STAGE ──────────────────────────────────────────────────────────
 # All three jobs run in parallel. Stage completes in ~60s (fastest job wins).
