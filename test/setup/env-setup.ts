@@ -18,7 +18,7 @@ function loadEnvFile(filePath: string) {
     if (eqIdx === -1) continue;
     const key = trimmed.slice(0, eqIdx).trim();
     const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
-    if (!process.env[key]) process.env[key] = val;
+    if (process.env[key] === undefined) process.env[key] = val;
   }
 }
 

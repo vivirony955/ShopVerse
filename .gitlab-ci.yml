@@ -119,8 +119,6 @@ integration:
   services:
     - name: postgres:16-alpine
       alias: postgres
-    - name: redis:7-alpine
-      alias: redis
   variables:
     POSTGRES_DB: shopverse_test
     POSTGRES_USER: postgres
@@ -130,7 +128,11 @@ integration:
     # (3 conns) plus globalThis.__testPrisma (3 conns), max in-flight = 6, well under
     # PG's default max_connections=100. pool_timeout=30 surfaces exhaustion immediately.
     DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/shopverse_test?connection_limit=3&pool_timeout=30"
-    REDIS_URL: "redis://redis:6379"
+    # REDIS_URL intentionally absent: inherits the global REDIS_URL: "" so
+    # RedisService runs in no-op mode. This prevents PLP cache from poisoning
+    # products tests (test 1 caches empty result; test 2 would get stale cached
+    # empty list). env-setup.ts's loadEnvFile uses === undefined guard so the
+    # empty string is not overridden by backend/.env.
   # One cache entry per lockfile — each invalidates independently when its deps change.
   # next-auth and axios are declared in test/package.json (not frontend), so no
   # frontend/node_modules cache entry is needed.

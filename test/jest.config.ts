@@ -33,11 +33,12 @@ const config: Config = {
     '^rxjs$': '<rootDir>/../backend/node_modules/rxjs',
     '^rxjs/(.*)$': '<rootDir>/../backend/node_modules/rxjs/$1',
     '^reflect-metadata$': '<rootDir>/../backend/node_modules/reflect-metadata',
-    // next-auth and axios are declared in test/package.json so they resolve from
-    // test/node_modules — no dependency on frontend/node_modules. Explicit mapper
-    // also prevents the wrong version being picked up via directory traversal.
-    '^next-auth$': '<rootDir>/node_modules/next-auth',
-    '^next-auth/(.*)$': '<rootDir>/node_modules/next-auth/$1',
+    // next-auth: resolve to a zero-dependency local stub so we never load the
+    // real package (which requires 'react' as a peer dep, absent from
+    // test/node_modules). frontend-api.spec.ts replaces this via jest.mock().
+    '^next-auth/(.*)$': '<rootDir>/__mocks__/next-auth-react.js',
+    '^next-auth$': '<rootDir>/__mocks__/next-auth-react.js',
+    // axios is declared in test/package.json — resolves from test/node_modules.
     '^axios$': '<rootDir>/node_modules/axios',
     '^axios/(.*)$': '<rootDir>/node_modules/axios/$1',
     // Use the backend's Prisma client so new models (Notification, BlogPost,
