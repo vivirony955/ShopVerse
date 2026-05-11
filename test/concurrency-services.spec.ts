@@ -58,7 +58,6 @@ describe('QA Phase-3 (expansion): service-level D-series concurrency', () => {
     await cleanQATables();
     await cleanDatabase();
     await closeTestApp();
-    await prisma.$disconnect();
   });
 
   // ─── QA-D-07: coupon maxUses race ────────────────────────────────────────

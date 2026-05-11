@@ -69,7 +69,6 @@ describe('QA Phase-4: C-series failure injection', () => {
     await cleanQATables();
     await cleanDatabase();
     await closeTestApp();
-    await prisma.$disconnect();
   });
 
   // ─── QA-C-02: webhook replay idempotency (I-6) ───────────────────────────

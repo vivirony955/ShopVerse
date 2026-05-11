@@ -7,7 +7,18 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
-export const prisma = new PrismaClient();
+// Single Prisma client for the entire test run, stored in globalThis so it
+// survives Jest's per-spec module registry resets (--runInBand, same process).
+// This caps total DB connections at 3 regardless of how many spec files run,
+// instead of 39 × 3 = 117 which exceeds PostgreSQL's max_connections=100.
+declare global {
+  // eslint-disable-next-line no-var
+  var __testPrisma: PrismaClient | undefined;
+}
+if (!global.__testPrisma) {
+  global.__testPrisma = new PrismaClient();
+}
+export const prisma: PrismaClient = global.__testPrisma;
 
 // ─── Cleanup ─────────────────────────────────────────────────────────────────
 

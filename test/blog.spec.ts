@@ -23,6 +23,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await cleanQATables();
+  await cleanDatabase();
   await closeTestApp();
 });
 

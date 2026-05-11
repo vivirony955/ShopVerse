@@ -8,12 +8,26 @@
 import { PrismaClient } from '@prisma/client';
 
 export default async function globalTeardown() {
-  const prisma = new PrismaClient();
+  // Use the shared test Prisma client if available (globalThis singleton from
+  // helpers/db.ts); fall back to a fresh client if tests didn't run at all.
+  const prisma: PrismaClient = (global as any).__testPrisma ?? new PrismaClient();
   try {
     // D-04: Delete Invoice + RefundApproval before Order (FK) using raw SQL
     // so this works even before the Prisma client is regenerated with the new models.
     await prisma.$executeRaw`DELETE FROM "Invoice"`.catch(() => {});
     await prisma.$executeRaw`DELETE FROM "RefundApproval"`.catch(() => {});
+
+    // Schema drift models with RESTRICT FKs must be deleted outside the
+    // main transaction so we can use .catch() per-table safely.
+    await prisma.blogPost.deleteMany().catch(() => {});
+    await prisma.productQuestion.deleteMany().catch(() => {});
+    await prisma.notification.deleteMany().catch(() => {});
+    await prisma.recentlyViewed.deleteMany().catch(() => {});
+    await prisma.priceAlert.deleteMany().catch(() => {});
+    await prisma.searchLog.deleteMany().catch(() => {});
+    await prisma.securityAlert.deleteMany().catch(() => {});
+    await prisma.loyaltyTier.deleteMany().catch(() => {});
+    await prisma.sizeChart.deleteMany().catch(() => {});
 
     await prisma.$transaction([
       // QA tables (FK children first)

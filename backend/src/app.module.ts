@@ -66,6 +66,12 @@ import { VolumeDiscountsModule } from './volume-discounts/volume-discounts.modul
       useFactory: (config: ConfigService) => ({
         connection: {
           url: config.get<string>('REDIS_URL', 'redis://localhost:6379'),
+          // In test environments where Redis is not available, use a 1-hour retry
+          // delay so ioredis stays in "reconnecting" state (commands queue silently)
+          // rather than permanently closing the connection (which breaks BullMQ init).
+          // No retries fire during the 2-minute test run, and the timer is cancelled
+          // when app.close() is called — eliminating "Cannot log after tests are done".
+          retryStrategy: process.env.NODE_ENV === 'test' ? () => 3_600_000 : undefined,
         },
       }),
       inject: [ConfigService],

@@ -51,15 +51,33 @@ export default async function globalSetup() {
 
   console.log('\n[Test Setup] Running Prisma migrations on test database…');
   try {
-    execSync('npx prisma migrate deploy', {
+    // Use pipe so we can detect P3005 in the catch block; print output ourselves.
+    const migrateOut = execSync('npx prisma migrate deploy', {
       cwd: path.join(__dirname, '../../backend'),
       env: { ...process.env, DATABASE_URL: dbUrl },
-      stdio: 'inherit',
+      stdio: 'pipe',
+      encoding: 'utf8',
     });
+    if (migrateOut) process.stdout.write(migrateOut);
     console.log('[Test Setup] Migrations applied successfully.\n');
-  } catch (err) {
-    console.error('[Test Setup] Migration failed:', err);
-    throw err;
+  } catch (err: any) {
+    const combined = (err.stdout ?? '') + (err.stderr ?? '');
+    if (combined) process.stdout.write(combined);
+
+    if (combined.includes('P3005') || combined.includes('schema is not empty')) {
+      // DB has tables but no _prisma_migrations history (DB was not set up via migrate).
+      // Safe to reset for test databases: drops all tables, re-applies migrations cleanly.
+      console.warn('[Test Setup] P3005: migration history missing — resetting test database…');
+      execSync('npx prisma migrate reset --force --skip-seed', {
+        cwd: path.join(__dirname, '../../backend'),
+        env: { ...process.env, DATABASE_URL: dbUrl },
+        stdio: 'inherit',
+      });
+      console.log('[Test Setup] Database reset and migrations applied successfully.\n');
+    } else {
+      console.error('[Test Setup] Migration failed:', err.message ?? err);
+      throw err;
+    }
   } finally {
     if (renamedPrismaEnv && fs.existsSync(prismaEnvBakPath)) {
       fs.renameSync(prismaEnvBakPath, prismaEnvPath);

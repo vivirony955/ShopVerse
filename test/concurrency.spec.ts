@@ -96,7 +96,6 @@ describe('QA Phase-3: D-series concurrency', () => {
   afterAll(async () => {
     await cleanQATables();
     await cleanDatabase();
-    await prisma.$disconnect();
   });
 
   // ─── QA-D-01: oversell guard ──────────────────────────────────────────────

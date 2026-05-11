@@ -16,12 +16,17 @@ const noopStorage = {
   increment: async () => ({ totalHits: 0, timeToExpire: 0, isBlocked: false, timeToBlockExpire: 0 }),
 };
 
+// Module-level singleton: one NestJS app per spec file.
+// Jest resets this module per spec (--runInBand module isolation), so each
+// spec gets a fresh app. closeTestApp() must be called in afterAll to free
+// the NestJS PrismaService connection pool (3 connections) before the next
+// spec creates its own app.
 let app: INestApplication | null = null;
 let moduleRef: TestingModule | null = null;
 
 /**
- * Returns a shared NestJS test app instance. Creates it on first call.
- * Call `closeTestApp()` in afterAll to shut it down.
+ * Returns a shared NestJS test app instance (per spec file). Creates it on first call.
+ * Call `closeTestApp()` in afterAll to release the connection pool.
  */
 export async function getTestApp(): Promise<INestApplication> {
   if (app) return app;
@@ -31,9 +36,6 @@ export async function getTestApp(): Promise<INestApplication> {
   })
     // Replace the throttler storage with a no-op so rate limiting never fires
     // in integration tests that make many rapid requests.
-    // overrideGuard/overrideProvider(APP_GUARD) don't work when ThrottlerGuard
-    // is registered as APP_GUARD because NestJS bypasses the class-token lookup.
-    // Replacing the storage (the thing the guard reads/writes) is the reliable fix.
     .overrideProvider(getStorageToken())
     .useValue(noopStorage)
     .compile();
@@ -57,7 +59,8 @@ export async function getTestApp(): Promise<INestApplication> {
 }
 
 /**
- * Closes the shared app instance. Call in afterAll.
+ * Closes the NestJS app, releasing its PrismaService connection pool.
+ * Must be called in afterAll for every spec that calls getTestApp().
  */
 export async function closeTestApp(): Promise<void> {
   if (app) {

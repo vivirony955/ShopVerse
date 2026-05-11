@@ -49,7 +49,6 @@ describe('QA Phase-2: E-series invariant guards', () => {
   afterAll(async () => {
     await cleanQATables();
     await cleanDatabase();
-    await prisma.$disconnect();
   });
 
   // ─── I-1: stock cache drift (QA-E-01) ─────────────────────────────────────

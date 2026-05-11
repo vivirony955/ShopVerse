@@ -37,7 +37,12 @@ if (process.env.TEST_DATABASE_URL) {
 // same PG server. Default pool is 5; capping at 3 stays well under 100.
 if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('connection_limit')) {
   const sep = process.env.DATABASE_URL.includes('?') ? '&' : '?';
-  process.env.DATABASE_URL += `${sep}connection_limit=3`;
+  process.env.DATABASE_URL += `${sep}connection_limit=3&pool_timeout=30`;
+}
+
+// Mark process as test environment so BullMQ skips Redis retry (ECONNREFUSED noise).
+if (!process.env.NODE_ENV) {
+  (process.env as Record<string, string>).NODE_ENV = 'test';
 }
 
 // Silence console.log from NestJS bootstrap during tests

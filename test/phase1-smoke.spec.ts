@@ -34,7 +34,6 @@ describe('Phase-1 helper smoke test', () => {
   afterAll(async () => {
     await cleanQATables();
     await cleanDatabase();
-    await prisma.$disconnect();
   });
 
   it('factories: makeShopper builds a clean graph with invariants holding', async () => {

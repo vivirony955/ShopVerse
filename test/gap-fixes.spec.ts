@@ -66,7 +66,6 @@ describe('QA Phase-8: product gap fixes', () => {
     await cleanQATables();
     await cleanDatabase();
     await closeTestApp();
-    await prisma.$disconnect();
   });
 
   // ─── GAP-F07: abandoned-cart cleared on placeOrder ───────────────────────

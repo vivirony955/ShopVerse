@@ -84,7 +84,6 @@ describe('QA Phase-5: B-series edges', () => {
   afterAll(async () => {
     await cleanQATables();
     await cleanDatabase();
-    await prisma.$disconnect();
   });
 
   // ─── QA-B-01: TTL boundary ───────────────────────────────────────────────

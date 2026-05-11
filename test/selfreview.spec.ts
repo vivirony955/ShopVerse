@@ -54,7 +54,6 @@ describe('QA Phase-6: F-series self-review', () => {
   afterAll(async () => {
     await cleanQATables();
     await cleanDatabase();
-    await prisma.$disconnect();
   });
 
   // ─── QA-F-10: stacking overflow clamp ────────────────────────────────────
