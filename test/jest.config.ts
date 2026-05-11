@@ -58,12 +58,22 @@ const config: Config = {
   globalSetup: '<rootDir>/setup/global-setup.ts',
   globalTeardown: '<rootDir>/setup/global-teardown.ts',
   setupFiles: ['<rootDir>/setup/env-setup.ts'],
+  // V8 provider measures actual executed bytecode rather than transformed
+  // source lines. More accurate for TypeScript — no decorator false-positives
+  // and correct branch counts on optional chaining / nullish coalescing.
+  coverageProvider: 'v8',
   coverageDirectory: './coverage',
+  coverageReporters: [
+    'text',          // table printed to CI logs — used by GitLab coverage: regex
+    'lcov',          // generates lcov.info — industry-standard coverage artifact
+    'json-summary',  // generates coverage-summary.json — machine-readable totals
+  ],
   collectCoverageFrom: [
     '../backend/src/**/*.ts',
-    '!../backend/src/**/*.module.ts',
-    '!../backend/src/main.ts',
-    '!../backend/src/prisma/seed.ts',
+    '!../backend/src/**/*.module.ts',  // just wiring, no testable logic
+    '!../backend/src/main.ts',          // bootstrap only
+    '!../backend/src/prisma/seed.ts',   // dev utility
+    '!../backend/src/**/*.spec.ts',     // exclude any colocated unit tests
   ],
   testTimeout: 30000,
   reporters: [

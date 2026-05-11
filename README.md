@@ -2,9 +2,9 @@
 
 **Production-grade ecommerce infrastructure for India — warehouse-driven, financially invariant, battle-tested.**
 
-[![CI](https://github.com/vivironycrazy/shopverse/actions/workflows/ci.yml/badge.svg)](https://github.com/vivironycrazy/shopverse/actions/workflows/ci.yml)
+[![Pipeline](https://gitlab.com/aiexperts/ecommWeb/badges/main/pipeline.svg)](https://gitlab.com/aiexperts/ecommWeb/-/pipelines)
+[![Coverage](https://gitlab.com/aiexperts/ecommWeb/badges/main/coverage.svg?job=test%3Acoverage)](https://gitlab.com/aiexperts/ecommWeb/-/jobs)
 ![Tests](https://img.shields.io/badge/tests-638%20passing-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-~80%25-yellow)
 ![License](https://img.shields.io/badge/license-Elastic--2.0-blue)
 ![NestJS](https://img.shields.io/badge/NestJS-11-red)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
