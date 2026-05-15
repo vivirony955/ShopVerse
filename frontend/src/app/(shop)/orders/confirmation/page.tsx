@@ -2,6 +2,7 @@
 // See LICENSE in the project root for license information.
 
 "use client";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle, Package, Truck, Clock, ArrowRight } from "lucide-react";
@@ -11,7 +12,7 @@ import { ordersApi } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-export default function OrderConfirmationPage() {
+function OrderConfirmationContent() {
   const params = useSearchParams();
   const orderId = Number(params?.get("id"));
 
@@ -145,5 +146,13 @@ export default function OrderConfirmationPage() {
         </Link>
       </motion.div>
     </div>
+  );
+}
+
+export default function OrderConfirmationPage() {
+  return (
+    <Suspense>
+      <OrderConfirmationContent />
+    </Suspense>
   );
 }
