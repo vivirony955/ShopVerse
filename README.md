@@ -22,7 +22,21 @@ NestJS 11 · Next.js 15 · PostgreSQL 16 · Prisma 6 · React 19 · Stripe · Ta
 
 ShopVerse is a full-stack, multi-warehouse direct-to-consumer ecommerce platform built for the Indian market. It covers the complete commerce lifecycle — from catalog browsing and flash sales through multi-warehouse fulfillment, payment reconciliation, returns, refunds, and loyalty — with a production-quality backend hardened against the security and correctness issues that plague most open-source ecommerce projects.
 
-It is not a toy. The backend has 38 modules, 54+ database models, and 638 integration tests that run against a real PostgreSQL database.
+It is not a toy. The backend has 38 modules, 54+ database models, and 687 integration tests that run against a real PostgreSQL database.
+
+---
+
+## Screenshots
+
+| Storefront | Checkout |
+|---|---|
+| ![Home](docs/screenshots/01-home.png) | ![Checkout](docs/screenshots/09-checkout.png) |
+
+| Admin Dashboard | Fraud Console |
+|---|---|
+| ![Admin Dashboard](docs/screenshots/16-dashboard.png) | ![Fraud Console](docs/screenshots/26-fraud.png) |
+
+A full set of 28 screenshots covering customer flows and admin panels lives in [`docs/screenshots/`](docs/screenshots/).
 
 ---
 

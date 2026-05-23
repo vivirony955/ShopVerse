@@ -1,10 +1,29 @@
 {
-  "name": "backend",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "name": "@shopverse/backend",
+  "version": "0.1.0",
+  "description": "ShopVerse backend — NestJS 11 + Prisma 6 + PostgreSQL 16. Multi-warehouse ecommerce API with double-entry ledger.",
+  "author": "Vivek Negi <vivironycrazy@gmail.com>",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Elastic-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/aiexperts/ecommWeb.git",
+    "directory": "backend"
+  },
+  "homepage": "https://gitlab.com/aiexperts/ecommWeb",
+  "bugs": {
+    "url": "https://gitlab.com/aiexperts/ecommWeb/-/issues"
+  },
+  "keywords": [
+    "ecommerce",
+    "nestjs",
+    "prisma",
+    "postgresql",
+    "multi-warehouse",
+    "headless-commerce",
+    "stripe",
+    "india"
+  ],
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -18,7 +37,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node src/prisma/seed.ts"
+    "seed": "ts-node src/prisma/seed.ts",
+    "postinstall": "prisma generate --schema ../prisma/schema.prisma"
   },
   "prisma": {
     "schema": "../prisma/schema.prisma",

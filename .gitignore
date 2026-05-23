@@ -60,7 +60,32 @@ pnpm-debug.log*
 # ─── Claude Code internal ─────────────────────────────────────────────────────
 .claude/
 .claudeignore
+CLAUDE.md
+
+# ─── Internal planning / tracking docs (not for public consumption) ──────────
+# These are working notes used during development. Keep them locally but
+# don't expose them in the public repository — they signal WIP and clutter
+# the project root for external visitors. Public-facing docs (README,
+# QUICKSTART, ROADMAP, CONTRIBUTING, SYSTEM_DESIGN_FINAL) are NOT ignored.
+MASTER_TRACKER.md
+P1_IMPL_TRACKER.md
+FEATURE_TRACKER.md
+FRONTEND_TRACKER.md
+FRONTEND_PLAN.md
+HARDENING_TRACKER.md
+PHASE1_TRACKER.md
+PHASE1_PLAN.md
+QA_TRACKER.md
+QA_EXECUTION_PLAN.md
+QA_MASTER_PLAN.md
+QA_GAP_TRACKER.md
+E2E_TEST_PLAN.md
+Features_STATUS.md
+SYSTEM_DESIGN.md
+test/QA_TRACKER.md
+test/QA_GAP_TRACKER.md
 
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 .turbo/
 *.tsbuildinfo
+junit-e2e.xml

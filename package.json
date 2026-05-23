@@ -1,4 +1,31 @@
 {
+  "name": "shopverse",
+  "version": "0.1.0",
+  "description": "Production-grade ecommerce infrastructure for India — multi-warehouse, financially invariant, battle-tested.",
+  "author": "Vivek Negi <vivironycrazy@gmail.com>",
+  "license": "Elastic-2.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/aiexperts/ecommWeb.git"
+  },
+  "homepage": "https://gitlab.com/aiexperts/ecommWeb",
+  "bugs": {
+    "url": "https://gitlab.com/aiexperts/ecommWeb/-/issues"
+  },
+  "keywords": [
+    "ecommerce",
+    "nestjs",
+    "nextjs",
+    "prisma",
+    "postgresql",
+    "typescript",
+    "multi-warehouse",
+    "india",
+    "stripe",
+    "headless-commerce",
+    "double-entry-ledger"
+  ],
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/bcryptjs": "^2.4.6"

@@ -1,7 +1,27 @@
 {
-  "name": "frontend",
+  "name": "@shopverse/frontend",
   "version": "0.1.0",
+  "description": "ShopVerse storefront and admin panel — Next.js 15 + React 19 + Tailwind CSS.",
+  "author": "Vivek Negi <vivironycrazy@gmail.com>",
+  "license": "Elastic-2.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/aiexperts/ecommWeb.git",
+    "directory": "frontend"
+  },
+  "homepage": "https://gitlab.com/aiexperts/ecommWeb",
+  "bugs": {
+    "url": "https://gitlab.com/aiexperts/ecommWeb/-/issues"
+  },
+  "keywords": [
+    "ecommerce",
+    "nextjs",
+    "react",
+    "tailwindcss",
+    "storefront",
+    "shopverse"
+  ],
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -49,9 +69,4 @@
     "tailwindcss": "^4.1.4",
     "typescript": "^5"
   },
-  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
-  "main": "index.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
 }
