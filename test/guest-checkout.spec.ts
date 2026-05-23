@@ -55,11 +55,11 @@ describe('Guest Checkout — Integration', () => {
       expect(order).not.toBeNull();
     });
 
-    it('GUE-H02: guest order decrements available stock', async () => {
+    it('GUE-H02: guest order decrements available stock (reserve model)', async () => {
       const shopper = await makeShopper({ stock: 5 });
 
       const before = await prisma.variant.findUnique({ where: { id: shopper.variant.id } });
-      const stockBefore = before!.stock;
+      const availBefore = before!.stock - before!.reservedStock;
 
       await request(app.getHttpServer())
         .post('/api/orders/guest')
@@ -71,7 +71,8 @@ describe('Guest Checkout — Integration', () => {
         .expect(201);
 
       const after = await prisma.variant.findUnique({ where: { id: shopper.variant.id } });
-      expect(after!.stock).toBe(stockBefore - 2);
+      const availAfter = after!.stock - after!.reservedStock;
+      expect(availAfter).toBe(availBefore - 2);
     });
 
     it('GUE-E01: 400 when items array is empty', async () => {

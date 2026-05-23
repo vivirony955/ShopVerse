@@ -18,6 +18,7 @@ import {
   CreditWalletDto,
   DebitWalletDto,
   ReconcilePaymentDto,
+  WithdrawDto,
 } from './dto/wallet.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -38,6 +39,11 @@ export class WalletController {
   @Get('me/transactions')
   myTransactions(@CurrentUser() user: AuthUser) {
     return this.svc.getTransactionHistory(user.id);
+  }
+
+  @Post('withdraw')
+  withdraw(@CurrentUser() user: AuthUser, @Body() dto: WithdrawDto) {
+    return this.svc.withdraw(user.id, dto.amount);
   }
 
   // Admin routes

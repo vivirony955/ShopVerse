@@ -161,6 +161,16 @@ export class WalletService {
     }
   }
 
+  /** User-initiated wallet withdrawal — wraps debit with a unique reference. */
+  async withdraw(userId: number, amount: number) {
+    return this.debit({
+      userId,
+      amount,
+      reference: `withdrawal:${randomUUID()}`,
+      description: 'Wallet withdrawal',
+    });
+  }
+
   /** Refund to wallet after order cancellation/return (deterministic reference). */
   async refundToWallet(userId: number, amount: number, orderId: number) {
     return this.credit({

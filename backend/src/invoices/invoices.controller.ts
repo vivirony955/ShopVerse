@@ -26,9 +26,11 @@ export class InvoicesController {
     @Request() req: AuthenticatedRequest,
     @Res() res: Response,
   ) {
+    const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN';
     const buffer = await this.invoicesService.generateInvoice(
       req.user.id,
       orderId,
+      isAdmin,
     );
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(

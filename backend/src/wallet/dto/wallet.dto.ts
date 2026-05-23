@@ -42,6 +42,13 @@ export class DebitWalletDto {
   description?: string;
 }
 
+export class WithdrawDto {
+  @IsNumber()
+  @Min(0.01)
+  @Max(MAX_SINGLE_TRANSACTION)
+  amount: number;
+}
+
 export class ReconcilePaymentDto {
   @IsString()
   gatewayRef: string;

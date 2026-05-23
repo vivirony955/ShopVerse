@@ -24,13 +24,13 @@ export class ReferralService {
   async generateCode(userId: number) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-    if (user.referralCode) return { referralCode: user.referralCode };
+    if (user.referralCode) return { referralCode: user.referralCode, referralCount: 0 };
     const code = `SV-${userId}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     await this.prisma.user.update({
       where: { id: userId },
       data: { referralCode: code },
     });
-    return { referralCode: code };
+    return { referralCode: code, referralCount: 0 };
   }
 
   async getMyCode(userId: number) {

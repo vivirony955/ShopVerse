@@ -88,6 +88,10 @@ export async function cleanDatabase(): Promise<void> {
   await prisma.user.deleteMany();
   await prisma.brand.deleteMany();
   await prisma.category.deleteMany();
+  // Delivery / invoice infrastructure (no FK to user — can delete anytime)
+  await prisma.pincodeServiceability.deleteMany().catch(() => {});
+  await prisma.deliverySlot.deleteMany().catch(() => {});
+  await prisma.$executeRaw`DELETE FROM "InvoiceSequence"`.catch(() => {});
 }
 
 // ─── Seed helpers ─────────────────────────────────────────────────────────────

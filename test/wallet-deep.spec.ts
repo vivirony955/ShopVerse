@@ -10,12 +10,14 @@
  * Tests the WalletService through the real NestJS DI container against
  * PostgreSQL. No mocks.
  */
+import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { getTestApp, closeTestApp } from './helpers/app';
 import { prisma, cleanDatabase, createUser } from './helpers/db';
 import { cleanQATables, ensureWallet } from './helpers/factories';
 import { assertI3, assertI1 } from './helpers/invariants';
 import { parallel } from './helpers/concurrency';
+import { loginAs, bearerHeader } from './helpers/auth';
 import { WalletService } from '../backend/src/wallet/wallet.service';
 
 let app: INestApplication;
@@ -337,4 +339,82 @@ it('WAL-E06: 20 sequential credits of ₹500 → exact sum with no drift', async
   // 20 × 500 = 10,000 exactly
   expect(wallet!.balance).toBeCloseTo(10000, 2);
   await assertI3();
+});
+
+// ─── Wallet Withdrawal (POST /api/wallet/withdraw) ───────────────────────────
+
+describe('Wallet Withdrawal — POST /api/wallet/withdraw', () => {
+  it('WAL-W01: user can withdraw from their wallet when balance is sufficient', async () => {
+    const user = await createUser({ email: 'withdraw@test.com' });
+    await ensureWallet(user.id, 1000);
+    const { access_token } = await loginAs(app, user.email, 'Test@1234');
+
+    const res = await request(app.getHttpServer())
+      .post('/api/wallet/withdraw')
+      .set('Authorization', bearerHeader(access_token))
+      .send({ amount: 500 })
+      .expect(201);
+
+    expect(res.body.amount).toBe(500);
+
+    const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
+    expect(wallet!.balance).toBeCloseTo(500, 2);
+    await assertI3();
+  });
+
+  it('WAL-W02: withdrawal fails with 400 when amount exceeds balance', async () => {
+    const user = await createUser({ email: 'overdraft@test.com' });
+    await ensureWallet(user.id, 100);
+    const { access_token } = await loginAs(app, user.email, 'Test@1234');
+
+    await request(app.getHttpServer())
+      .post('/api/wallet/withdraw')
+      .set('Authorization', bearerHeader(access_token))
+      .send({ amount: 500 })
+      .expect(400);
+
+    const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
+    expect(wallet!.balance).toBeCloseTo(100, 2);
+  });
+
+  it('WAL-W03: withdrawal fails with 400 when amount is zero', async () => {
+    const user = await createUser({ email: 'zero@test.com' });
+    await ensureWallet(user.id, 100);
+    const { access_token } = await loginAs(app, user.email, 'Test@1234');
+
+    await request(app.getHttpServer())
+      .post('/api/wallet/withdraw')
+      .set('Authorization', bearerHeader(access_token))
+      .send({ amount: 0 })
+      .expect(400);
+  });
+
+  it('WAL-W04: 401 without auth token', async () => {
+    await request(app.getHttpServer())
+      .post('/api/wallet/withdraw')
+      .send({ amount: 100 })
+      .expect(401);
+  });
+
+  it('WAL-W05: two sequential withdrawals leave exact remaining balance (no drift)', async () => {
+    const user = await createUser({ email: 'seq-withdraw@test.com' });
+    await ensureWallet(user.id, 1000);
+    const { access_token } = await loginAs(app, user.email, 'Test@1234');
+
+    await request(app.getHttpServer())
+      .post('/api/wallet/withdraw')
+      .set('Authorization', bearerHeader(access_token))
+      .send({ amount: 300 })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/wallet/withdraw')
+      .set('Authorization', bearerHeader(access_token))
+      .send({ amount: 200 })
+      .expect(201);
+
+    const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
+    expect(wallet!.balance).toBeCloseTo(500, 2);
+    await assertI3();
+  });
 });

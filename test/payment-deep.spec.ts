@@ -739,18 +739,23 @@ it('PAY-H03: order with walletAmountUsed → wallet balance reduced by that amou
 
 // ─── PAY-E05: Mixed payment — wallet deducted, then payment_intent.payment_failed ─
 // Documents current behavior: payment_failed webhook marks paymentStatus=UNPAID
-// but does NOT automatically reverse the wallet debit (tracked as known gap).
+// The wallet debit is now automatically reversed by the payment_intent.payment_failed webhook.
 
-it('PAY-E05: mixed payment failure — payment_intent.payment_failed marks UNPAID (wallet state documented)', async () => {
+it('PAY-E05: mixed payment failure — wallet is auto-reversed when gateway leg fails', async () => {
   const walletBalance = 300;
+  const walletAmountUsed = 200;
   const s = await makeShopper({ stock: 10, cartQty: 1, basePrice: 800, walletBalance });
 
   const reservation = await reservationService.createReservation(s.user.id);
   const order = await ordersService.placeOrder(s.user.id, {
     addressId: s.address.id,
     reservationId: reservation.reservationId,
-    walletAmountUsed: 200,
+    walletAmountUsed,
   });
+
+  // Confirm wallet was debited at order placement
+  const walletAfterOrder = await prisma.wallet.findUnique({ where: { userId: s.user.id } });
+  expect(walletAfterOrder!.balance).toBeCloseTo(walletBalance - walletAmountUsed, 2);
 
   // Simulate Stripe payment failure webhook
   const piId = `pi_mix_fail_${Date.now()}`;
@@ -763,12 +768,9 @@ it('PAY-E05: mixed payment failure — payment_intent.payment_failed marks UNPAI
   const updated = await prisma.order.findUnique({ where: { id: order.id } });
   expect(updated!.paymentStatus).toBe('UNPAID');
 
-  // Document current behavior: wallet was debited at order placement time (outside webhook path).
-  // The webhook only updates paymentStatus — it does NOT auto-reverse the wallet.
-  // This is a known gap (C-01 in audit): wallet auto-reversal on gateway failure is not yet implemented.
+  // Wallet is restored to its original balance by the auto-reversal credit
   const walletAfter = await prisma.wallet.findUnique({ where: { userId: s.user.id } });
-  // Wallet was reduced at order time — confirm the debit happened
-  expect(walletAfter!.balance).toBeLessThan(walletBalance);
+  expect(walletAfter!.balance).toBeCloseTo(walletBalance, 2);
 });
 
 // ─── PAY-H06b: walletAmountUsed clamped to min(requested, balance, total) ──

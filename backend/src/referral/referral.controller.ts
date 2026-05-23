@@ -6,6 +6,7 @@ import {
   Get,
   Post,
   Body,
+  HttpCode,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -29,6 +30,7 @@ export class ReferralController {
   }
 
   @Post('apply')
+  @HttpCode(200)
   apply(@Request() req: AuthenticatedRequest, @Body() dto: ApplyReferralDto) {
     return this.referralService.applyReferral(req.user.id, dto.code);
   }

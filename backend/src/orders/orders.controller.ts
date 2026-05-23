@@ -19,6 +19,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Public } from '../auth/public.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles, Role } from '../auth/roles.decorator';
 import { OrdersService } from './orders.service';
@@ -131,6 +132,7 @@ export class OrdersController {
 
   // FINAL §9.4 M-002: public endpoint — rate-limit to curb card-testing / fake-order abuse.
   // 3 guest orders / IP / 10 min is enough for real shoppers retrying while fraud bots stall.
+  @Public()
   @Throttle({ default: { ttl: 600_000, limit: 3 } })
   @Post('guest')
   @HttpCode(HttpStatus.CREATED)

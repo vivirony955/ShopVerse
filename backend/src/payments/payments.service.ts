@@ -238,6 +238,11 @@ export class PaymentsService {
         const orderId = parseInt(pi.metadata.orderId);
         if (!orderId) break;
 
+        const failedOrder = await this.prisma.order.findUnique({
+          where: { id: orderId },
+          select: { id: true, userId: true, walletAmountUsed: true },
+        });
+
         await this.prisma.order.update({
           where: { id: orderId },
           data: { paymentStatus: 'UNPAID' },
@@ -250,6 +255,23 @@ export class PaymentsService {
             note: `Payment failed: ${pi.last_payment_error?.message ?? 'unknown error'}`,
           },
         });
+
+        // Mixed payment reversal: restore wallet portion if gateway leg failed
+        if (
+          failedOrder &&
+          failedOrder.userId != null &&
+          failedOrder.walletAmountUsed > 0
+        ) {
+          await this.walletService.credit({
+            userId: failedOrder.userId,
+            amount: failedOrder.walletAmountUsed,
+            reference: `wallet:reversal:order:${orderId}`,
+            description: `Payment failed — wallet reversal for order #${orderId}`,
+          });
+          this.logger.log(
+            `Wallet reversal of ₹${failedOrder.walletAmountUsed} applied for order #${orderId}`,
+          );
+        }
 
         this.logger.warn(`Payment failed for order #${orderId}`);
         break;

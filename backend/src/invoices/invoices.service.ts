@@ -240,14 +240,14 @@ export class InvoicesService {
         font,
         color: black,
       });
-      page.drawText(`₹${item.price.toFixed(2)}`, {
+      page.drawText(`Rs.${item.price.toFixed(2)}`, {
         x: 400,
         y,
         size: 10,
         font,
         color: black,
       });
-      page.drawText(`₹${(item.price * item.quantity).toFixed(2)}`, {
+      page.drawText(`Rs.${(item.price * item.quantity).toFixed(2)}`, {
         x: 495,
         y,
         size: 10,
@@ -264,7 +264,7 @@ export class InvoicesService {
       thickness: 0.5,
       color: gray,
     });
-    page.drawText(`Subtotal: ₹${order.subtotal.toFixed(2)}`, {
+    page.drawText(`Subtotal: Rs.${order.subtotal.toFixed(2)}`, {
       x: 380,
       y,
       size: 11,
@@ -273,7 +273,7 @@ export class InvoicesService {
     });
     if (order.discountAmount > 0) {
       y -= 18;
-      page.drawText(`Discount: -₹${order.discountAmount.toFixed(2)}`, {
+      page.drawText(`Discount: -Rs.${order.discountAmount.toFixed(2)}`, {
         x: 380,
         y,
         size: 11,
@@ -283,7 +283,7 @@ export class InvoicesService {
     }
     if (order.shippingFee > 0) {
       y -= 18;
-      page.drawText(`Shipping: ₹${order.shippingFee.toFixed(2)}`, {
+      page.drawText(`Shipping: Rs.${order.shippingFee.toFixed(2)}`, {
         x: 380,
         y,
         size: 11,
@@ -293,7 +293,7 @@ export class InvoicesService {
     }
     if (order.taxAmount > 0) {
       y -= 18;
-      page.drawText(`Tax (GST): ₹${order.taxAmount.toFixed(2)}`, {
+      page.drawText(`Tax (GST): Rs.${order.taxAmount.toFixed(2)}`, {
         x: 380,
         y,
         size: 11,
@@ -302,7 +302,7 @@ export class InvoicesService {
       });
     }
     y -= 20;
-    page.drawText(`Total: ₹${order.total.toFixed(2)}`, {
+    page.drawText(`Total: Rs.${order.total.toFixed(2)}`, {
       x: 380,
       y,
       size: 13,
