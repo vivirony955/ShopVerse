@@ -367,4 +367,70 @@ describe('Products — Integration', () => {
         .expect(404);
     });
   });
+
+  // ─── POST /api/products/:id/variants/:variantId/notify-stock ──────────────
+
+  describe('POST /api/products/:id/variants/:variantId/notify-stock', () => {
+    it('NTFY-H01: creates a stock notification subscription (public endpoint)', async () => {
+      const cat = await createCategory();
+      const brand = await createBrand();
+      const product = await createProduct(cat.id, brand.id);
+      const variant = await createVariant(product.id);
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/products/${product.id}/variants/${variant.id}/notify-stock`)
+        .send({ email: 'watcher@test.com' })
+        .expect(201);
+
+      expect(res.body.variantId).toBe(variant.id);
+      expect(res.body.email).toBe('watcher@test.com');
+
+      const record = await prisma.stockNotification.findFirst({
+        where: { variantId: variant.id, email: 'watcher@test.com' },
+      });
+      expect(record).not.toBeNull();
+    });
+
+    it('NTFY-H02: duplicate subscription returns already-subscribed message (idempotent)', async () => {
+      const cat = await createCategory();
+      const brand = await createBrand();
+      const product = await createProduct(cat.id, brand.id);
+      const variant = await createVariant(product.id);
+
+      await request(app.getHttpServer())
+        .post(`/api/products/${product.id}/variants/${variant.id}/notify-stock`)
+        .send({ email: 'watcher@test.com' })
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/products/${product.id}/variants/${variant.id}/notify-stock`)
+        .send({ email: 'watcher@test.com' })
+        .expect(201);
+
+      expect(res.body.message).toMatch(/subscribed/i);
+    });
+
+    it('NTFY-E01: 400 when email is invalid', async () => {
+      const cat = await createCategory();
+      const brand = await createBrand();
+      const product = await createProduct(cat.id, brand.id);
+      const variant = await createVariant(product.id);
+
+      await request(app.getHttpServer())
+        .post(`/api/products/${product.id}/variants/${variant.id}/notify-stock`)
+        .send({ email: 'not-an-email' })
+        .expect(400);
+    });
+
+    it('NTFY-E02: 404 when variant does not exist', async () => {
+      const cat = await createCategory();
+      const brand = await createBrand();
+      const product = await createProduct(cat.id, brand.id);
+
+      await request(app.getHttpServer())
+        .post(`/api/products/${product.id}/variants/999999/notify-stock`)
+        .send({ email: 'watcher@test.com' })
+        .expect(404);
+    });
+  });
 });
