@@ -98,3 +98,26 @@ jobs:
         run: cd backend && npm ci
       - name: Validate schema
         run: npx prisma validate --schema prisma/schema.prisma
+
+  sbom:
+    name: SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: shopverse-sbom.cyclonedx.json
+          # Skip the action's built-in artifact upload; we upload below
+          # so we control the retention window.
+          upload-artifact: false
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: shopverse-sbom
+          path: shopverse-sbom.cyclonedx.json
+          retention-days: 90
