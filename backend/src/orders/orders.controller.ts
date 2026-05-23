@@ -18,6 +18,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Public } from '../auth/public.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -31,6 +32,8 @@ import {
 } from './dto/order.dto';
 import { RefundReason } from '@prisma/client';
 
+@ApiTags('Orders')
+@ApiBearerAuth('JWT')
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class OrdersController {

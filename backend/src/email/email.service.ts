@@ -5,6 +5,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { context, propagation } from '@opentelemetry/api';
 import * as nodemailer from 'nodemailer';
 import type { EmailJobData } from './email.processor';
 
@@ -82,14 +83,25 @@ export class EmailService {
    * P-06: Enqueue an email job if BullMQ queue is available.
    * Falls back to immediate synchronous send if queue is unavailable (no Redis).
    * This makes the queue opt-in: set REDIS_URL in .env to enable async delivery.
+   *
+   * A2 observability: inject the current OTel trace context onto the job
+   * payload so the processor span (`bullmq.process email.*`) is a child of
+   * the HTTP request span that enqueued it. The carrier is W3C
+   * `traceparent` + `tracestate` headers — a few bytes of metadata,
+   * negligible vs Redis payload size.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
   private async enqueue(
     type: EmailJobData['type'],
     payload: Record<string, unknown>,
   ): Promise<void> {
     if (this.emailQueue) {
       try {
-        await this.emailQueue.add(type, { type, payload });
+        const carrier: Record<string, string> = {};
+        propagation.inject(context.active(), carrier);
+        const jobData: EmailJobData = { type, payload };
+        if (Object.keys(carrier).length > 0) jobData.__otel = carrier;
+        await this.emailQueue.add(type, jobData);
         return;
       } catch (err: unknown) {
         this.logger.warn(

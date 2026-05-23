@@ -13,6 +13,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
 import {
   CreditWalletDto,
@@ -26,6 +27,8 @@ import { Role, Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../common/types';
 
+@ApiTags('Wallet')
+@ApiBearerAuth('JWT')
 @Controller('wallet')
 @UseGuards(JwtAuthGuard)
 export class WalletController {

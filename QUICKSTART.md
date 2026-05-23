@@ -160,6 +160,82 @@ cd frontend && npx playwright test
 
 ---
 
+## Observability (optional)
+
+ShopVerse ships with a three-layer observability stack — all off by default,
+opt in via env vars. Zero overhead when disabled.
+
+### OpenAPI / Swagger UI
+
+The API spec is generated from controller decorators. In dev it's served
+at [http://localhost:4000/api/docs](http://localhost:4000/api/docs) (raw
+JSON at `/api/docs-json`) with no auth. In production, set both
+`SWAGGER_USER` and `SWAGGER_PASS` to enable behind BasicAuth — leave either
+unset and `/api/docs` returns 404.
+
+### Distributed tracing (OpenTelemetry → Jaeger / Tempo / Datadog)
+
+Run a local Jaeger collector + UI:
+```bash
+docker run -d --name jaeger \
+  -p 16686:16686 -p 4318:4318 \
+  jaegertracing/all-in-one:latest
+```
+
+Set in `.env`:
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
+OTEL_TRACES_SAMPLER_ARG="1.0"   # 100% sampling in dev
+```
+
+Restart the backend, hit an endpoint, then open
+[http://localhost:16686](http://localhost:16686) and pick `shopverse-backend`
+from the service dropdown. Spans appear for HTTP request → controller →
+Prisma queries → BullMQ jobs → cron runs.
+
+Production: set `OTEL_TRACES_SAMPLER_ARG="0.1"` (10%) and point
+`OTEL_EXPORTER_OTLP_ENDPOINT` at your collector.
+
+### Error tracking (Sentry)
+
+Set `SENTRY_DSN` in `.env`. PII scrubbing is built in — emails, phones,
+addresses, and financial amounts are redacted before leaving the process.
+CI sets `SENTRY_RELEASE` to the git SHA on main-branch builds for release
+tracking. Sentry is configured for error capture only; we use OTel for
+tracing.
+
+### Prometheus metrics
+
+Endpoint: `/api/metrics` (CycloneDX text format).
+
+In dev: open and unauthenticated.
+In production: set `METRICS_BASIC_AUTH="user:pass"` to enable. Without it
+in production the endpoint returns 503 (fail closed).
+
+Sample scrape config:
+```yaml
+scrape_configs:
+  - job_name: shopverse
+    metrics_path: /api/metrics
+    basic_auth: { username: metrics, password: <secret> }
+    static_configs: [{ targets: ['backend:4000'] }]
+```
+
+Built-in metrics include:
+- `shopverse_http_request_duration_seconds` (histogram, by method/route/status)
+- `shopverse_http_requests_total` (counter)
+- `shopverse_http_unhandled_errors_total` (5xx counter, by route)
+- `shopverse_cron_executions_total` (by cron name + status: ok/error/violations/skipped)
+- Standard process metrics (cpu, memory, event-loop lag) with `shopverse_` prefix.
+
+### Log → trace correlation
+
+When OTel is enabled, every log line emitted by the global `LoggingInterceptor`
+includes `trace_id` and `span_id`. Pipe logs into Loki / Datadog and click
+through to the matching trace in Jaeger/Tempo.
+
+---
+
 ## Next Steps
 
 - [ARCHITECTURE.md](SYSTEM_DESIGN_FINAL.md) — Full system design (state machines, invariants, data model)

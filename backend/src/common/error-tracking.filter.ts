@@ -10,8 +10,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
+import * as Sentry from '@sentry/node';
+import { trace } from '@opentelemetry/api';
 import { ErrorTrackingService } from './error-tracking.service';
 import { AuthenticatedRequest } from './types';
+import {
+  httpUnhandledErrors,
+  routeLabel,
+} from '../observability/metrics';
 
 @Catch()
 export class ErrorTrackingFilter implements ExceptionFilter {
@@ -57,6 +63,40 @@ export class ErrorTrackingFilter implements ExceptionFilter {
           metadata: { body: req.body, params: req.params },
         })
         .catch(() => null);
+
+      // A2 observability: bump unhandled-error counter for 5xx so dashboards
+      // can alert on error-rate spikes without parsing logs.
+      if (status >= 500) {
+        const route = routeLabel(
+          (req as AuthenticatedRequest & { route?: { path?: string } }).route
+            ?.path,
+          req.url,
+        );
+        httpUnhandledErrors.inc({ route });
+
+        // Force-sample the current span if tracing is active so the trace
+        // that errored is always exported, even under head-sampling.
+        const span = trace.getActiveSpan();
+        if (span) {
+          span.setAttribute('sampling.priority', 1);
+          span.recordException(exception as Error);
+        }
+
+        // Send to Sentry (no-op if SENTRY_DSN unset). The beforeSend hook
+        // in observability/sentry.ts scrubs PII before transmission.
+        if (process.env.SENTRY_DSN) {
+          Sentry.withScope((scope) => {
+            scope.setTag('route', req.url);
+            scope.setTag('http.method', req.method);
+            scope.setTag('http.status_code', String(status));
+            if (req.user?.id != null) {
+              scope.setUser({ id: String(req.user.id) });
+            }
+            scope.setLevel('error');
+            Sentry.captureException(exception);
+          });
+        }
+      }
     }
 
     res.status(status).json({

@@ -46,6 +46,7 @@ import { PriceAlertsModule } from './price-alerts/price-alerts.module';
 import { BlogModule } from './blog/blog.module';
 import { PriceHistoryModule } from './price-history/price-history.module';
 import { VolumeDiscountsModule } from './volume-discounts/volume-discounts.module';
+import { ObservabilityModule } from './observability/observability.module';
 
 @Module({
   imports: [
@@ -119,6 +120,11 @@ import { VolumeDiscountsModule } from './volume-discounts/volume-discounts.modul
     BlogModule, // F3-10: Blog / content CMS
     PriceHistoryModule, // F3-12: Daily price snapshots for charts
     VolumeDiscountsModule, // F4-08: Tiered quantity discounts
+
+    // ─── Observability (A2) ───────────────────────────────────────────────────
+    // Hosts /api/metrics. OTel SDK + Sentry initialise in main.ts before
+    // any NestJS import is evaluated (see observability/tracing.ts).
+    ObservabilityModule,
   ],
   controllers: [AppController],
   providers: [

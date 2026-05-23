@@ -11,6 +11,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -18,6 +19,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { AuthenticatedRequest } from '../common/types';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -50,6 +52,7 @@ export class AuthController {
   }
 
   /** V-10: change password — invalidates all active refresh tokens for this user */
+  @ApiBearerAuth('JWT')
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
   @HttpCode(200)

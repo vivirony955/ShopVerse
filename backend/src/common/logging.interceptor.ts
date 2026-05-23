@@ -11,7 +11,21 @@ import {
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
+import { trace } from '@opentelemetry/api';
 import { AuthenticatedRequest } from './types';
+
+/**
+ * Extracts trace_id and span_id from the active OTel span context.
+ * Returns empty strings when no span is active (e.g. test env where
+ * the SDK is disabled). Logs gain the correlation fields when tracing
+ * is on, lose nothing when off.
+ */
+function traceContext(): { trace_id: string; span_id: string } {
+  const span = trace.getActiveSpan();
+  if (!span) return { trace_id: '', span_id: '' };
+  const ctx = span.spanContext();
+  return { trace_id: ctx.traceId, span_id: ctx.spanId };
+}
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -40,6 +54,7 @@ export class LoggingInterceptor implements NestInterceptor {
             userAgent: headers['user-agent'] ?? '',
             durationMs: ms,
             timestamp: new Date().toISOString(),
+            ...traceContext(),
           }),
         );
       }),
@@ -58,6 +73,7 @@ export class LoggingInterceptor implements NestInterceptor {
             durationMs: ms,
             error: message,
             timestamp: new Date().toISOString(),
+            ...traceContext(),
           }),
         );
         return throwError(() => err);

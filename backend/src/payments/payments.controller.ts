@@ -13,17 +13,20 @@ import {
   RawBodyRequest,
 } from '@nestjs/common';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import { ApiTags, ApiBearerAuth, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentIntentDto } from './dto/payment.dto';
 import { AuthenticatedRequest } from '../common/types';
 import { Request } from 'express';
 
+@ApiTags('Payments')
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   // 20 intent creations per minute per user (prevents accidental spam)
+  @ApiBearerAuth('JWT')
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @UseGuards(JwtAuthGuard)
   @Post('create-intent')
@@ -39,6 +42,7 @@ export class PaymentsController {
   }
 
   // 5 retries per minute — prevent retry spam
+  @ApiBearerAuth('JWT')
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @UseGuards(JwtAuthGuard)
   @Post('retry/:orderId')
@@ -51,6 +55,7 @@ export class PaymentsController {
   }
 
   // Refund to original payment method (Stripe card)
+  @ApiBearerAuth('JWT')
   @UseGuards(JwtAuthGuard)
   @Post('refund/:orderId')
   refundStripePayment(
@@ -60,7 +65,10 @@ export class PaymentsController {
     return this.paymentsService.refundStripePayment(orderId, req.user.id);
   }
 
-  // Stripe webhook — must receive raw body, NO JwtAuthGuard, NO rate limit
+  // Stripe webhook — must receive raw body, NO JwtAuthGuard, NO rate limit.
+  // Hidden from OpenAPI spec: it's not user-callable and the signature
+  // header semantics aren't representable in OpenAPI cleanly.
+  @ApiExcludeEndpoint()
   @SkipThrottle()
   @Post('webhook')
   handleWebhook(

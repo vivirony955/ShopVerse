@@ -121,3 +121,49 @@ jobs:
           name: shopverse-sbom
           path: shopverse-sbom.cyclonedx.json
           retention-days: 90
+
+  sentry-release:
+    # A2 observability: upload source maps + create Sentry release on main
+    # so production stack traces map back to original TypeScript. Skipped
+    # on PR builds (no secret access) and when SENTRY_AUTH_TOKEN is unset
+    # (e.g. forks). Build must succeed before upload runs.
+    name: Sentry Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [typecheck, lint, test, schema]
+    permissions:
+      contents: read
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+    steps:
+      - name: Skip if Sentry not configured
+        id: gate
+        run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_ORG" ] || [ -z "$SENTRY_PROJECT" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Sentry secrets not set — skipping release upload"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.skip == 'false'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.skip == 'false'
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      - name: Install + build backend
+        if: steps.gate.outputs.skip == 'false'
+        run: |
+          cd backend && npm ci && npm run build
+      - name: Create Sentry release
+        if: steps.gate.outputs.skip == 'false'
+        uses: getsentry/action-release@v1
+        with:
+          environment: production
+          version: ${{ github.sha }}
+          sourcemaps: ./backend/dist
+          url_prefix: '~/dist'

@@ -317,10 +317,31 @@ cd frontend && npm run dev
 
 ---
 
+## Observability
+
+Production-grade observability is built in, off by default, and opt-in
+per layer:
+
+- **OpenAPI / Swagger UI** at `/api/docs` (BasicAuth-gated in production).
+  Spec at `/api/docs-json` is consumable by Postman / Insomnia / SDK generators.
+- **OpenTelemetry tracing** to any OTLP-compatible collector
+  (Jaeger / Tempo / Datadog / Honeycomb). HTTP, Prisma, Redis, BullMQ
+  jobs, and the hourly invariant validator crons are all auto-traced.
+  Log lines carry `trace_id` + `span_id` for log↔trace correlation.
+- **Sentry** for 5xx error capture (PII scrubbed before transmit).
+  Configured for error-only — we use OTel for traces.
+- **Prometheus** `/api/metrics` endpoint (BasicAuth-gated in production)
+  with request duration histogram, error counter, and cron-execution counter.
+
+Enable each by setting its env var — see [`QUICKSTART.md`](QUICKSTART.md#observability-optional)
+for the local Jaeger one-liner and the full config matrix.
+
+---
+
 ## Testing
 
 ```bash
-# All 638 backend integration tests (requires PostgreSQL)
+# All 687 backend integration tests (requires PostgreSQL)
 cd test && npx jest --runInBand --forceExit
 
 # Single test file

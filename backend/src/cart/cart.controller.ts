@@ -13,12 +13,15 @@ import {
   Req,
   ParseIntPipe,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CartService } from './cart.service';
 import { AuthenticatedRequest } from '../common/types';
 import { CartReservationService } from './cart-reservation.service';
 import { AddCartItemDto, UpdateCartItemDto } from './dto/cart.dto';
 
+@ApiTags('Cart')
+@ApiBearerAuth('JWT')
 @Controller('cart')
 @UseGuards(JwtAuthGuard)
 export class CartController {

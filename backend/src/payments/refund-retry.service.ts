@@ -7,6 +7,8 @@ import Stripe from 'stripe';
 import { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CronLockService } from '../common/cron-lock.service';
+import { tracedCron } from '../observability/cron-trace';
+import { cronExecutionTotal } from '../observability/metrics';
 
 const MAX_REFUND_RETRIES = 5;
 const RETRY_AFTER_MS = 60 * 60 * 1000; // 1 hour
@@ -44,6 +46,20 @@ export class RefundRetryService {
 
   @Cron('15 * * * *') // hourly at :15
   async retryStuckRefunds(): Promise<void> {
+    // A2 observability: always-sampled span captures the full retry batch
+    // including lock acquisition, Stripe calls, and permanent-failure alert.
+    await tracedCron('refund-retry', async () => {
+      try {
+        await this.runOnce();
+        cronExecutionTotal.inc({ name: 'refund-retry', status: 'ok' });
+      } catch (e) {
+        cronExecutionTotal.inc({ name: 'refund-retry', status: 'error' });
+        throw e;
+      }
+    });
+  }
+
+  private async runOnce(): Promise<void> {
     await this.cronLock.runExclusive('refund-retry', 55_000, async () => {
       const cutoff = new Date(Date.now() - RETRY_AFTER_MS);
       const stuck = await this.prisma.refundRequest.findMany({

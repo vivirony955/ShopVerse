@@ -4,6 +4,10 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../backend/node_modules/.prisma/client"
+  // A2 observability: Prisma 6+ emits OTel spans automatically when
+  // @prisma/instrumentation is registered (no preview flag required).
+  // Safe when SDK is absent (test env) — Prisma emits no spans without
+  // a registered tracer provider.
 }
 
 datasource db {

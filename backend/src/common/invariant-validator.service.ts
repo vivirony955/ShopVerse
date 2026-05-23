@@ -5,6 +5,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { CronLockService } from './cron-lock.service';
+import { tracedCron } from '../observability/cron-trace';
+import { cronExecutionTotal } from '../observability/metrics';
 
 /**
  * Runtime invariant validators — FINAL §2 I-1, I-2, I-3, I-7, I-13.
@@ -46,34 +48,48 @@ export class InvariantValidatorService {
     name: string,
     body: () => Promise<number | undefined>, // violation count, or undefined if lock was held by another pod
   ): Promise<void> {
-    try {
-      const rawCount = await body();
-      // Lock held by another pod → treat as no-op for heartbeat (other pod will update it).
-      if (rawCount === undefined) return;
-      const violationCount = rawCount;
-      const status = violationCount === 0 ? 'OK' : 'VIOLATIONS';
-      this.heartbeats.set(name, {
-        lastRunAt: new Date(),
-        lastStatus: status,
-        violationCount,
-      });
-      if (violationCount > 0) {
-        this.logger.warn(
-          `[INVARIANT_ALERT] validator=${name} violations=${violationCount}`,
+    // A2 observability: every invariant cron emits a span (always sampled,
+    // see tracedCron) and bumps the Prometheus counter labelled by status.
+    // The metric drives ops dashboards; the trace gives root-cause context
+    // when a violation fires.
+    await tracedCron(`invariant.${name}`, async () => {
+      try {
+        const rawCount = await body();
+        // Lock held by another pod → treat as no-op for heartbeat.
+        if (rawCount === undefined) {
+          cronExecutionTotal.inc({ name: `invariant.${name}`, status: 'skipped' });
+          return;
+        }
+        const violationCount = rawCount;
+        const status = violationCount === 0 ? 'OK' : 'VIOLATIONS';
+        this.heartbeats.set(name, {
+          lastRunAt: new Date(),
+          lastStatus: status,
+          violationCount,
+        });
+        cronExecutionTotal.inc({
+          name: `invariant.${name}`,
+          status: status === 'OK' ? 'ok' : 'violations',
+        });
+        if (violationCount > 0) {
+          this.logger.warn(
+            `[INVARIANT_ALERT] validator=${name} violations=${violationCount}`,
+          );
+        }
+      } catch (e: unknown) {
+        this.heartbeats.set(name, {
+          lastRunAt: new Date(),
+          lastStatus: 'ERROR',
+          violationCount: -1,
+        });
+        cronExecutionTotal.inc({ name: `invariant.${name}`, status: 'error' });
+        // ERROR level — the cron itself failed. Ops must investigate.
+        this.logger.error(
+          `[INVARIANT_ALERT] validator=${name} status=ERROR reason=${e instanceof Error ? e.message : String(e)}`,
+          e instanceof Error ? e.stack : undefined,
         );
       }
-    } catch (e: unknown) {
-      this.heartbeats.set(name, {
-        lastRunAt: new Date(),
-        lastStatus: 'ERROR',
-        violationCount: -1,
-      });
-      // ERROR level — the cron itself failed. Ops must investigate.
-      this.logger.error(
-        `[INVARIANT_ALERT] validator=${name} status=ERROR reason=${e instanceof Error ? e.message : String(e)}`,
-        e instanceof Error ? e.stack : undefined,
-      );
-    }
+    });
   }
 
   /** Exposed for an admin/health endpoint so monitoring can poll run freshness. */
