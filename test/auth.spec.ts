@@ -9,7 +9,7 @@
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { getTestApp, closeTestApp } from './helpers/app';
-import { cleanDatabase, createUser } from './helpers/db';
+import { cleanDatabase, createUser, prisma } from './helpers/db';
 
 describe('Auth — Integration', () => {
   let app: INestApplication;
@@ -188,6 +188,98 @@ describe('Auth — Integration', () => {
         .post('/api/auth/refresh')
         .send({})
         .expect(400);
+    });
+  });
+
+  // ─── Account lockout (SEC) ────────────────────────────────────────────────
+
+  describe('Account lockout (SEC)', () => {
+    it('SEC-H01: 5th wrong password triggers lockout — subsequent attempt rejected', async () => {
+      await createUser({ email: 'lock@test.com', password: 'Password1!' });
+
+      // Pre-fill 4 failures in DB so next wrong attempt is the 5th (threshold)
+      await prisma.user.update({
+        where: { email: 'lock@test.com' },
+        data: { failedLoginAttempts: 4 },
+      });
+
+      // 5th wrong attempt — increments counter to 5, sets lockedUntil
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: 'lock@test.com', password: 'WRONG_PASSWORD!' })
+        .expect(401);
+
+      // Next attempt (correct password) is now blocked by the lock
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: 'lock@test.com', password: 'Password1!' })
+        .expect(400);
+
+      expect(JSON.stringify(res.body)).toMatch(/lock/i);
+    });
+
+    it('SEC-H02: locked account rejects correct password while lockedUntil is in the future', async () => {
+      await createUser({ email: 'locked@test.com', password: 'Password1!' });
+
+      await prisma.user.update({
+        where: { email: 'locked@test.com' },
+        data: {
+          failedLoginAttempts: 5,
+          lockedUntil: new Date(Date.now() + 15 * 60 * 1000),
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: 'locked@test.com', password: 'Password1!' })
+        .expect(400);
+
+      expect(JSON.stringify(res.body)).toMatch(/lock/i);
+    });
+
+    it('SEC-H03: login succeeds once lockedUntil has elapsed', async () => {
+      await createUser({ email: 'unlocked@test.com', password: 'Password1!' });
+
+      await prisma.user.update({
+        where: { email: 'unlocked@test.com' },
+        data: {
+          failedLoginAttempts: 5,
+          lockedUntil: new Date(Date.now() - 1000), // 1 second in the past
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: 'unlocked@test.com', password: 'Password1!' })
+        .expect(200);
+
+      expect(res.body.access_token).toEqual(expect.any(String));
+    });
+  });
+
+  // ─── Token version revocation (SEC) ──────────────────────────────────────
+
+  describe('Token version revocation', () => {
+    it('SEC-H04: old refresh_token is rejected after tokenVersion is incremented', async () => {
+      await createUser({ email: 'tokenver@test.com', password: 'Password1!' });
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: 'tokenver@test.com', password: 'Password1!' })
+        .expect(200);
+
+      const { refresh_token } = loginRes.body;
+
+      // Simulate password change by incrementing tokenVersion (invalidates all prior refresh tokens)
+      await prisma.user.update({
+        where: { email: 'tokenver@test.com' },
+        data: { tokenVersion: { increment: 1 } },
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/auth/refresh')
+        .send({ refresh_token })
+        .expect(401);
     });
   });
 
