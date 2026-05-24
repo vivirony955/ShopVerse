@@ -12,6 +12,7 @@ import {
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { FlashSalesService } from './flash-sales.service';
 import {
   CreateFlashSaleDto,
@@ -22,6 +23,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 
+@ApiTags('Flash Sales')
 @Controller('flash-sales')
 export class FlashSalesController {
   constructor(private readonly flashSalesService: FlashSalesService) {}

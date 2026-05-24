@@ -9,6 +9,7 @@ import {
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { CronLockService } from '../common/cron-lock.service';
+import { withCronMetric } from '../observability/cron-trace';
 import {
   CreateFlashSaleDto,
   UpdateFlashSaleDto,
@@ -121,27 +122,29 @@ export class FlashSalesService {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async syncStatuses() {
-    await this.cronLock.runExclusive(
-      'flash-sale-status-sync',
-      45_000,
-      async () => {
-        const now = new Date();
-        await this.prisma.flashSale.updateMany({
-          where: {
-            status: 'SCHEDULED',
-            startsAt: { lte: now },
-            endsAt: { gt: now },
-          },
-          data: { status: 'ACTIVE' },
-        });
-        await this.prisma.flashSale.updateMany({
-          where: {
-            status: { in: ['SCHEDULED', 'ACTIVE'] },
-            endsAt: { lte: now },
-          },
-          data: { status: 'ENDED' },
-        });
-      },
+    await withCronMetric('flash-sale-status-sync', () =>
+      this.cronLock.runExclusive(
+        'flash-sale-status-sync',
+        45_000,
+        async () => {
+          const now = new Date();
+          await this.prisma.flashSale.updateMany({
+            where: {
+              status: 'SCHEDULED',
+              startsAt: { lte: now },
+              endsAt: { gt: now },
+            },
+            data: { status: 'ACTIVE' },
+          });
+          await this.prisma.flashSale.updateMany({
+            where: {
+              status: { in: ['SCHEDULED', 'ACTIVE'] },
+              endsAt: { lte: now },
+            },
+            data: { status: 'ENDED' },
+          });
+        },
+      ),
     );
   }
 }

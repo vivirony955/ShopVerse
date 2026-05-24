@@ -17,6 +17,7 @@ import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles, Role } from '../auth/roles.decorator';
+import { ApiTags } from '@nestjs/swagger';
 import { CouponsService } from './coupons.service';
 import {
   ValidateCouponDto,
@@ -24,6 +25,7 @@ import {
   UpdateCouponDto,
 } from './dto/coupon.dto';
 
+@ApiTags('Coupons')
 @Controller('coupons')
 export class CouponsController {
   constructor(private readonly couponsService: CouponsService) {}

@@ -12,6 +12,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SupportService } from './support.service';
 import {
   AddNoteDto,
@@ -26,6 +27,8 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../common/types';
 import { TicketStatus } from '@prisma/client';
 
+@ApiTags('Support')
+@ApiBearerAuth('JWT')
 @Controller('support')
 @UseGuards(JwtAuthGuard)
 export class SupportController {

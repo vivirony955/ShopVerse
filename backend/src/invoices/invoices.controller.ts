@@ -11,10 +11,13 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthenticatedRequest } from '../common/types';
 
+@ApiTags('Invoices')
+@ApiBearerAuth('JWT')
 @Controller('invoices')
 @UseGuards(JwtAuthGuard)
 export class InvoicesController {

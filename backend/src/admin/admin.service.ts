@@ -13,6 +13,7 @@ import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { CronLockService } from '../common/cron-lock.service';
+import { withCronMetric } from '../observability/cron-trace';
 import { WalletService } from '../wallet/wallet.service';
 import { Prisma } from '@prisma/client';
 
@@ -109,17 +110,21 @@ export class AdminService {
 
   @Cron('0 9 * * *') // Daily at 9 AM
   async sendLowStockAlertEmail() {
-    // FINAL §9.4 R-010 / M-005: single-fire per tick across replicas.
-    await this.cronLock.runExclusive(
-      'low-stock-alert-daily',
-      30 * 60_000,
-      async () => {
-        const adminEmail = this.config.get<string>('SEED_ADMIN_EMAIL');
-        if (!adminEmail) return;
-        const variants = await this.getLowStockVariants(5);
-        if (variants.length === 0) return;
-        await this.emailService.sendLowStockAlert({ adminEmail, variants });
-      },
+    // A2 observability: tracedCron + metric, wrapping the existing
+    // distributed-lock body unchanged.
+    await withCronMetric('low-stock-alert-daily', () =>
+      // FINAL §9.4 R-010 / M-005: single-fire per tick across replicas.
+      this.cronLock.runExclusive(
+        'low-stock-alert-daily',
+        30 * 60_000,
+        async () => {
+          const adminEmail = this.config.get<string>('SEED_ADMIN_EMAIL');
+          if (!adminEmail) return;
+          const variants = await this.getLowStockVariants(5);
+          if (variants.length === 0) return;
+          await this.emailService.sendLowStockAlert({ adminEmail, variants });
+        },
+      ),
     );
   }
 

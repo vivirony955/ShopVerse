@@ -11,6 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AffiliateService } from './affiliate.service';
 import { CreateAffiliateDto, TrackAttributionDto } from './dto/affiliate.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -19,6 +20,8 @@ import { Role, Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../common/types';
 
+@ApiTags('Affiliate')
+@ApiBearerAuth('JWT')
 @Controller('affiliate')
 @UseGuards(JwtAuthGuard)
 export class AffiliateController {

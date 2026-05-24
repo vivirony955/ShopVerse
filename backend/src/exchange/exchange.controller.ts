@@ -11,6 +11,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ExchangeService } from './exchange.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -18,6 +19,8 @@ import { Roles, Role } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../common/types';
 
+@ApiTags('Exchange')
+@ApiBearerAuth('JWT')
 @Controller('exchange')
 @UseGuards(JwtAuthGuard)
 export class ExchangeController {

@@ -5,6 +5,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { CronLockService } from './cron-lock.service';
+import { withCronMetric } from '../observability/cron-trace';
 
 const ERROR_SPIKE_THRESHOLD = 50; // errors per 5 minutes = spike
 const SPIKE_WINDOW_MS = 5 * 60 * 1000;
@@ -81,12 +82,10 @@ export class ErrorTrackingService {
   /** Cron every 5 min: detect error spike and log a warn if threshold breached */
   @Cron('*/5 * * * *')
   async detectErrorSpike() {
-    // FINAL §9.4 R-010 / M-005: only one replica fires the alert per tick to avoid
-    // flooding PagerDuty/Slack with N copies of the same spike signal.
-    await this.cronLock.runExclusive(
-      'error-spike-detection',
-      4 * 60_000,
-      async () => {
+    await withCronMetric('error-spike-detection', () =>
+      // FINAL §9.4 R-010 / M-005: only one replica fires the alert per tick to avoid
+      // flooding PagerDuty/Slack with N copies of the same spike signal.
+      this.cronLock.runExclusive('error-spike-detection', 4 * 60_000, async () => {
         const since = new Date(Date.now() - SPIKE_WINDOW_MS);
         const count = await this.prisma.errorLog.count({
           where: { createdAt: { gte: since }, level: 'error' },
@@ -97,7 +96,7 @@ export class ErrorTrackingService {
           );
           // In production: send PagerDuty / Slack alert here
         }
-      },
+      }),
     );
   }
 }

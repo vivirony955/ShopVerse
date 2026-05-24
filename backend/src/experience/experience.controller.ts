@@ -12,6 +12,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ExperienceService } from './experience.service';
 import {
   AddGiftOptionDto,
@@ -24,6 +25,8 @@ import { Role, Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../common/types';
 
+@ApiTags('Experience')
+@ApiBearerAuth('JWT')
 @Controller('experience')
 @UseGuards(JwtAuthGuard)
 export class ExperienceController {

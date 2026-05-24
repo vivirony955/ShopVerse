@@ -14,12 +14,14 @@ import {
   Req,
   ParseIntPipe,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '../auth/roles.decorator';
 import { ReviewsService } from './reviews.service';
 import { AuthenticatedRequest } from '../common/types';
 import { CreateReviewDto, UpdateReviewDto } from './dto/review.dto';
 
+@ApiTags('Reviews')
 @Controller('reviews')
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}

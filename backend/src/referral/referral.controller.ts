@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ReferralService } from './referral.service';
 import { IsString } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -19,6 +20,8 @@ class ApplyReferralDto {
   @IsString() code: string;
 }
 
+@ApiTags('Referral')
+@ApiBearerAuth('JWT')
 @Controller('referral')
 @UseGuards(JwtAuthGuard)
 export class ReferralController {

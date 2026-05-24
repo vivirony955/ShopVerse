@@ -11,11 +11,14 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { PriceAlertsService } from './price-alerts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../common/types';
 
+@ApiTags('Price Alerts')
+@ApiBearerAuth('JWT')
 @Controller('price-alerts')
 @UseGuards(JwtAuthGuard)
 export class PriceAlertsController {

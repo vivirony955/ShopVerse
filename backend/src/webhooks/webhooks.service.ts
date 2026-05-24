@@ -9,6 +9,7 @@ import { createHmac, randomBytes } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronLockService } from '../common/cron-lock.service';
+import { withCronMetric } from '../observability/cron-trace';
 
 const MAX_ATTEMPTS = 5;
 const RETRY_DELAYS_MS = [30_000, 60_000, 300_000, 900_000, 3_600_000];
@@ -133,11 +134,10 @@ export class WebhooksService {
   /** Retry failed deliveries — runs every minute */
   @Cron(CronExpression.EVERY_MINUTE)
   async retryFailed() {
-    // FINAL §9.4 R-010 / M-005: prevent double-sending from concurrent replicas.
-    await this.cronLock.runExclusive(
-      'webhook-retry-failed',
-      55_000,
-      async () => {
+    // A2 observability: trace + metric the retry cycle.
+    await withCronMetric('webhook-retry-failed', () =>
+      // FINAL §9.4 R-010 / M-005: prevent double-sending from concurrent replicas.
+      this.cronLock.runExclusive('webhook-retry-failed', 55_000, async () => {
         const due = await this.prisma.webhookDelivery.findMany({
           where: {
             success: false,
@@ -167,7 +167,7 @@ export class WebhooksService {
 
         if (due.length > 0)
           this.logger.log(`Retried ${due.length} webhook deliveries`);
-      },
+      }),
     );
   }
 

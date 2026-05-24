@@ -11,10 +11,13 @@ import {
   Req,
   ParseIntPipe,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { WishlistService } from './wishlist.service';
 import { AuthenticatedRequest } from '../common/types';
 
+@ApiTags('Wishlist')
+@ApiBearerAuth('JWT')
 @Controller('wishlist')
 @UseGuards(JwtAuthGuard)
 export class WishlistController {

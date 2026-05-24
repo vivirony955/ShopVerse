@@ -29,7 +29,10 @@ const EMAIL_RX = /[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi;
 const INDIA_PHONE_RX = /\b[6-9]\d{9}\b/g;
 // Defence in depth: card numbers should never reach the backend (Stripe-hosted)
 // but if they ever do (e.g. via a misconfigured form), redact in transit.
-const CARD_RX = /\b(?:\d[ -]?){13,19}\b/g;
+// Pattern: 13–19 digits with optional space/dash separators, anchored on a
+// trailing digit (not a separator) so we don't swallow whitespace after the
+// match (e.g. "saw 4111 1111 1111 1111 in logs" → "saw [card] in logs").
+const CARD_RX = /\b\d(?:[ -]?\d){12,18}\b/g;
 
 const REDACTED = '[redacted]';
 

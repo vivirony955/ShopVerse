@@ -2,8 +2,10 @@
 // See LICENSE in the project root for license information.
 
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { PriceHistoryService } from './price-history.service';
 
+@ApiTags('Price History')
 @Controller('price-history')
 export class PriceHistoryController {
   constructor(private readonly svc: PriceHistoryService) {}

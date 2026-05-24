@@ -12,11 +12,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { VolumeDiscountsService } from './volume-discounts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles, Role } from '../auth/roles.decorator';
 
+@ApiTags('Volume Discounts')
 @Controller('volume-discounts')
 export class VolumeDiscountsController {
   constructor(private readonly svc: VolumeDiscountsService) {}

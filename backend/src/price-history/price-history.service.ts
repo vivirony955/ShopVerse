@@ -4,6 +4,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { withCronMetric } from '../observability/cron-trace';
 
 @Injectable()
 export class PriceHistoryService {
@@ -22,6 +23,10 @@ export class PriceHistoryService {
   // Daily snapshot — runs at midnight
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async snapshotPrices() {
+    await withCronMetric('price-history-snapshot', () => this.runSnapshot());
+  }
+
+  private async runSnapshot() {
     const products = await this.prisma.product.findMany({
       where: { isActive: true },
       select: { id: true, basePrice: true, discountPct: true },

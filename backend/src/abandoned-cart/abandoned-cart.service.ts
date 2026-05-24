@@ -6,6 +6,7 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { CronLockService } from '../common/cron-lock.service';
+import { withCronMetric } from '../observability/cron-trace';
 
 interface GuestSnapshotItem {
   variantId: number;
@@ -84,12 +85,10 @@ export class AbandonedCartService {
 
   @Cron('0 * * * *') // Every hour
   async sendReminders() {
-    // FINAL §9.4 R-010 / M-005: wrap cron body in distributed lock so only one backend
-    // instance sends reminders per tick, even in a multi-replica deployment.
-    await this.cronLock.runExclusive(
-      'abandoned-cart-reminders',
-      10 * 60_000,
-      async () => {
+    await withCronMetric('abandoned-cart-reminders', () =>
+      // FINAL §9.4 R-010 / M-005: wrap cron body in distributed lock so only one backend
+      // instance sends reminders per tick, even in a multi-replica deployment.
+      this.cronLock.runExclusive('abandoned-cart-reminders', 10 * 60_000, async () => {
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
         const records = await this.prisma.abandonedCart.findMany({
           where: { reminderSentAt: null, updatedAt: { lte: oneHourAgo } },
@@ -115,7 +114,7 @@ export class AbandonedCartService {
           });
           this.logger.log(`Sent abandoned cart reminder to ${email}`);
         }
-      },
+      }),
     );
   }
 }

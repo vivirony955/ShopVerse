@@ -5,6 +5,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { withCronMetric } from '../observability/cron-trace';
 
 @Injectable()
 export class PriceAlertsService {
@@ -51,6 +52,10 @@ export class PriceAlertsService {
   // Cron: check every hour if any alert should trigger
   @Cron(CronExpression.EVERY_HOUR)
   async checkAlerts() {
+    await withCronMetric('price-alerts-check', () => this.runCheck());
+  }
+
+  private async runCheck() {
     const activeAlerts = await this.prisma.priceAlert.findMany({
       where: { isTriggered: false },
       include: {

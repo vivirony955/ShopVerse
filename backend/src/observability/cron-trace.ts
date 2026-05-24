@@ -2,6 +2,7 @@
 // See LICENSE in the project root for license information.
 
 import { trace, SpanStatusCode, context } from '@opentelemetry/api';
+import { cronExecutionTotal } from './metrics';
 
 const CRON_TRACER_NAME = 'shopverse.cron';
 
@@ -42,6 +43,31 @@ export async function tracedCron<T>(
       throw err;
     } finally {
       span.end();
+    }
+  });
+}
+
+/**
+ * Convenience wrapper for the common cron pattern: trace + auto-record
+ * `shopverse_cron_executions_total{name,status}` with status=ok|error.
+ *
+ * Use this for simple crons that don't have multiple terminal states.
+ * For crons with custom statuses (skipped/violations/etc), call
+ * `tracedCron` directly and bump `cronExecutionTotal` yourself —
+ * see InvariantValidatorService.runValidator() for an example.
+ */
+export async function withCronMetric<T>(
+  name: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  return tracedCron(name, async () => {
+    try {
+      const result = await fn();
+      cronExecutionTotal.inc({ name, status: 'ok' });
+      return result;
+    } catch (err) {
+      cronExecutionTotal.inc({ name, status: 'error' });
+      throw err;
     }
   });
 }

@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { FraudService } from './fraud.service';
 import { AddBlacklistDto, FlagFraudDto, ResolveFlagDto } from './dto/fraud.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -20,6 +21,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 import { BlacklistType } from '@prisma/client';
 
+@ApiTags('Fraud')
+@ApiBearerAuth('JWT')
 @Controller('fraud')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)

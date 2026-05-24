@@ -16,6 +16,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { ErrorTrackingService } from '../common/error-tracking.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -23,6 +24,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 import { AuthenticatedRequest } from '../common/types';
 
+@ApiTags('Admin')
+@ApiBearerAuth('JWT')
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)

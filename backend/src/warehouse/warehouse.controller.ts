@@ -12,6 +12,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { WarehouseService } from './warehouse.service';
 import {
   CreateWarehouseDto,
@@ -23,6 +24,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 import { ShipmentStatus } from '@prisma/client';
 
+@ApiTags('Warehouse')
+@ApiBearerAuth('JWT')
 @Controller('warehouse')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)

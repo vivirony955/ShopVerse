@@ -10,6 +10,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { LegalService } from './legal.service';
 import { CookieConsentDto, CreatePolicyDto } from './dto/legal.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -19,6 +20,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { PolicyType } from '@prisma/client';
 import { AuthUser, AuthenticatedRequest } from '../common/types';
 
+@ApiTags('Legal')
 @Controller('legal')
 export class LegalController {
   constructor(private readonly svc: LegalService) {}

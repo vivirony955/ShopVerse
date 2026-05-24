@@ -10,11 +10,14 @@ import {
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../common/types';
 
+@ApiTags('Notifications')
+@ApiBearerAuth('JWT')
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {

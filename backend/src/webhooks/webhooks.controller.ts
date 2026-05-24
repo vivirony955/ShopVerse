@@ -12,12 +12,15 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { WebhooksService } from './webhooks.service';
 import { CreateEndpointDto, UpdateEndpointDto } from './dto/webhook.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 
+@ApiTags('Webhooks')
+@ApiBearerAuth('JWT')
 @Controller('webhooks')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)

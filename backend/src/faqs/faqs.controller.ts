@@ -12,12 +12,14 @@ import {
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { FaqsService } from './faqs.service';
 import { CreateFaqDto, UpdateFaqDto } from './dto/faq.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Role, Roles } from '../auth/roles.decorator';
 
+@ApiTags('FAQs')
 @Controller()
 export class FaqsController {
   constructor(private readonly faqsService: FaqsService) {}

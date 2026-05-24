@@ -13,6 +13,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CronLockService } from '../common/cron-lock.service';
 import { RedisService } from '../common/redis.service';
+import { withCronMetric } from '../observability/cron-trace';
 
 const RESERVATION_TTL_MS = 15 * 60 * 1000; // 15 minutes — FINAL §4.2
 const FLASH_RESERVATION_TTL_MS = 5 * 60 * 1000; // 5 minutes for flash-sale items
@@ -485,10 +486,11 @@ export class CartReservationService {
    */
   @Cron('*/1 * * * *')
   async expireOldReservations(): Promise<void> {
-    await this.cronLock.runExclusive(
-      'cart-reservation-expiry',
-      50_000,
-      async () => {
+    await withCronMetric('cart-reservation-expiry', () =>
+      this.cronLock.runExclusive(
+        'cart-reservation-expiry',
+        50_000,
+        async () => {
         // AUDIT A-3: snapshot + CTE MUST share one tx so `FOR UPDATE SKIP LOCKED`
         // locks persist across both statements. Without the surrounding tx, Prisma
         // autocommits each raw call and the row locks release immediately — making
@@ -579,7 +581,8 @@ export class CartReservationService {
             it.quantity,
           );
         }
-      },
+        },
+      ),
     );
   }
 }
