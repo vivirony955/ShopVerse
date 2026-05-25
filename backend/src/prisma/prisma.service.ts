@@ -3,6 +3,7 @@
 
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { recordPluginQuery } from '../common/plugin-context';
 
 @Injectable()
 export class PrismaService
@@ -10,6 +11,16 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   async onModuleInit() {
+    // Plan §5 rule #5 — per-context Prisma query counter (W1.T11).
+    // The middleware runs on EVERY operation; recordPluginQuery is a
+    // no-op when not inside a plugin context (kernel-originated query),
+    // and throws PluginQueryBudgetExceededError when a sync hook
+    // exceeds its 1-query budget. Letting the throw propagate aborts
+    // the offending Prisma call before it hits the DB.
+    this.$use(async (params, next) => {
+      recordPluginQuery();
+      return next(params);
+    });
     await this.$connect();
   }
 

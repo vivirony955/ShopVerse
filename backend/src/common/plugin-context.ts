@@ -31,6 +31,10 @@ import { trace } from '@opentelemetry/api';
 
 interface PluginFrame {
   readonly pluginId: string;
+  /** Plan §5 rule #5: max Prisma queries per sync hook invocation. */
+  readonly queryBudget: number;
+  /** Mutable — incremented by the Prisma middleware on every query. */
+  queryCount: number;
 }
 
 const pluginAls = new AsyncLocalStorage<PluginFrame>();
@@ -40,12 +44,18 @@ const pluginAls = new AsyncLocalStorage<PluginFrame>();
  * (if any) is tagged with `plugin.id`; Sentry's `beforeSend` reads the
  * ALS to tag events. Works for both sync and async `fn` because the
  * ALS frame survives async boundaries.
+ *
+ * `queryBudget` is the maximum number of Prisma queries the wrapped
+ * code is allowed to issue. Default `Infinity` (no budget — used when
+ * the plugin is doing async/event work outside the request hot path).
+ * HookRunner uses `1` per plan §5 rule #5 (sync hooks: 1 query max).
  */
 export function runInPluginContext<T>(
   pluginId: string,
   fn: () => T,
+  queryBudget: number = Number.POSITIVE_INFINITY,
 ): T {
-  return pluginAls.run({ pluginId }, () => {
+  return pluginAls.run({ pluginId, queryBudget, queryCount: 0 }, () => {
     const span = trace.getActiveSpan();
     if (span) {
       span.setAttribute('plugin.id', pluginId);
@@ -57,6 +67,41 @@ export function runInPluginContext<T>(
 /** Returns the current plugin id or null. */
 export function currentPluginId(): string | null {
   return pluginAls.getStore()?.pluginId ?? null;
+}
+
+/**
+ * Record one Prisma query for the active plugin frame. Returns silently
+ * if no frame (the query is kernel-originated, not plugin-originated).
+ * Throws `PluginQueryBudgetExceededError` when the frame's budget is
+ * blown — caller (Prisma middleware) lets the throw propagate so the
+ * offending plugin code receives it.
+ */
+export function recordPluginQuery(): void {
+  const frame = pluginAls.getStore();
+  if (!frame) return;
+  frame.queryCount += 1;
+  if (frame.queryCount > frame.queryBudget) {
+    throw new PluginQueryBudgetExceededError(
+      frame.pluginId,
+      frame.queryBudget,
+      frame.queryCount,
+    );
+  }
+}
+
+export class PluginQueryBudgetExceededError extends Error {
+  constructor(
+    public readonly pluginId: string,
+    public readonly budget: number,
+    public readonly count: number,
+  ) {
+    super(
+      `Plugin "${pluginId}" exceeded its query budget (${count} > ${budget}). ` +
+        `Plan §5 rule #5: sync hooks may issue at most one Prisma query per ` +
+        `invocation. Move heavy work to an async event consumer.`,
+    );
+    this.name = 'PluginQueryBudgetExceededError';
+  }
 }
 
 // ─── Per-plugin Sentry sample rate (E15) ────────────────────────────────────

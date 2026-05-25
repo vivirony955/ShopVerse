@@ -5,6 +5,8 @@ import {
   _resetPluginContextForTests,
   currentPluginId,
   getPluginSentryRate,
+  PluginQueryBudgetExceededError,
+  recordPluginQuery,
   runInPluginContext,
   setPluginSentryRate,
   shouldSendPluginEvent,
@@ -63,6 +65,80 @@ describe('plugin-context', () => {
       expect(() => setPluginSentryRate('p1', -0.1)).toThrow();
       expect(() => setPluginSentryRate('p1', 1.5)).toThrow();
       expect(() => setPluginSentryRate('p1', Number.NaN)).toThrow();
+    });
+  });
+
+  describe('recordPluginQuery (plan §5 rule #5)', () => {
+    it('is a no-op outside any plugin context', () => {
+      expect(() => recordPluginQuery()).not.toThrow();
+    });
+
+    it('counts queries inside a context, throws past budget', () => {
+      expect(() =>
+        runInPluginContext(
+          '@shopverse/foo',
+          () => {
+            recordPluginQuery();
+            recordPluginQuery();
+          },
+          1,
+        ),
+      ).toThrow(PluginQueryBudgetExceededError);
+    });
+
+    it('allows exactly budget queries', () => {
+      expect(() =>
+        runInPluginContext(
+          '@shopverse/foo',
+          () => {
+            recordPluginQuery();
+          },
+          1,
+        ),
+      ).not.toThrow();
+    });
+
+    it('budget of 3 allows 3 queries, blocks 4th', () => {
+      const fn = () =>
+        runInPluginContext(
+          '@shopverse/foo',
+          () => {
+            recordPluginQuery();
+            recordPluginQuery();
+            recordPluginQuery();
+            recordPluginQuery();
+          },
+          3,
+        );
+      expect(fn).toThrow(PluginQueryBudgetExceededError);
+    });
+
+    it('default budget = Infinity (no limit)', () => {
+      expect(() =>
+        runInPluginContext('@shopverse/foo', () => {
+          for (let i = 0; i < 100; i++) recordPluginQuery();
+        }),
+      ).not.toThrow();
+    });
+
+    it('error names the plugin + budget', () => {
+      try {
+        runInPluginContext(
+          '@shopverse/foo',
+          () => {
+            recordPluginQuery();
+            recordPluginQuery();
+          },
+          1,
+        );
+        fail('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(PluginQueryBudgetExceededError);
+        const e = err as PluginQueryBudgetExceededError;
+        expect(e.pluginId).toBe('@shopverse/foo');
+        expect(e.budget).toBe(1);
+        expect(e.count).toBe(2);
+      }
     });
   });
 

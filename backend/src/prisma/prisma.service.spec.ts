@@ -9,9 +9,13 @@ jest.mock('@prisma/client', () => ({
   PrismaClient: jest.fn().mockImplementation(function (this: {
     $connect: jest.Mock;
     $disconnect: jest.Mock;
+    $use: jest.Mock;
   }) {
     this.$connect = jest.fn().mockResolvedValue(undefined);
     this.$disconnect = jest.fn().mockResolvedValue(undefined);
+    // W1.T11 — PrismaService.onModuleInit registers a $use middleware
+    // for the per-context query counter. The mock returns void to match.
+    this.$use = jest.fn();
   }),
 }));
 
@@ -44,5 +48,15 @@ describe('PrismaService', () => {
       .mockResolvedValue(undefined);
     await service.onModuleInit();
     expect(connectSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('registers the plugin-context query counter middleware', async () => {
+    const useSpy = jest.spyOn(
+      service as unknown as { $use: (fn: unknown) => void },
+      '$use',
+    );
+    await service.onModuleInit();
+    expect(useSpy).toHaveBeenCalledTimes(1);
+    expect(typeof useSpy.mock.calls[0][0]).toBe('function');
   });
 });

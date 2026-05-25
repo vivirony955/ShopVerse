@@ -1,0 +1,53 @@
+{
+  "name": "@shopverse/eslint-plugin-shopverse",
+  "version": "0.1.0-alpha.1",
+  "description": "ESLint rules enforcing the ShopVerse plugin contract — no hook handlers inside Prisma $transaction, mandatory route prefix, mandatory user.beforeDelete handler for plugins owning user-linked data.",
+  "license": "Elastic-2.0",
+  "author": "Vivek Negi <vivironycrazy@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/aiexperts/ecommWeb.git",
+    "directory": "packages/eslint-plugin-shopverse"
+  },
+  "homepage": "https://gitlab.com/aiexperts/ecommWeb/-/tree/main/packages/eslint-plugin-shopverse",
+  "bugs": {
+    "url": "https://gitlab.com/aiexperts/ecommWeb/-/issues"
+  },
+  "keywords": [
+    "shopverse",
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "jest"
+  },
+  "peerDependencies": {
+    "eslint": ">=8.0.0"
+  },
+  "dependencies": {
+    "@typescript-eslint/utils": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.7",
+    "@typescript-eslint/rule-tester": "^8.20.0",
+    "eslint": "^9.18.0",
+    "jest": "^29.7.0",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

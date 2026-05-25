@@ -190,13 +190,19 @@ export class HookRunner {
       try {
         // Race handler against budget, attributed to its plugin via ALS
         // so OTel spans + Sentry events tag with `plugin.id` correctly.
-        const result = (await runInPluginContext(reg.pluginId, () =>
-          Promise.race([
-            (reg.handler as (
-              c: Parameters<HookHandlerMap[H]>[0],
-            ) => Promise<void | RejectReason>)(ctx),
-            this.timeoutAfter(budgetMs),
-          ]),
+        // Query budget of 1 enforces plan §5 rule #5 — sync hooks may
+        // issue at most ONE Prisma query per invocation. The Prisma
+        // middleware in PrismaService counts queries and throws past 1.
+        const result = (await runInPluginContext(
+          reg.pluginId,
+          () =>
+            Promise.race([
+              (reg.handler as (
+                c: Parameters<HookHandlerMap[H]>[0],
+              ) => Promise<void | RejectReason>)(ctx),
+              this.timeoutAfter(budgetMs),
+            ]),
+          1,
         )) as void | RejectReason | typeof TIMEOUT;
 
         if (result === TIMEOUT) {
