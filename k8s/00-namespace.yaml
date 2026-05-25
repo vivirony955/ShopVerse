@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE}
+  labels:
+    app.kubernetes.io/name: shopverse
+    app.kubernetes.io/instance: shopverse
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shopverse
+  namespace: ${NAMESPACE}
+  labels:
+    app.kubernetes.io/name: shopverse
+    app.kubernetes.io/instance: shopverse

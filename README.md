@@ -387,22 +387,60 @@ Tests run against a real PostgreSQL database — no mocks for DB queries. Redis 
 
 ## Deployment
 
-```bash
-# Docker Compose (backend + frontend + postgres + redis)
-docker compose up -d
+Four supported deployment targets, picked by where you are in the
+scale + ops-complexity spectrum:
 
-# Apply migrations
+| Target | Best for | Time-to-first-request | Doc |
+|---|---|---|---|
+| **Docker Compose** | Local dev, single-VM prod, demos | 2–5 min | [`docker-compose.yml`](docker-compose.yml) |
+| **Ansible** | Single-VM production on rented hardware | 15–30 min | [`ansible/`](ansible/) |
+| **Helm (Kubernetes)** | Multi-pod production, GitOps, autoscale | 30 min first time | [`docs/deployment/helm.md`](docs/deployment/helm.md) |
+| **Raw K8s manifests** | Learning K8s, GitOps without Helm | 30 min | [`docs/deployment/kubernetes.md`](docs/deployment/kubernetes.md) |
+
+### Quick start — Docker Compose
+
+```bash
+docker compose up -d
 docker exec shopverse-backend npx prisma migrate deploy --schema=../prisma/schema.prisma
 ```
 
-Production checklist (see [MASTER_TRACKER.md](MASTER_TRACKER.md) §4):
+### Quick start — Helm
+
+```bash
+helm install shopverse ./helm/shopverse \
+  --namespace shopverse --create-namespace \
+  --values helm/shopverse/values.production.example.yaml
+```
+
+### Worker process split (production)
+
+By default the API container also runs the BullMQ consumers — simplest
+deployment, no extra moving parts. For production at scale, split workers
+into their own pods so they scale independently of the API:
+
+- **Docker Compose:** uncomment the `worker` service block in
+  `docker-compose.yml` and set `DISABLE_WORKERS=true` on the backend.
+- **Helm:** set `workers.enabled: true` (backend gets `DISABLE_WORKERS`
+  automatically).
+- **Raw K8s:** the manifests in `k8s/` ship the split topology by default.
+
+### Production checklist
+
 - Set `NODE_ENV=production`
 - Set `CORS_ORIGIN` to your domain
-- Enable HTTPS (nginx or cloud LB)
+- Enable HTTPS (Ingress + cert-manager, or nginx/cloud LB)
 - Set Redis password (`requirepass`)
 - Set `connection_limit=30` in `DATABASE_URL`
 - Revoke `CREATE ON SCHEMA public` from DB app user
-- Configure `STRIPE_WEBHOOK_SECRET` from Stripe Dashboard
+- Configure `STRIPE_WEBHOOK_SECRET` from the Stripe Dashboard
+- Wire observability env vars (`SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT`,
+  `METRICS_BASIC_AUTH`) — see [QUICKSTART.md](QUICKSTART.md#observability-optional)
+
+### Load testing
+
+[`bench/`](bench/) ships k6 scripts for the 5 hottest endpoints (products
+list, cart add, order place, wallet credit, order detail). Operator-run
+against a deployment, not CI-gated — see [`bench/README.md`](bench/README.md).
 
 ---
 

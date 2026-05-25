@@ -1,0 +1,41 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{{ .Chart.Name }} {{ .Chart.AppVersion }} installed in namespace {{ .Release.Namespace }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Components:
+  backend:  {{ .Values.backend.replicaCount }} replicas{{ if .Values.autoscaling.backend.enabled }} (HPA {{ .Values.autoscaling.backend.minReplicas }}–{{ .Values.autoscaling.backend.maxReplicas }}){{ end }}
+  worker:   {{ if .Values.workers.enabled }}{{ .Values.workers.replicaCount }} replicas — split mode (backend.DISABLE_WORKERS=true){{ else }}DISABLED — backend pod runs its own BullMQ consumers{{ end }}
+  frontend: {{ if .Values.frontend.enabled }}{{ .Values.frontend.replicaCount }} replicas{{ else }}DISABLED{{ end }}
+
+{{- if .Values.ingress.enabled }}
+
+Ingress:
+  https://{{ .Values.ingress.host }}/        → frontend
+  https://{{ .Values.ingress.host }}/api     → backend
+{{- else }}
+
+Ingress is DISABLED — access the services via port-forward:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "shopverse.fullname" . }}-backend 4000:{{ .Values.backend.service.port }}
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "shopverse.fullname" . }}-frontend 3000:{{ .Values.frontend.service.port }}
+{{- end }}
+
+{{- if .Values.migrations.enabled }}
+
+Migrations:
+  A pre-install/pre-upgrade Job ran `prisma migrate deploy`. Check status:
+    kubectl get jobs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=migration
+{{- end }}
+
+Next steps:
+  1. Verify pods are healthy:
+       kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+  2. Tail the backend logs:
+       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=backend -f
+  3. Hit the health endpoint:
+       kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "shopverse.fullname" . }}-backend -- wget -qO- http://localhost:{{ .Values.backend.containerPort }}/api/health
+{{- if and .Values.workers.enabled }}
+  4. Tail worker logs:
+       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=worker -f
+{{- end }}
+
+Docs: https://gitlab.com/aiexperts/ecommWeb/-/blob/main/docs/deployment/helm.md

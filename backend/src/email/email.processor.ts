@@ -3,7 +3,7 @@
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { Logger } from '@nestjs/common';
+import { Logger, OnApplicationBootstrap } from '@nestjs/common';
 import {
   context,
   propagation,
@@ -34,11 +34,40 @@ export interface EmailJobData {
 }
 
 @Processor('email')
-export class EmailProcessor extends WorkerHost {
+export class EmailProcessor
+  extends WorkerHost
+  implements OnApplicationBootstrap
+{
   private readonly logger = new Logger(EmailProcessor.name);
 
   constructor(private readonly emailService: EmailService) {
     super();
+  }
+
+  /**
+   * A3 worker-split contract:
+   *
+   * When `DISABLE_WORKERS=true` is set on a process (typically the API in a
+   * split deployment where dedicated worker pods take over consumption),
+   * the underlying BullMQ Worker is paused immediately on bootstrap.
+   *
+   * Pausing keeps the Redis connection open (so the producer side of the
+   * queue — `emailQueue.add()` — continues to work from the same process)
+   * but prevents this instance from picking up jobs. Dedicated worker
+   * pods (running without the flag) handle the actual processing.
+   *
+   * Default behaviour (flag unset): processor runs normally. Single-pod
+   * docker-compose deployments work identically to pre-A3.
+   */
+  onApplicationBootstrap(): void {
+    if (process.env.DISABLE_WORKERS !== 'true') return;
+    // WorkerHost exposes the underlying bullmq Worker via `this.worker`.
+    // pause(true) waits for in-flight jobs to finish; passing nothing
+    // would close them mid-flight.
+    void this.worker.pause();
+    this.logger.warn(
+      'DISABLE_WORKERS=true — email processor paused; producer-side enqueue still functions',
+    );
   }
 
   async process(job: Job<EmailJobData>): Promise<void> {

@@ -1,0 +1,227 @@
+# Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+# Default values for the ShopVerse Helm chart.
+# This file is read for documentation and used as the base for overrides.
+
+# ─── Image config ────────────────────────────────────────────────────────────
+image:
+  # Backend image — same image runs both API and (optionally) worker, just
+  # with different command. The frontend uses its own image.
+  backend:
+    repository: registry.gitlab.com/aiexperts/ecommweb/backend
+    tag: ""          # defaults to .Chart.AppVersion when empty
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: registry.gitlab.com/aiexperts/ecommweb/frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+# Example:
+# imagePullSecrets:
+#   - name: gitlab-registry-pull
+
+# ─── Common ──────────────────────────────────────────────────────────────────
+nameOverride: ""
+fullnameOverride: ""
+podAnnotations: {}
+podSecurityContext:
+  runAsNonRoot: true
+securityContext:
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# ─── Backend (HTTP API) ──────────────────────────────────────────────────────
+backend:
+  enabled: true
+  replicaCount: 2
+  # When workers are split into their own deployment (workers.enabled=true),
+  # the backend automatically gets DISABLE_WORKERS=true so its BullMQ worker
+  # pauses (queue producer keeps working).
+  containerPort: 3001
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  # Extra env vars to merge in (e.g. feature flags). Secrets go via .Values.secrets.
+  extraEnv: []
+  #  - name: FEATURE_X_ENABLED
+  #    value: "true"
+
+# ─── Worker (BullMQ consumers) ───────────────────────────────────────────────
+workers:
+  # Default off — for small deployments, the backend pod handles both HTTP
+  # and queue processing in a single container. Flip to true when you need
+  # to scale workers independently (typically at > 1k orders / day).
+  enabled: false
+  replicaCount: 1
+  containerPort: 9091     # health + Prometheus metrics port
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: worker-http
+    initialDelaySeconds: 20
+    periodSeconds: 30
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: worker-http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# ─── Frontend (Next.js) ──────────────────────────────────────────────────────
+frontend:
+  enabled: true
+  replicaCount: 2
+  containerPort: 3000
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 30
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  # Required at build time, baked into the JS bundle.
+  publicBackendUrl: ""    # e.g. "https://shopverse.example.com"
+
+# ─── Ingress ─────────────────────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  #   cert-manager.io/cluster-issuer: letsencrypt-prod
+  #   nginx.ingress.kubernetes.io/proxy-body-size: 100k
+  host: shopverse.example.com
+  # The chart maps /api to backend service and / to frontend service.
+  tls:
+    enabled: false
+    secretName: shopverse-tls
+
+# ─── Autoscaling ─────────────────────────────────────────────────────────────
+autoscaling:
+  backend:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  worker:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# ─── Migration Job ───────────────────────────────────────────────────────────
+# Runs `prisma migrate deploy` as a Helm pre-install + pre-upgrade hook.
+# Disable only if you handle migrations out-of-band (e.g. dedicated DBA process).
+migrations:
+  enabled: true
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 600
+
+# ─── ConfigMap (non-secret env) ──────────────────────────────────────────────
+config:
+  NODE_ENV: production
+  # CORS allowlist — comma-separated. Required in production.
+  CORS_ORIGIN: ""
+  # Optional observability targets (off by default).
+  # OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+  # OTEL_TRACES_SAMPLER_ARG: "0.1"
+  # SENTRY_ENVIRONMENT: "production"
+
+# ─── Secrets ─────────────────────────────────────────────────────────────────
+# Three options for secret management:
+#   1. Set values inline here (NOT recommended — values.yaml ends up in git).
+#   2. `helm install --set-string secrets.JWT_SECRET=...` at install time.
+#   3. (recommended) Set secrets.external=true and create the K8s Secret
+#      yourself (e.g. via SealedSecrets, ExternalSecrets operator, or
+#      Vault Agent injector). See helm/shopverse/README.md.
+secrets:
+  external: false
+  # Name of the externally-managed Secret resource (when external=true).
+  existingSecretName: shopverse-secrets
+  # Required keys (sourced from the Secret resource):
+  #   DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET,
+  #   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+  #   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM,
+  #   REDIS_URL,
+  #   SENTRY_DSN (optional),
+  #   METRICS_BASIC_AUTH (optional), SWAGGER_USER (optional), SWAGGER_PASS (optional)
+  DATABASE_URL: ""
+  JWT_SECRET: ""
+  JWT_REFRESH_SECRET: ""
+  STRIPE_SECRET_KEY: ""
+  STRIPE_WEBHOOK_SECRET: ""
+  SMTP_HOST: ""
+  SMTP_PORT: "465"
+  SMTP_USER: ""
+  SMTP_PASS: ""
+  SMTP_FROM: ""
+  REDIS_URL: ""
+  SENTRY_DSN: ""
+  METRICS_BASIC_AUTH: ""
+  SWAGGER_USER: ""
+  SWAGGER_PASS: ""
+
+# ─── NetworkPolicy ───────────────────────────────────────────────────────────
+networkPolicy:
+  enabled: false
+  # When enabled, traffic is restricted:
+  #   - Frontend pods accept from Ingress only
+  #   - Backend pods accept from Frontend + Ingress + (worker scrape)
+  #   - Worker pods accept from kube-system probes only
+  #   - All pods can egress to Postgres + Redis + Stripe + SMTP

@@ -1,0 +1,14 @@
+{{- if and .Values.backend.enabled .Values.backend.podDisruptionBudget.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "shopverse.fullname" . }}-backend
+  labels:
+    {{- include "shopverse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  minAvailable: {{ .Values.backend.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "shopverse.backendSelectorLabels" . | nindent 6 }}
+{{- end }}

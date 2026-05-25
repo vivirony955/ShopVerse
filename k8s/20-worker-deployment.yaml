@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopverse-worker
+  namespace: ${NAMESPACE}
+  labels:
+    app.kubernetes.io/name: shopverse
+    app.kubernetes.io/instance: shopverse
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: shopverse
+      app.kubernetes.io/instance: shopverse
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: shopverse
+        app.kubernetes.io/instance: shopverse
+        app.kubernetes.io/component: worker
+    spec:
+      serviceAccountName: shopverse
+      securityContext:
+        runAsNonRoot: true
+      # Workers shouldn't be SIGKILLed mid-job. Allow 60s for BullMQ to drain.
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: worker
+          # Same image as backend, different entrypoint.
+          image: ${BACKEND_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args: ["cd backend && node dist/worker"]
+          ports:
+            - name: worker-http
+              containerPort: 9091
+              protocol: TCP
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: shopverse-worker
+            - name: WORKER_HEALTH_PORT
+              value: "9091"
+          envFrom:
+            - configMapRef:
+                name: shopverse-config
+            - secretRef:
+                name: shopverse-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: worker-http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: worker-http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

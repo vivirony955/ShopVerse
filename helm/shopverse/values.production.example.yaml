@@ -1,0 +1,105 @@
+# Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+#
+# Annotated example values file for a production ShopVerse deployment.
+# Copy → edit → use:
+#   helm install shopverse ./helm/shopverse \
+#     --namespace shopverse --create-namespace \
+#     --values prod.yaml
+
+image:
+  backend:
+    repository: registry.gitlab.com/aiexperts/ecommweb/backend
+    tag: "v0.1.0"               # pin to a specific release for repeatable rollouts
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: registry.gitlab.com/aiexperts/ecommweb/frontend
+    tag: "v0.1.0"
+    pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: gitlab-registry-pull
+
+# ─── Backend ─────────────────────────────────────────────────────────────────
+backend:
+  enabled: true
+  replicaCount: 3              # autoscaler will adjust
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { cpu: 2,    memory: 2Gi }
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2            # keep at least 2 alive during voluntary disruption
+
+# ─── Workers (split mode for production) ────────────────────────────────────
+workers:
+  enabled: true                # → backend pod automatically gets DISABLE_WORKERS=true
+  replicaCount: 2
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits:   { cpu: 1,    memory: 1Gi }
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# ─── Frontend ────────────────────────────────────────────────────────────────
+frontend:
+  enabled: true
+  replicaCount: 2
+  resources:
+    requests: { cpu: 200m, memory: 512Mi }
+    limits:   { cpu: 1,    memory: 1Gi }
+  publicBackendUrl: "https://shopverse.example.com"
+
+# ─── Ingress ─────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 100k
+    nginx.ingress.kubernetes.io/rate-limit-rps: "100"
+  host: shopverse.example.com
+  tls:
+    enabled: true
+    secretName: shopverse-tls
+
+# ─── Autoscaling ─────────────────────────────────────────────────────────────
+autoscaling:
+  backend:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  worker:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+# ─── ConfigMap (non-secret env) ──────────────────────────────────────────────
+config:
+  NODE_ENV: production
+  CORS_ORIGIN: "https://shopverse.example.com"
+  # Observability — point at your collector.
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability:4318"
+  OTEL_TRACES_SAMPLER_ARG: "0.1"
+  SENTRY_ENVIRONMENT: production
+
+# ─── Secrets ─────────────────────────────────────────────────────────────────
+# Use external secret management in production. Create the Secret separately
+# (e.g. via ExternalSecrets pulling from AWS Secrets Manager) and point the
+# chart at it by name.
+secrets:
+  external: true
+  existingSecretName: shopverse-prod-secrets
+
+# ─── NetworkPolicy ───────────────────────────────────────────────────────────
+networkPolicy:
+  enabled: true                # requires a CNI that enforces NetworkPolicy
+
+# ─── Migrations ──────────────────────────────────────────────────────────────
+migrations:
+  enabled: true
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 3600

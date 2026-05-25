@@ -1,0 +1,28 @@
+apiVersion: v2
+name: shopverse
+description: |
+  ShopVerse — multi-warehouse ecommerce platform for India.
+  Source-available under the Elastic License 2.0.
+  See https://gitlab.com/aiexperts/ecommWeb for repo, docs, and CHANGELOG.
+type: application
+# Chart version follows its own SemVer (independent of app version).
+# Bump on chart template changes even if appVersion didn't move.
+version: 0.1.0
+# appVersion follows the ShopVerse release tag.
+appVersion: "0.1.0"
+keywords:
+  - ecommerce
+  - nestjs
+  - nextjs
+  - prisma
+  - multi-warehouse
+  - india
+home: https://gitlab.com/aiexperts/ecommWeb
+sources:
+  - https://gitlab.com/aiexperts/ecommWeb
+maintainers:
+  - name: Vivek Negi
+    email: vivironycrazy@gmail.com
+annotations:
+  # ELv2 is not in the OSI list — SPDX expression used here.
+  artifacthub.io/license: "Elastic-2.0"

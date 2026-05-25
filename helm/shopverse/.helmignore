@@ -1,0 +1,16 @@
+# Patterns to ignore when packaging the chart.
+.git/
+.gitignore
+.DS_Store
+*.tmproj
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+.idea/
+.vscode/
+# Test fixtures and dev-only files
+tests/
+ci/
+README.md.bak

@@ -122,6 +122,59 @@ jobs:
           path: shopverse-sbom.cyclonedx.json
           retention-days: 90
 
+  helm-lint:
+    # A3: validate the Helm chart on every PR. Renders default + production
+    # example values and pipes through `kubectl --dry-run=client` to catch
+    # invalid K8s manifests AND template errors in one shot. Fast (<30s).
+    name: Helm chart lint + render
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.30.0
+      - name: helm lint
+        run: helm lint helm/shopverse
+      - name: helm template (defaults)
+        run: helm template shopverse helm/shopverse | kubectl apply --dry-run=client -f -
+      - name: helm template (production example)
+        run: |
+          helm template shopverse helm/shopverse \
+            --values helm/shopverse/values.production.example.yaml \
+            --set image.backend.tag=test \
+            --set image.frontend.tag=test \
+            | kubectl apply --dry-run=client -f -
+
+  k8s-validate:
+    # A3: validate the raw K8s manifests render cleanly with envsubst.
+    name: K8s raw manifests dry-run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.30.0
+      - name: kubectl apply --dry-run=client
+        env:
+          NAMESPACE: shopverse
+          BACKEND_IMAGE: registry.example.com/shopverse/backend:test
+          FRONTEND_IMAGE: registry.example.com/shopverse/frontend:test
+          INGRESS_HOST: shopverse.example.com
+        run: |
+          for f in k8s/*.yaml; do
+            envsubst < "$f" | kubectl apply --dry-run=client -f -
+          done
+
   sentry-release:
     # A2 observability: upload source maps + create Sentry release on main
     # so production stack traces map back to original TypeScript. Skipped

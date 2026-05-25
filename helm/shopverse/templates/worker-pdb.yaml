@@ -1,0 +1,14 @@
+{{- if and .Values.workers.enabled .Values.workers.podDisruptionBudget.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "shopverse.fullname" . }}-worker
+  labels:
+    {{- include "shopverse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  minAvailable: {{ .Values.workers.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "shopverse.workerSelectorLabels" . | nindent 6 }}
+{{- end }}

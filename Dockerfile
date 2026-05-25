@@ -42,6 +42,12 @@ COPY --from=builder /app/backend/node_modules/.prisma ./backend/node_modules/.pr
 COPY --from=builder /app/backend/dist ./backend/dist
 
 EXPOSE 3001
+# A3: worker process exposes health + metrics on 9091 (only used when this
+# image is launched with the worker entrypoint via `command:`).
+EXPOSE 9091
 
-# Run migrations then start
+# Default: run as API (HTTP server). Workers override the command at deploy
+# time: `command: ["node", "dist/worker"]` in docker-compose / k8s.
+# Migrations are run by the API on boot for single-pod compose deployments;
+# in K8s the Helm chart runs them as a pre-install Job instead.
 CMD ["sh", "-c", "cd backend && npx prisma migrate deploy --schema=../prisma/schema.prisma && node dist/main"]

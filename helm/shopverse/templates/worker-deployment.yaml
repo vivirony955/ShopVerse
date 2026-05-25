@@ -1,0 +1,72 @@
+{{- if .Values.workers.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "shopverse.fullname" . }}-worker
+  labels:
+    {{- include "shopverse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  {{- if not .Values.autoscaling.worker.enabled }}
+  replicas: {{ .Values.workers.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "shopverse.workerSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "shopverse.workerSelectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "shopverse.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # Workers shouldn't be terminated mid-job by SIGTERM hammering. Give them
+      # 60s to drain BullMQ in-flight jobs before SIGKILL.
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: worker
+          image: {{ include "shopverse.backendImage" . }}
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          # Same image as backend, different entrypoint.
+          command: ["sh", "-c"]
+          args:
+            - "cd backend && node dist/worker"
+          ports:
+            - name: worker-http
+              containerPort: {{ .Values.workers.containerPort }}
+              protocol: TCP
+          env:
+            # Worker process never serves the API — no DISABLE_WORKERS here.
+            - name: OTEL_SERVICE_NAME
+              value: shopverse-worker
+            - name: WORKER_HEALTH_PORT
+              value: {{ .Values.workers.containerPort | quote }}
+          {{- include "shopverse.commonEnv" . | nindent 10 }}
+          {{- with .Values.workers.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.workers.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.workers.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

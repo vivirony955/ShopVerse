@@ -236,6 +236,60 @@ through to the matching trace in Jaeger/Tempo.
 
 ---
 
+## Production deployment
+
+For deployments beyond a single VM, ShopVerse ships two Kubernetes-native
+paths. Both pull the same backend image and run the same binary; only the
+deployment shape differs.
+
+### Helm (recommended for production)
+
+The chart at [`helm/shopverse/`](helm/shopverse/) renders backend Deployment,
+optional worker Deployment, frontend Deployment, Services, optional Ingress,
+HPAs, PDBs, ConfigMap, Secret (or external Secret reference), and a
+pre-install/pre-upgrade Job that runs `prisma migrate deploy`.
+
+```bash
+helm install shopverse ./helm/shopverse \
+  --namespace shopverse --create-namespace \
+  --values helm/shopverse/values.production.example.yaml
+```
+
+Full guide: [`docs/deployment/helm.md`](docs/deployment/helm.md).
+
+### Raw Kubernetes manifests
+
+For operators who prefer plain `kubectl apply -f` (GitOps with Flux/ArgoCD,
+learning K8s, single-cluster prototypes), the same shape is at
+[`k8s/`](k8s/) with `envsubst`-friendly placeholders. Full guide:
+[`docs/deployment/kubernetes.md`](docs/deployment/kubernetes.md).
+
+### Worker process split
+
+By default the API container runs both the HTTP server AND the BullMQ
+consumers — simplest deployment, no extra moving parts. At scale you'll
+want to split them into separate pods so workers scale independently:
+
+- **Helm:** set `workers.enabled: true` — backend pod gets `DISABLE_WORKERS=true`
+  automatically.
+- **Docker Compose:** uncomment the `worker` block in `docker-compose.yml`
+  and set `DISABLE_WORKERS=true` on the backend service.
+- **Raw K8s:** the manifests in `k8s/` ship the split topology by default.
+
+### Load tests
+
+```bash
+# Run the k6 bench against a local dev server:
+cd bench && ./run-all.sh
+
+# Or a single scenario:
+k6 run bench/01-products-list.js
+```
+
+See [`bench/README.md`](bench/README.md) for baselines + interpretation.
+
+---
+
 ## Next Steps
 
 - [ARCHITECTURE.md](SYSTEM_DESIGN_FINAL.md) — Full system design (state machines, invariants, data model)

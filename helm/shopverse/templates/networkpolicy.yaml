@@ -1,0 +1,60 @@
+{{- if .Values.networkPolicy.enabled -}}
+{{/*
+NetworkPolicy templates — restrict traffic to least-privilege paths.
+Requires a CNI that enforces NetworkPolicy (Calico, Cilium, kube-router,
+Azure-CNI in network-policy mode).
+
+This is intentionally conservative:
+  - Frontend pods accept ingress from anywhere (egress-from-ingress-controller).
+  - Backend pods accept ingress from the frontend + ingress controller only.
+  - Worker pods accept NOTHING inbound (the in-process /health endpoint is
+    reachable only by kubelet probes via the local node, which bypasses
+    NetworkPolicy).
+  - Egress is unrestricted by default (operators should layer on a stricter
+    egress NetworkPolicy after validating their DB/Redis/Stripe IPs).
+*/}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "shopverse.fullname" . }}-backend
+  labels:
+    {{- include "shopverse.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "shopverse.backendSelectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "shopverse.frontendSelectorLabels" . | nindent 14 }}
+        # Ingress controller (assumes ingress-nginx default labels — adjust per controller)
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: {{ .Values.backend.containerPort }}
+          protocol: TCP
+---
+{{- if .Values.workers.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "shopverse.fullname" . }}-worker
+  labels:
+    {{- include "shopverse.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "shopverse.workerSelectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  # Empty ingress → deny all inbound. Kubelet probes still reach via local
+  # node bypass (this is standard NetworkPolicy semantics).
+  ingress: []
+---
+{{- end }}
+{{- end }}

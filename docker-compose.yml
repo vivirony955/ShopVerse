@@ -87,6 +87,54 @@ services:
     networks:
       - shopverse
 
+  # ─── WORKER (optional, A3) ─────────────────────────────────────────────────
+  # By default the `backend` service above runs both the HTTP API AND the
+  # BullMQ consumers in the same process — simplest deployment, matches
+  # what the 709-test integration suite covers.
+  #
+  # To split workers into a dedicated container (for resource isolation /
+  # independent scaling — useful at >1k orders/day):
+  #   1. Uncomment the `worker` block below.
+  #   2. Add `DISABLE_WORKERS: "true"` to the `backend.environment` block.
+  #   3. `docker compose up -d`
+  #
+  # Both processes share the same image — only the `command:` differs. They
+  # talk to the same Redis so the API can enqueue and the worker can process.
+  #
+  # worker:
+  #   image: ${CI_REGISTRY_IMAGE:-shopverse}/backend:${BACKEND_TAG:-latest}
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: shopverse-worker
+  #   restart: unless-stopped
+  #   command: ["sh", "-c", "cd backend && node dist/worker"]
+  #   environment:
+  #     NODE_ENV: ${NODE_ENV:-production}
+  #     DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shopverse}?connection_limit=10
+  #     REDIS_URL: redis://redis:6379
+  #     JWT_SECRET: ${JWT_SECRET}
+  #     STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+  #     STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+  #     SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
+  #     SMTP_PORT: ${SMTP_PORT:-465}
+  #     SMTP_USER: ${SMTP_USER:-resend}
+  #     SMTP_PASS: ${SMTP_PASS}
+  #     SMTP_FROM: ${SMTP_FROM:-noreply@shopverse.dev}
+  #     OTEL_SERVICE_NAME: shopverse-worker
+  #     WORKER_HEALTH_PORT: "9091"
+  #   depends_on:
+  #     postgres: { condition: service_healthy }
+  #     redis:    { condition: service_healthy }
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "wget -qO- http://localhost:9091/health || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   networks:
+  #     - shopverse
+
   # ─── FRONTEND ──────────────────────────────────────────────────────────────
   frontend:
     image: ${CI_REGISTRY_IMAGE:-shopverse}/frontend:${FRONTEND_TAG:-latest}

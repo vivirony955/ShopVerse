@@ -14,6 +14,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- A2 observability stack: OpenAPI/Swagger UI at `/api/docs`,
+  OpenTelemetry tracing + Sentry error capture + Prometheus `/api/metrics`,
+  shared PII scrubber across Sentry + OTel attributes, BullMQ trace-context
+  propagation, log↔trace correlation via `trace_id`/`span_id`, tracedCron
+  wrapper + `shopverse_cron_executions_total` for all 15 cron handlers
+- A3 deployment topology:
+  - Worker process split: `backend/src/worker.ts` + `worker.module.ts`;
+    `DISABLE_WORKERS=true` env flag pauses BullMQ consumers on the API
+    while keeping the producer side functional. Same image, different
+    `command:` — no image drift.
+  - Helm chart at `helm/shopverse/`: backend Deployment, optional worker
+    Deployment, frontend Deployment, Services, Ingress, HPAs, PDBs,
+    NetworkPolicies, ConfigMap, Secret (or external Secret reference),
+    pre-install/pre-upgrade migration Job, NOTES.txt, production example
+    values, full chart README
+  - Raw K8s manifests at `k8s/`: same shape as Helm, `envsubst`-friendly,
+    documented apply order
+  - k6 load tests at `bench/`: 5 hot endpoints (products list, cart add,
+    order place, wallet credit, order detail) + shared auth/thresholds
+    helpers + `run-all.sh` orchestrator + baseline SLOs
+  - Worker smoke test (`test/worker.spec.ts`) validating the standalone
+    module graph (5 tests)
+  - Deployment guides at `docs/deployment/helm.md` and
+    `docs/deployment/kubernetes.md`
+- All 35 controllers decorated with `@ApiTags` (and `@ApiBearerAuth('JWT')`
+  where applicable) — Swagger spec is now fully grouped
 - `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1)
 - `SUPPORT.md` — community + commercial support routing
 - `CHANGELOG.md` (this file)
@@ -25,6 +51,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/blog/launch.md` and `docs/blog/comparison.md` — draft launch + competitive posts
 - `docs/internal/good-first-issues.md` — 5 candidate starter issues
 - `docs/internal/social-preview-spec.md` — design brief for 1280×640 OG image
+
+### Changed
+- `EmailProcessor` now implements `OnApplicationBootstrap` and pauses the
+  underlying BullMQ Worker when `DISABLE_WORKERS=true` is set. Default
+  behaviour (flag unset) is unchanged.
+- `docker-compose.yml` documents the optional `worker` service block
+  (commented-out by default).
+- Test suite grew from 687 → 715 tests (22 observability + 5 worker + 1
+  existing flake fix).
+
+### Fixed
+- `frontend/package.json` trailing comma (invalid JSON) that silently
+  broke Jest's `defaultResolver` and disabled `test/frontend-api.spec.ts`.
+- PII scrubber card-number regex now preserves surrounding whitespace
+  (was over-consuming trailing separator chars).
 
 ---
 

@@ -1,0 +1,40 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "shopverse.fullname" . }}
+  labels:
+    {{- include "shopverse.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # API routes first — more specific path takes precedence.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "shopverse.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.service.port }}
+          # Everything else → frontend (Next.js pages + static assets).
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "shopverse.fullname" . }}-frontend
+                port:
+                  number: {{ .Values.frontend.service.port }}
+{{- end }}

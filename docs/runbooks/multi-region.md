@@ -188,3 +188,24 @@ the resilience. Stay single-region until volume forces the issue.
 
 If you need any of those, this runbook is the wrong starting point. Talk
 to the maintainer about commercial consulting.
+
+---
+
+## Deployment vehicle
+
+The recommended way to deploy each region is the Helm chart at
+[`helm/shopverse/`](../../helm/shopverse/). Per-region values files differ
+on:
+
+- `ingress.host` — `shopverse-us.example.com` vs `shopverse-eu.example.com`
+- `config.OTEL_SERVICE_NAME` — keep `shopverse-backend` but rely on the
+  resource attribute `service.instance.id` (auto-populated from K8s pod
+  name) for region disambiguation
+- `secrets.DATABASE_URL` — replica DSN in the secondary region; primary
+  DSN in the primary region. Application reads use the local replica;
+  writes hit the primary (cross-region).
+- `workers.enabled: true` only in the primary region (cron-leader election
+  ensures exactly one region runs scheduled jobs).
+
+See [`docs/deployment/helm.md`](../deployment/helm.md) for chart-specific
+operational guidance (upgrades, rollback, observability wiring).

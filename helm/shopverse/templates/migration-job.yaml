@@ -1,0 +1,47 @@
+{{- if .Values.migrations.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Job names must be unique per Helm release version because Helm hooks
+  # don't recreate-replace by default. Append revision to allow upgrades.
+  name: {{ include "shopverse.fullname" . }}-migrate-{{ .Release.Revision }}
+  labels:
+    {{- include "shopverse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+  annotations:
+    # Run before install AND before every upgrade. If it fails, the upgrade
+    # is aborted (no new ReplicaSet rolls out).
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "shopverse.labels" . | nindent 8 }}
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "shopverse.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: migrate
+          image: {{ include "shopverse.backendImage" . }}
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          command: ["sh", "-c"]
+          args:
+            - "cd backend && npx prisma migrate deploy --schema=../prisma/schema.prisma"
+          {{- include "shopverse.commonEnv" . | nindent 10 }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+{{- end }}
