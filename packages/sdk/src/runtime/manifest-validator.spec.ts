@@ -133,6 +133,24 @@ describe('validateManifest', () => {
     expect(r.ok).toBe(true);
   });
 
+  it('rejects forbidden scopes (admin:*)', () => {
+    const r = validateManifest({
+      kernelVersion: '0.1.0',
+      plugins: [
+        {
+          id: 'x',
+          source: 'npm',
+          enabled: true,
+          config: { scopes: ['admin:*', 'orders:read'] },
+        },
+      ],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors.some((e) => e.message.includes('admin:*'))).toBe(true);
+    }
+  });
+
   it('rejects bad scopes type', () => {
     const r = validateManifest({
       kernelVersion: '0.1.0',

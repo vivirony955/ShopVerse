@@ -18,6 +18,25 @@ import type { HookName, HookHandlerMap } from './hooks';
 import type { EventName, EventConsumer } from './events';
 import type { StrategyType, StrategyTypeMap } from './strategies';
 
+// ─── Audit log entry (plan §10 E13) ────────────────────────────────────────
+
+/**
+ * Structured audit entry written via `kernel.audit.log()`. The kernel
+ * persists this to `AdminAuditLog` with auto-tagged plugin id and
+ * timestamp. Plugin authors MUST call this for any admin-equivalent
+ * action they perform (lint rule warns on missing audit calls).
+ */
+export interface AuditLogEntry {
+  /** Verb + resource, e.g. 'plugin.referral.code.redeem'. */
+  readonly action: string;
+  /** Target entity, e.g. `{ type: 'order', id: 42 }`. */
+  readonly target: { readonly type: string; readonly id: string | number };
+  /** Acting user, when the action is on behalf of a user. */
+  readonly userId?: number | null;
+  /** Free-form structured metadata. */
+  readonly meta?: Readonly<Record<string, unknown>>;
+}
+
 // ─── Kernel surface exposed to plugins ──────────────────────────────────────
 
 /**
@@ -57,6 +76,15 @@ export interface KernelContext {
     warn(message: string, meta?: Record<string, unknown>): void;
     error(message: string, meta?: Record<string, unknown>): void;
     debug(message: string, meta?: Record<string, unknown>): void;
+  };
+
+  /**
+   * Audit log (plan §10 E13). The kernel persists this to
+   * `AdminAuditLog` and auto-attaches the plugin id + timestamp.
+   * Use for any admin-equivalent action the plugin performs.
+   */
+  readonly audit: {
+    log(entry: AuditLogEntry): Promise<void>;
   };
 }
 

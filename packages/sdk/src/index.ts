@@ -22,3 +22,5 @@ export * from './contracts/custom-events';
 export * from './runtime/semver';
 export * from './runtime/manifest-validator';
 export * from './runtime/semaphore';
+export * from './runtime/scope-checker';
+export * from './runtime/strategy-registry';

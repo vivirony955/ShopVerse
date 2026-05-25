@@ -13,6 +13,10 @@ import {
   checkKernelVersion,
   isShopVersePlugin,
 } from '@shopverse/sdk';
+import {
+  runInPluginContext,
+  setPluginSentryRate,
+} from './plugin-context';
 
 /**
  * PluginLoader — plan §10 E1, E3, E4.
@@ -149,8 +153,15 @@ export class PluginLoader {
       };
     }
 
+    // E15 — apply manifest-declared Sentry sample rate before any plugin
+    // code runs, so even an onRegister-thrown error is sampled correctly.
+    const sentryCfg = entry.config?.sentry as { sampleRate?: number } | undefined;
+    if (typeof sentryCfg?.sampleRate === 'number') {
+      setPluginSentryRate(entry.id, sentryCfg.sampleRate);
+    }
+
     try {
-      await plugin.onRegister(kernel);
+      await runInPluginContext(entry.id, () => plugin.onRegister(kernel));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Plugin ${entry.id} onRegister threw: ${msg}`);

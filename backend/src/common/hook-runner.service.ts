@@ -9,6 +9,7 @@ import type {
 } from '@shopverse/sdk';
 import { HOOK_BUDGETS_MS } from '@shopverse/sdk';
 import { CircuitBreaker } from './circuit-breaker';
+import { runInPluginContext } from './plugin-context';
 
 /**
  * HookRunner — plan §4 (hooks) + §5 (perf governance) + §6 (failure model).
@@ -187,13 +188,16 @@ export class HookRunner {
       let errMsg: string | undefined;
 
       try {
-        // Race handler against budget.
-        const result = (await Promise.race([
-          (reg.handler as (
-            c: Parameters<HookHandlerMap[H]>[0],
-          ) => Promise<void | RejectReason>)(ctx),
-          this.timeoutAfter(budgetMs),
-        ])) as void | RejectReason | typeof TIMEOUT;
+        // Race handler against budget, attributed to its plugin via ALS
+        // so OTel spans + Sentry events tag with `plugin.id` correctly.
+        const result = (await runInPluginContext(reg.pluginId, () =>
+          Promise.race([
+            (reg.handler as (
+              c: Parameters<HookHandlerMap[H]>[0],
+            ) => Promise<void | RejectReason>)(ctx),
+            this.timeoutAfter(budgetMs),
+          ]),
+        )) as void | RejectReason | typeof TIMEOUT;
 
         if (result === TIMEOUT) {
           status = 'timeout';

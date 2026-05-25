@@ -22,6 +22,10 @@
 
 import * as Sentry from '@sentry/node';
 import { scrub } from './scrubber';
+import {
+  currentPluginId,
+  shouldSendPluginEvent,
+} from '../common/plugin-context';
 
 interface GlobalWithSentry {
   __shopverse_sentry_initialised?: boolean;
@@ -50,6 +54,17 @@ export function initSentry(): void {
     skipOpenTelemetrySetup: true,
     sendDefaultPii: false,
     beforeSend(event) {
+      // Plugin attribution + per-plugin sample rate (plan §10 E15).
+      // The plugin id comes from AsyncLocalStorage set by `runInPluginContext`
+      // around hook handlers, event consumers, and plugin lifecycle calls.
+      const pluginId = currentPluginId();
+      if (pluginId !== null) {
+        if (!shouldSendPluginEvent(pluginId)) {
+          return null; // sampled out
+        }
+        event.tags = { ...(event.tags ?? {}), plugin: pluginId };
+      }
+
       // Recursively scrub every nested object — request, contexts, extra,
       // tags, breadcrumbs (handled separately below), user, etc.
       if (event.request) event.request = scrub(event.request);

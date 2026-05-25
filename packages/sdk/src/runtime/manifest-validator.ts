@@ -14,6 +14,7 @@
 
 import type { PluginManifest, PluginManifestEntry } from '../contracts/plugin';
 import { parseSemver, satisfies } from './semver';
+import { findForbiddenScopes } from './scope-checker';
 
 export interface ValidationIssue {
   readonly path: string; // e.g. 'plugins[2].id'
@@ -163,6 +164,15 @@ function validateConfig(
         message: 'scopes must be an array of strings',
         severity: 'error',
       });
+    } else {
+      const forbidden = findForbiddenScopes(cfg.scopes as string[]);
+      if (forbidden.length > 0) {
+        errors.push({
+          path: `${path}.scopes`,
+          message: `Plugin manifests cannot declare these scopes: ${forbidden.join(', ')}`,
+          severity: 'error',
+        });
+      }
     }
   }
 
