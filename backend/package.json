@@ -68,6 +68,7 @@
     "@prisma/client": "^6.6.0",
     "@prisma/instrumentation": "^6.6.0",
     "@sentry/node": "^8.0.0",
+    "@shopverse/sdk": "file:../packages/sdk",
     "@types/nodemailer": "^7.0.11",
     "axios": "^1.14.0",
     "bcryptjs": "^2.4.3",

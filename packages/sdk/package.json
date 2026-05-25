@@ -1,0 +1,48 @@
+{
+  "name": "@shopverse/sdk",
+  "version": "0.1.0-alpha.1",
+  "description": "ShopVerse plugin SDK — typed contracts for hooks, events, strategies, and the plugin lifecycle. Source-available under Elastic License 2.0.",
+  "license": "Elastic-2.0",
+  "author": "Vivek Negi <vivironycrazy@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/aiexperts/ecommWeb.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://gitlab.com/aiexperts/ecommWeb/-/tree/main/packages/sdk",
+  "bugs": {
+    "url": "https://gitlab.com/aiexperts/ecommWeb/-/issues"
+  },
+  "keywords": [
+    "shopverse",
+    "ecommerce",
+    "plugin",
+    "sdk",
+    "nestjs"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint \"src/**/*.ts\""
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.7",
+    "jest": "^29.7.0",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
