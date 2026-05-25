@@ -86,6 +86,12 @@ SYSTEM_DESIGN.md
 test/QA_TRACKER.md
 test/QA_GAP_TRACKER.md
 
+# Architecture evolution playbook (session-resilient trackers)
+# See plan §11 in C:\Users\vivir\.claude\plans\wiggly-herding-koala.md
+ARCH_EVOLUTION_TRACKER.md
+waves/
+cross-cutting/
+
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 .turbo/
 *.tsbuildinfo
