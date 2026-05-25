@@ -64,11 +64,12 @@ export class ErrorTrackingFilter implements ExceptionFilter {
       // A2 observability: bump unhandled-error counter for 5xx so dashboards
       // can alert on error-rate spikes without parsing logs.
       if (status >= 500) {
-        const route = routeLabel(
-          (req as AuthenticatedRequest & { route?: { path?: string } }).route
-            ?.path,
-          req.url,
-        );
+        // Express's `Request.route` is typed `any` upstream; cast through
+        // a narrow shape so the route-label argument is `string | undefined`,
+        // not `any`.
+        const routePath = (req as unknown as { route?: { path?: string } })
+          .route?.path;
+        const route = routeLabel(routePath, req.url);
         httpUnhandledErrors.inc({ route });
 
         // Force-sample the current span if tracing is active so the trace

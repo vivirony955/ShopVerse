@@ -13,7 +13,7 @@ describe('PluginCronRegistry', () => {
     r.register('@shopverse/foo', {
       name: 'sync',
       intervalMinutes: 10,
-      handler: async () => undefined,
+      handler: () => Promise.resolve(),
     });
     expect(r.all()).toHaveLength(1);
     expect(r.countForPlugin('@shopverse/foo')).toBe(1);
@@ -24,7 +24,7 @@ describe('PluginCronRegistry', () => {
       r.register('@shopverse/foo', {
         name: 'sync',
         intervalMinutes: 2,
-        handler: async () => undefined,
+        handler: () => Promise.resolve(),
       }),
     ).toThrow(/rule #9/);
   });
@@ -33,13 +33,13 @@ describe('PluginCronRegistry', () => {
     r.register('@shopverse/foo', {
       name: 'sync',
       intervalMinutes: 5,
-      handler: async () => undefined,
+      handler: () => Promise.resolve(),
     });
     expect(() =>
       r.register('@shopverse/foo', {
         name: 'other',
         intervalMinutes: 10,
-        handler: async () => undefined,
+        handler: () => Promise.resolve(),
       }),
     ).toThrow(/only one cron per plugin/);
   });
@@ -48,14 +48,14 @@ describe('PluginCronRegistry', () => {
     r.register('@shopverse/foo', {
       name: 'sync',
       intervalMinutes: 5,
-      handler: async () => undefined,
+      handler: () => Promise.resolve(),
     });
     // Different plugin, same suffix is OK (prefix differs).
     expect(() =>
       r.register('@shopverse/bar', {
         name: 'sync',
         intervalMinutes: 5,
-        handler: async () => undefined,
+        handler: () => Promise.resolve(),
       }),
     ).not.toThrow();
     expect(r.all()).toHaveLength(2);
@@ -65,7 +65,7 @@ describe('PluginCronRegistry', () => {
     r.register('@shopverse/foo', {
       name: 'sync',
       intervalMinutes: 5,
-      handler: async () => undefined,
+      handler: () => Promise.resolve(),
     });
     r.unregisterPlugin('@shopverse/foo');
     expect(r.all()).toHaveLength(0);

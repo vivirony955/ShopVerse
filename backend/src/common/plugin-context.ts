@@ -111,7 +111,9 @@ const pluginSentryRates = new Map<string, number>();
 /** Register a plugin's Sentry sample rate (from manifest config.sentry.sampleRate). */
 export function setPluginSentryRate(pluginId: string, rate: number): void {
   if (!Number.isFinite(rate) || rate < 0 || rate > 1) {
-    throw new Error(`Sentry sample rate for "${pluginId}" must be in [0, 1], got ${rate}`);
+    throw new Error(
+      `Sentry sample rate for "${pluginId}" must be in [0, 1], got ${rate}`,
+    );
   }
   pluginSentryRates.set(pluginId, rate);
 }

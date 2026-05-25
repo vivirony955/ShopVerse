@@ -1,14 +1,7 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Param, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';

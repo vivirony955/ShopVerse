@@ -37,7 +37,11 @@ const CTX: OrderPreValidateContext = {
   walletAmountUsed: 0,
 };
 
-async function bench(label: string, iterations: number, fn: () => Promise<void>): Promise<number> {
+async function bench(
+  label: string,
+  iterations: number,
+  fn: () => Promise<void>,
+): Promise<number> {
   // Warm up
   for (let i = 0; i < 10_000; i++) await fn();
 
@@ -46,7 +50,6 @@ async function bench(label: string, iterations: number, fn: () => Promise<void>)
   const elapsed = Number(process.hrtime.bigint() - t0);
   const nsPerCall = elapsed / iterations;
 
-  // eslint-disable-next-line no-console
   console.log(
     `${label.padEnd(40)} ${iterations.toLocaleString().padStart(12)} calls ` +
       `→ ${(elapsed / 1e6).toFixed(2)}ms total ` +
@@ -56,9 +59,8 @@ async function bench(label: string, iterations: number, fn: () => Promise<void>)
 }
 
 async function main(): Promise<void> {
-  // eslint-disable-next-line no-console
   console.log('\n  HookRunner Microbenchmark');
-  // eslint-disable-next-line no-console
+
   console.log('  ' + '─'.repeat(70));
 
   const runner = new HookRunner();
@@ -71,11 +73,9 @@ async function main(): Promise<void> {
   );
 
   // ── 2. Single handler that resolves immediately ─────────────────────────
-  runner.register('order.preValidate', '@bench', async () => undefined);
-  await bench(
-    'single noop handler',
-    100_000,
-    () => runner.runSync('order.preValidate', CTX).then(() => undefined),
+  runner.register('order.preValidate', '@bench', () => Promise.resolve());
+  await bench('single noop handler', 100_000, () =>
+    runner.runSync('order.preValidate', CTX).then(() => undefined),
   );
 
   // ── Summary ──────────────────────────────────────────────────────────────
@@ -85,9 +85,9 @@ async function main(): Promise<void> {
   // regressions (> 50% slowdown) without breaking on jitter. The path to
   // <100ns is the `runSyncBlocking` variant tracked in W3.
   const REGRESSION_CEILING_NS = 150;
-  // eslint-disable-next-line no-console
+
   console.log('  ' + '─'.repeat(70));
-  // eslint-disable-next-line no-console
+
   console.log(
     `  Plan §5 target: < 100ns (async path).\n  Regression ceiling: < ${REGRESSION_CEILING_NS}ns.\n  Result: ${emptyNs.toFixed(0)}ns/call ${emptyNs < REGRESSION_CEILING_NS ? '✓ PASS' : '✗ FAIL — regression'}\n`,
   );

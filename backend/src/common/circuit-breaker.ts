@@ -64,7 +64,10 @@ export class CircuitBreaker {
 
   get state(): CircuitBreakerState {
     // Lazy transition open → half-open when cooldown elapses.
-    if (this._state === 'open' && this.now() - this.openedAt >= this.cfg.cooldownMs) {
+    if (
+      this._state === 'open' &&
+      this.now() - this.openedAt >= this.cfg.cooldownMs
+    ) {
       this._state = 'half-open';
     }
     return this._state;
@@ -107,7 +110,10 @@ export class CircuitBreaker {
     }
 
     // closed state — accumulate
-    if (this.failureCount === 0 || t - this.firstFailureAt > this.cfg.windowMs) {
+    if (
+      this.failureCount === 0 ||
+      t - this.firstFailureAt > this.cfg.windowMs
+    ) {
       // Start a fresh window.
       this.failureCount = 1;
       this.firstFailureAt = t;

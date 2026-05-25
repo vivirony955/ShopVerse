@@ -42,7 +42,9 @@ const REDIS_KEY = 'shopverse:plugin:operator-disabled';
 const SYNC_INTERVAL_MS = 5_000;
 
 @Injectable()
-export class PluginRuntimeStateService implements OnModuleInit, OnModuleDestroy {
+export class PluginRuntimeStateService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PluginRuntimeStateService.name);
   private syncTimer: NodeJS.Timeout | null = null;
   private syncing = false;
@@ -82,7 +84,10 @@ export class PluginRuntimeStateService implements OnModuleInit, OnModuleDestroy 
    * call on this pod skips the plugin; persists to Redis so other pods
    * converge on next sync.
    */
-  async disable(pluginId: string, byAdminId: number | null = null): Promise<void> {
+  async disable(
+    pluginId: string,
+    byAdminId: number | null = null,
+  ): Promise<void> {
     this.hooks.disablePlugin(pluginId);
     await this.redis.sadd(REDIS_KEY, pluginId);
     this.logger.warn(
@@ -91,7 +96,10 @@ export class PluginRuntimeStateService implements OnModuleInit, OnModuleDestroy 
   }
 
   /** Re-enable a previously disabled plugin. */
-  async enable(pluginId: string, byAdminId: number | null = null): Promise<void> {
+  async enable(
+    pluginId: string,
+    byAdminId: number | null = null,
+  ): Promise<void> {
     this.hooks.enablePlugin(pluginId);
     await this.redis.srem(REDIS_KEY, pluginId);
     this.logger.log(

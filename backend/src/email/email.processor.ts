@@ -96,36 +96,60 @@ export class EmailProcessor
           this.logger.debug(`Processing email job type=${type} id=${job.id}`);
 
           try {
-            // BullMQ payload is JSON-deserialized; casts are safe per-case
+            // BullMQ payload is JSON-deserialized as `Record<string, unknown>`.
+            // Each case casts through `unknown` to the destination method's
+            // parameter type — a typed escape hatch that avoids `any` and the
+            // unsafe-argument lint without losing type information at the
+            // call site (the destination method still enforces its own
+            // contract).
+            type ArgOf<F> = F extends (arg: infer A) => unknown ? A : never;
             switch (type) {
               case 'orderConfirmation':
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                await this.emailService.sendOrderConfirmation(payload as any);
+                await this.emailService.sendOrderConfirmation(
+                  payload as unknown as ArgOf<
+                    EmailService['sendOrderConfirmation']
+                  >,
+                );
                 break;
               case 'orderShipped':
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                await this.emailService.sendOrderShipped(payload as any);
+                await this.emailService.sendOrderShipped(
+                  payload as unknown as ArgOf<EmailService['sendOrderShipped']>,
+                );
                 break;
               case 'orderDelivered':
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                await this.emailService.sendOrderDelivered(payload as any);
+                await this.emailService.sendOrderDelivered(
+                  payload as unknown as ArgOf<
+                    EmailService['sendOrderDelivered']
+                  >,
+                );
                 break;
               case 'refundConfirmation':
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                await this.emailService.sendRefundConfirmation(payload as any);
+                await this.emailService.sendRefundConfirmation(
+                  payload as unknown as ArgOf<
+                    EmailService['sendRefundConfirmation']
+                  >,
+                );
                 break;
               case 'abandonedCartReminder':
                 await this.emailService.sendAbandonedCartReminder(
-                  payload as any,
+                  payload as unknown as ArgOf<
+                    EmailService['sendAbandonedCartReminder']
+                  >,
                 );
                 break;
               case 'lowStockAlert':
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                await this.emailService.sendLowStockAlert(payload as any);
+                await this.emailService.sendLowStockAlert(
+                  payload as unknown as ArgOf<
+                    EmailService['sendLowStockAlert']
+                  >,
+                );
                 break;
               case 'referralBonus':
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                await this.emailService.sendReferralBonus(payload as any);
+                await this.emailService.sendReferralBonus(
+                  payload as unknown as ArgOf<
+                    EmailService['sendReferralBonus']
+                  >,
+                );
                 break;
               default:
                 this.logger.warn(`Unknown email job type: ${String(type)}`);

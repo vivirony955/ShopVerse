@@ -59,21 +59,21 @@ describe('HookRunner', () => {
 
   describe('registration', () => {
     it('counts registered handlers', () => {
-      runner.register('order.preValidate', '@a', async () => undefined);
-      runner.register('order.preValidate', '@b', async () => undefined);
+      runner.register('order.preValidate', '@a', () => Promise.resolve());
+      runner.register('order.preValidate', '@b', () => Promise.resolve());
       expect(runner.handlerCount('order.preValidate')).toBe(2);
     });
 
     it('replaces (plugin, hook) re-registration', () => {
-      runner.register('order.preValidate', '@a', async () => undefined);
-      runner.register('order.preValidate', '@a', async () => undefined);
+      runner.register('order.preValidate', '@a', () => Promise.resolve());
+      runner.register('order.preValidate', '@a', () => Promise.resolve());
       expect(runner.handlerCount('order.preValidate')).toBe(1);
     });
 
     it('unregisterPlugin removes all handlers from that plugin', () => {
-      runner.register('order.preValidate', '@a', async () => undefined);
-      runner.register('cart.beforeReserve', '@a', async () => undefined);
-      runner.register('order.preValidate', '@b', async () => undefined);
+      runner.register('order.preValidate', '@a', () => Promise.resolve());
+      runner.register('cart.beforeReserve', '@a', () => Promise.resolve());
+      runner.register('order.preValidate', '@b', () => Promise.resolve());
       runner.unregisterPlugin('@a');
       expect(runner.handlerCount('order.preValidate')).toBe(1);
       expect(runner.handlerCount('cart.beforeReserve')).toBe(0);
@@ -83,14 +83,17 @@ describe('HookRunner', () => {
   describe('sequential invocation', () => {
     it('invokes handlers in registration order', async () => {
       const order: string[] = [];
-      runner.register('order.preValidate', '@a', async () => {
+      runner.register('order.preValidate', '@a', () => {
         order.push('a');
+        return Promise.resolve();
       });
-      runner.register('order.preValidate', '@b', async () => {
+      runner.register('order.preValidate', '@b', () => {
         order.push('b');
+        return Promise.resolve();
       });
-      runner.register('order.preValidate', '@c', async () => {
+      runner.register('order.preValidate', '@c', () => {
         order.push('c');
+        return Promise.resolve();
       });
       await runner.runSync('order.preValidate', CTX);
       expect(order).toEqual(['a', 'b', 'c']);
@@ -100,15 +103,17 @@ describe('HookRunner', () => {
   describe('rejection short-circuit', () => {
     it('stops at first rejection', async () => {
       const order: string[] = [];
-      runner.register('order.preValidate', '@a', async () => {
+      runner.register('order.preValidate', '@a', () => {
         order.push('a');
+        return Promise.resolve();
       });
-      runner.register('order.preValidate', '@b', async (): Promise<RejectReason> => {
+      runner.register('order.preValidate', '@b', (): Promise<RejectReason> => {
         order.push('b');
-        return { reject: true, code: 'FAIL', message: 'no' };
+        return Promise.resolve({ reject: true, code: 'FAIL', message: 'no' });
       });
-      runner.register('order.preValidate', '@c', async () => {
+      runner.register('order.preValidate', '@c', () => {
         order.push('c');
+        return Promise.resolve();
       });
       const result = await runner.runSync('order.preValidate', CTX);
       expect(order).toEqual(['a', 'b']);
@@ -119,9 +124,7 @@ describe('HookRunner', () => {
 
   describe('failure → breaker', () => {
     it('opens breaker after 5 thrown errors and skips subsequent calls', async () => {
-      const handler = jest.fn(async () => {
-        throw new Error('boom');
-      });
+      const handler = jest.fn(() => Promise.reject(new Error('boom')));
       runner.register('order.preValidate', '@bad', handler);
       // Fire 5 invocations — last one OPENS the breaker
       for (let i = 0; i < 5; i++) {
@@ -138,11 +141,12 @@ describe('HookRunner', () => {
       runner.register(
         'order.preValidate',
         '@reject-only',
-        async (): Promise<RejectReason> => ({
-          reject: true,
-          code: 'X',
-          message: 'nope',
-        }),
+        (): Promise<RejectReason> =>
+          Promise.resolve({
+            reject: true,
+            code: 'X',
+            message: 'nope',
+          }),
       );
       // Fire 10 invocations — breaker should stay closed.
       for (let i = 0; i < 10; i++) {
@@ -183,7 +187,7 @@ describe('HookRunner', () => {
 
   describe('operator disable', () => {
     it('skips a disabled plugin without invoking the handler', async () => {
-      const handler = jest.fn(async () => undefined);
+      const handler = jest.fn(() => Promise.resolve());
       runner.register('order.preValidate', '@kill-me', handler);
       runner.disablePlugin('@kill-me');
       const result = await runner.runSync('order.preValidate', CTX);
@@ -192,7 +196,7 @@ describe('HookRunner', () => {
     });
 
     it('re-enabling restores invocation', async () => {
-      const handler = jest.fn(async () => undefined);
+      const handler = jest.fn(() => Promise.resolve());
       runner.register('order.preValidate', '@toggle', handler);
       runner.disablePlugin('@toggle');
       await runner.runSync('order.preValidate', CTX);
@@ -205,8 +209,8 @@ describe('HookRunner', () => {
 
   describe('outcome reporting', () => {
     it('produces one outcome per invoked handler', async () => {
-      runner.register('order.preValidate', '@a', async () => undefined);
-      runner.register('order.preValidate', '@b', async () => undefined);
+      runner.register('order.preValidate', '@a', () => Promise.resolve());
+      runner.register('order.preValidate', '@b', () => Promise.resolve());
       const result = await runner.runSync('order.preValidate', CTX);
       expect(result.outcomes).toHaveLength(2);
       expect(result.outcomes[0].pluginId).toBe('@a');

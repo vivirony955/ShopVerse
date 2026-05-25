@@ -38,7 +38,9 @@ export class PluginRouteRegistry {
     options: PluginRouteOptions,
   ): void {
     if (!options.tag || options.tag.trim().length === 0) {
-      throw new Error(`Plugin ${pluginId} route registration requires a non-empty tag`);
+      throw new Error(
+        `Plugin ${pluginId} route registration requires a non-empty tag`,
+      );
     }
     this.registrations.push({
       pluginId,

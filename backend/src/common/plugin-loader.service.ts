@@ -13,10 +13,7 @@ import {
   checkKernelVersion,
   isShopVersePlugin,
 } from '@shopverse/sdk';
-import {
-  runInPluginContext,
-  setPluginSentryRate,
-} from './plugin-context';
+import { runInPluginContext, setPluginSentryRate } from './plugin-context';
 
 /**
  * PluginLoader — plan §10 E1, E3, E4.
@@ -51,9 +48,10 @@ export interface PluginLoadResult {
 }
 
 /** Resolver maps a `PluginManifestEntry` to a `ShopVersePlugin` instance. */
-export type PluginResolver = (
-  entry: PluginManifestEntry,
-) => Promise<unknown> | unknown;
+// Return is `unknown` since it may be a module, the plugin object directly,
+// or a Promise of either — `pickPluginExport()` normalises whatever shape
+// the awaited value has.
+export type PluginResolver = (entry: PluginManifestEntry) => unknown;
 
 @Injectable()
 export class PluginLoader {
@@ -105,7 +103,9 @@ export class PluginLoader {
     resolver: PluginResolver,
   ): Promise<PluginLoadResult> {
     if (!entry.enabled) {
-      this.logger.log(`Plugin ${entry.id} disabled in manifest — skipping onRegister`);
+      this.logger.log(
+        `Plugin ${entry.id} disabled in manifest — skipping onRegister`,
+      );
       return { id: entry.id, status: 'disabled' };
     }
 
@@ -155,7 +155,9 @@ export class PluginLoader {
 
     // E15 — apply manifest-declared Sentry sample rate before any plugin
     // code runs, so even an onRegister-thrown error is sampled correctly.
-    const sentryCfg = entry.config?.sentry as { sampleRate?: number } | undefined;
+    const sentryCfg = entry.config?.sentry as
+      | { sampleRate?: number }
+      | undefined;
     if (typeof sentryCfg?.sampleRate === 'number') {
       setPluginSentryRate(entry.id, sentryCfg.sampleRate);
     }

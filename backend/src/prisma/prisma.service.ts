@@ -17,7 +17,12 @@ export class PrismaService
     // and throws PluginQueryBudgetExceededError when a sync hook
     // exceeds its 1-query budget. Letting the throw propagate aborts
     // the offending Prisma call before it hits the DB.
-    this.$use(async (params, next) => {
+
+    // Prisma's middleware: count the query, then pass through. recordPluginQuery
+    // throws PluginQueryBudgetExceededError when the active plugin context
+    // (set by HookRunner via runInPluginContext) has exceeded its budget;
+    // the throw propagates out of `next(params)` and aborts the offending op.
+    this.$use((params, next) => {
       recordPluginQuery();
       return next(params);
     });

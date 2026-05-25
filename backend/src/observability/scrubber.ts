@@ -53,7 +53,11 @@ export function scrub<T>(value: T, seen: WeakSet<object> = new WeakSet()): T {
   seen.add(value as object);
 
   if (Array.isArray(value)) {
-    return value.map((v) => scrub(v, seen)) as unknown as T;
+    // `Array.isArray` doesn't narrow T to an array element type, so map()
+    // returns `any[]`. Explicit unknown[] cast before the T re-cast keeps
+    // no-unsafe-return happy.
+    const arr = value as unknown[];
+    return arr.map((v) => scrub(v, seen)) as unknown as T;
   }
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {

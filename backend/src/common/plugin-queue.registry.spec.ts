@@ -9,7 +9,7 @@ describe('PluginQueueRegistry', () => {
     r = new PluginQueueRegistry();
   });
 
-  const noopProcessor = async () => undefined;
+  const noopProcessor = () => Promise.resolve();
 
   it('registers a valid queue with default concurrency=1', () => {
     r.register('@shopverse/foo', { name: 'emails', processor: noopProcessor });

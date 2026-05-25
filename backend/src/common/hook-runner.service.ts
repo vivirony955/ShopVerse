@@ -2,11 +2,7 @@
 // See LICENSE in the project root for license information.
 
 import { Injectable, Logger } from '@nestjs/common';
-import type {
-  HookName,
-  HookHandlerMap,
-  RejectReason,
-} from '@shopverse/sdk';
+import type { HookName, HookHandlerMap, RejectReason } from '@shopverse/sdk';
 import { HOOK_BUDGETS_MS } from '@shopverse/sdk';
 import { CircuitBreaker } from './circuit-breaker';
 import { runInPluginContext } from './plugin-context';
@@ -193,17 +189,19 @@ export class HookRunner {
         // Query budget of 1 enforces plan §5 rule #5 — sync hooks may
         // issue at most ONE Prisma query per invocation. The Prisma
         // middleware in PrismaService counts queries and throws past 1.
-        const result = (await runInPluginContext(
+        const result = await runInPluginContext(
           reg.pluginId,
           () =>
             Promise.race([
-              (reg.handler as (
-                c: Parameters<HookHandlerMap[H]>[0],
-              ) => Promise<void | RejectReason>)(ctx),
+              (
+                reg.handler as (
+                  c: Parameters<HookHandlerMap[H]>[0],
+                ) => Promise<void | RejectReason>
+              )(ctx),
               this.timeoutAfter(budgetMs),
             ]),
           1,
-        )) as void | RejectReason | typeof TIMEOUT;
+        );
 
         if (result === TIMEOUT) {
           status = 'timeout';

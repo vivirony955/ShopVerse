@@ -1,7 +1,11 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import type { KernelContext, PluginManifest, ShopVersePlugin } from '@shopverse/sdk';
+import type {
+  KernelContext,
+  PluginManifest,
+  ShopVersePlugin,
+} from '@shopverse/sdk';
 import { PluginLoader } from './plugin-loader.service';
 
 function noopKernel(): KernelContext {
@@ -22,14 +26,15 @@ function noopKernel(): KernelContext {
   };
 }
 
-function plugin(id: string, overrides: Partial<ShopVersePlugin> = {}): ShopVersePlugin {
+function plugin(
+  id: string,
+  overrides: Partial<ShopVersePlugin> = {},
+): ShopVersePlugin {
   return {
     id,
     version: '1.0.0',
     kernelVersion: '^0.1.0',
-    async onRegister() {
-      // no-op default
-    },
+    onRegister: () => Promise.resolve(),
     ...overrides,
   };
 }
@@ -52,10 +57,15 @@ describe('PluginLoader', () => {
     const onRegister = jest.spyOn(p, 'onRegister');
 
     const results = await loader.loadAll(
-      manifestOf({ id: p.id, source: 'workspace', workspacePath: '.', enabled: true }),
+      manifestOf({
+        id: p.id,
+        source: 'workspace',
+        workspacePath: '.',
+        enabled: true,
+      }),
       '0.1.0',
       noopKernel(),
-      async () => ({ default: p }),
+      () => ({ default: p }),
     );
 
     expect(results).toHaveLength(1);
@@ -68,10 +78,15 @@ describe('PluginLoader', () => {
     const onRegister = jest.spyOn(p, 'onRegister');
 
     const [result] = await loader.loadAll(
-      manifestOf({ id: p.id, source: 'workspace', workspacePath: '.', enabled: false }),
+      manifestOf({
+        id: p.id,
+        source: 'workspace',
+        workspacePath: '.',
+        enabled: false,
+      }),
       '0.1.0',
       noopKernel(),
-      async () => p,
+      () => p,
     );
 
     expect(result.status).toBe('disabled');
@@ -80,9 +95,7 @@ describe('PluginLoader', () => {
 
   it('catches onRegister throw, marks register-failed, continues boot', async () => {
     const bad = plugin('@shopverse/bad', {
-      async onRegister() {
-        throw new Error('boom in plugin');
-      },
+      onRegister: () => Promise.reject(new Error('boom in plugin')),
     });
     const good = plugin('@shopverse/good');
     const goodRegister = jest.spyOn(good, 'onRegister');
@@ -94,10 +107,13 @@ describe('PluginLoader', () => {
       ),
       '0.1.0',
       noopKernel(),
-      async (entry) => (entry.id === bad.id ? bad : good),
+      (entry) => (entry.id === bad.id ? bad : good),
     );
 
-    expect(results[0]).toMatchObject({ status: 'register-failed', error: 'boom in plugin' });
+    expect(results[0]).toMatchObject({
+      status: 'register-failed',
+      error: 'boom in plugin',
+    });
     expect(results[1]).toMatchObject({ status: 'registered' });
     expect(goodRegister).toHaveBeenCalledTimes(1);
   });
@@ -107,10 +123,15 @@ describe('PluginLoader', () => {
     const onRegister = jest.spyOn(p, 'onRegister');
 
     const [result] = await loader.loadAll(
-      manifestOf({ id: p.id, source: 'workspace', workspacePath: '.', enabled: true }),
+      manifestOf({
+        id: p.id,
+        source: 'workspace',
+        workspacePath: '.',
+        enabled: true,
+      }),
       '0.1.0',
       noopKernel(),
-      async () => p,
+      () => p,
     );
 
     expect(result.status).toBe('version-mismatch');
@@ -119,10 +140,15 @@ describe('PluginLoader', () => {
 
   it('marks invalid when module does not export a ShopVersePlugin', async () => {
     const [result] = await loader.loadAll(
-      manifestOf({ id: 'x', source: 'workspace', workspacePath: '.', enabled: true }),
+      manifestOf({
+        id: 'x',
+        source: 'workspace',
+        workspacePath: '.',
+        enabled: true,
+      }),
       '0.1.0',
       noopKernel(),
-      async () => ({ something: 'else' }),
+      () => ({ something: 'else' }),
     );
     expect(result.status).toBe('invalid');
   });
@@ -132,7 +158,7 @@ describe('PluginLoader', () => {
       manifestOf({ id: 'x', source: 'npm', enabled: true }),
       '0.1.0',
       noopKernel(),
-      async () => {
+      () => {
         throw new Error('not found');
       },
     );
@@ -143,10 +169,15 @@ describe('PluginLoader', () => {
   it('rejects id mismatch between manifest and module', async () => {
     const p = plugin('@shopverse/foo');
     const [result] = await loader.loadAll(
-      manifestOf({ id: '@shopverse/wrong', source: 'workspace', workspacePath: '.', enabled: true }),
+      manifestOf({
+        id: '@shopverse/wrong',
+        source: 'workspace',
+        workspacePath: '.',
+        enabled: true,
+      }),
       '0.1.0',
       noopKernel(),
-      async () => p,
+      () => p,
     );
     expect(result.status).toBe('invalid');
     expect(result.error).toContain('does not match');
@@ -158,7 +189,7 @@ describe('PluginLoader', () => {
         { kernelVersion: 'bad', plugins: [] } as unknown as PluginManifest,
         '0.1.0',
         noopKernel(),
-        async () => null,
+        () => null,
       ),
     ).rejects.toThrow(/Invalid plugins\.config\.ts/);
   });
@@ -166,10 +197,15 @@ describe('PluginLoader', () => {
   it('resultFor() returns per-plugin status', async () => {
     const p = plugin('@shopverse/foo');
     await loader.loadAll(
-      manifestOf({ id: p.id, source: 'workspace', workspacePath: '.', enabled: true }),
+      manifestOf({
+        id: p.id,
+        source: 'workspace',
+        workspacePath: '.',
+        enabled: true,
+      }),
       '0.1.0',
       noopKernel(),
-      async () => p,
+      () => p,
     );
     expect(loader.resultFor(p.id)?.status).toBe('registered');
     expect(loader.resultFor('missing')).toBeUndefined();

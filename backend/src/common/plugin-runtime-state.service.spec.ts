@@ -15,17 +15,16 @@ class FakeRedis {
   isEnabled() {
     return this.enabled;
   }
-  async sadd(_key: string, member: string) {
-    if (!this.enabled) return;
-    this.set.add(member);
+  sadd(_key: string, member: string): Promise<void> {
+    if (this.enabled) this.set.add(member);
+    return Promise.resolve();
   }
-  async srem(_key: string, member: string) {
-    if (!this.enabled) return;
-    this.set.delete(member);
+  srem(_key: string, member: string): Promise<void> {
+    if (this.enabled) this.set.delete(member);
+    return Promise.resolve();
   }
-  async smembers(_key: string) {
-    if (!this.enabled) return [];
-    return Array.from(this.set);
+  smembers(_key: string): Promise<string[]> {
+    return Promise.resolve(this.enabled ? Array.from(this.set) : []);
   }
 }
 
@@ -37,7 +36,10 @@ describe('PluginRuntimeStateService', () => {
   beforeEach(async () => {
     hooks = new HookRunner();
     redis = new FakeRedis();
-    svc = new PluginRuntimeStateService(redis as unknown as RedisService, hooks);
+    svc = new PluginRuntimeStateService(
+      redis as unknown as RedisService,
+      hooks,
+    );
     // Force test-mode (no polling timer); tests drive sync() explicitly.
     process.env.NODE_ENV = 'test';
     await svc.onModuleInit();

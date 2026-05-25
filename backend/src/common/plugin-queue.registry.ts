@@ -41,7 +41,11 @@ export class PluginQueueRegistry {
       throw new Error(`Plugin ${pluginId} queue name must be non-empty`);
     }
     const concurrency = spec.concurrency ?? 1;
-    if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > MAX_CONCURRENCY) {
+    if (
+      !Number.isInteger(concurrency) ||
+      concurrency < 1 ||
+      concurrency > MAX_CONCURRENCY
+    ) {
       throw new Error(
         `Plugin ${pluginId} queue "${spec.name}" concurrency=${concurrency} ` +
           `must be an integer in [1, ${MAX_CONCURRENCY}]`,

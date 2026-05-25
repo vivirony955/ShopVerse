@@ -10,8 +10,10 @@ function fakeGateway(id: string): PaymentGatewayStrategy {
   return {
     meta: { id, mode: 'single' },
     webhookPath: `/${id}`,
-    createIntent: async () => ({ id: 'pi', clientSecret: 'x', gatewayId: id }),
-    handleWebhook: async () => ({ handled: true, eventType: `${id}.event` }),
+    createIntent: () =>
+      Promise.resolve({ id: 'pi', clientSecret: 'x', gatewayId: id }),
+    handleWebhook: () =>
+      Promise.resolve({ handled: true, eventType: `${id}.event` }),
   };
 }
 

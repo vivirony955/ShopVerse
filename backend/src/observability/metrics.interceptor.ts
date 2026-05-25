@@ -35,10 +35,11 @@ export class MetricsInterceptor implements NestInterceptor {
     const start = process.hrtime.bigint();
     const method = req.method;
     // Express puts the matched route on req.route.path. NestJS preserves it.
-    const route = routeLabel(
-      (req as Request & { route?: { path?: string } }).route?.path,
-      url,
-    );
+    // Cast through `unknown` because Express's upstream `Request.route` is
+    // typed `any`, which propagates as unsafe access otherwise.
+    const routePath = (req as unknown as { route?: { path?: string } }).route
+      ?.path;
+    const route = routeLabel(routePath, url);
 
     const record = (statusCode: number) => {
       const elapsedNs = process.hrtime.bigint() - start;
