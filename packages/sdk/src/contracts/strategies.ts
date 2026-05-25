@@ -16,6 +16,7 @@
  */
 
 import type {
+  ReadOnlyAddress,
   ReadOnlyOrder,
   ReadOnlyCart,
   ReadOnlyUser,
@@ -109,12 +110,68 @@ export interface DiscountStrategy {
   apply(ctx: DiscountContext): Promise<DiscountResult | null>;
 }
 
+// ─── ShippingCarrierStrategy (single) ───────────────────────────────────────
+
+export interface ShippingRateRequest {
+  readonly order: ReadOnlyOrder;
+  readonly destinationPincode: string;
+  readonly warehouseContext: WarehouseContext;
+}
+
+export interface ShippingRateQuote {
+  readonly carrierId: string;
+  readonly serviceName: string;
+  readonly costINR: number;
+  readonly etaDays: number;
+}
+
+export interface ShippingCarrierStrategy {
+  readonly meta: StrategyMeta & { mode: 'single' };
+  getRates(req: ShippingRateRequest): Promise<readonly ShippingRateQuote[]>;
+}
+
+// ─── EarnRuleStrategy (composable) ──────────────────────────────────────────
+
+export interface EarnRuleContext {
+  readonly order: ReadOnlyOrder;
+  readonly user: ReadOnlyUser; // earning requires a user (no guest loyalty)
+}
+
+export interface EarnRuleStrategy {
+  readonly meta: StrategyMeta & { mode: 'composable' };
+  /** Returns points to credit. Kernel sums all plugin contributions. */
+  earn(ctx: EarnRuleContext): Promise<number>;
+}
+
+// ─── InvoiceFormatStrategy (single) ─────────────────────────────────────────
+
+export interface InvoiceRenderRequest {
+  readonly order: ReadOnlyOrder;
+  /** Bill-to billing address. */
+  readonly billingAddress: ReadOnlyAddress;
+  readonly invoiceNumber: string;
+  readonly issuedAt: Date;
+}
+
+export interface InvoiceRenderResult {
+  readonly pdf: Buffer;
+  readonly fileName: string;
+}
+
+export interface InvoiceFormatStrategy {
+  readonly meta: StrategyMeta & { mode: 'single' };
+  render(req: InvoiceRenderRequest): Promise<InvoiceRenderResult>;
+}
+
 // ─── Aggregate registry type for runtime registration ───────────────────────
 
 export type AnyStrategy =
   | PaymentGatewayStrategy
   | FraudSignalStrategy
-  | DiscountStrategy;
+  | DiscountStrategy
+  | ShippingCarrierStrategy
+  | EarnRuleStrategy
+  | InvoiceFormatStrategy;
 
 /**
  * Strategy type → concrete type. Used by `kernel.strategies.register<T>(...)`
@@ -124,6 +181,9 @@ export interface StrategyTypeMap {
   PaymentGatewayStrategy: PaymentGatewayStrategy;
   FraudSignalStrategy: FraudSignalStrategy;
   DiscountStrategy: DiscountStrategy;
+  ShippingCarrierStrategy: ShippingCarrierStrategy;
+  EarnRuleStrategy: EarnRuleStrategy;
+  InvoiceFormatStrategy: InvoiceFormatStrategy;
 }
 
 export type StrategyType = keyof StrategyTypeMap;

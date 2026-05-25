@@ -16,3 +16,9 @@ export * from './contracts/hooks';
 export * from './contracts/events';
 export * from './contracts/strategies';
 export * from './contracts/plugin';
+export * from './contracts/custom-events';
+
+// Runtime helpers (pure, zero-deps; safe for plugin code + tests)
+export * from './runtime/semver';
+export * from './runtime/manifest-validator';
+export * from './runtime/semaphore';
