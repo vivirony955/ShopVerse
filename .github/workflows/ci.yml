@@ -126,38 +126,65 @@ jobs:
     # A3: validate the Helm chart on every PR. Renders default + production
     # example values and pipes through `kubeconform` for schema validation
     # against bundled K8s OpenAPI schemas (no cluster needed). Fast (<30s).
+    #
+    # Hardening:
+    #   - kubeconform binary cached across runs (saves ~5s and a download)
+    #   - download checksum-verified against the release's CHECKSUMS file
+    #   - `set -euo pipefail` so a download/extract failure fails the step
+    #   - `--max-time 30` on curl so a slow GitHub doesn't hang the job
+    #   - No external CRD catalog (chart has no CRDs yet — add the
+    #     -schema-location flag back if/when we adopt cert-manager etc.)
     name: Helm chart lint + render
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      KUBECONFORM_VERSION: v0.6.7
+      KUBERNETES_VERSION: 1.30.0
     steps:
       - uses: actions/checkout@v4
       - name: Install Helm
         uses: azure/setup-helm@v4
         with:
           version: v3.14.0
-      - name: Install kubeconform
+      - name: Cache kubeconform
+        id: cache-kubeconform
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/kubeconform
+          key: kubeconform-${{ env.KUBECONFORM_VERSION }}-linux-amd64
+      - name: Install kubeconform (checksum-verified)
+        if: steps.cache-kubeconform.outputs.cache-hit != 'true'
         run: |
-          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
-            | tar -xz -C /usr/local/bin kubeconform
+          set -euo pipefail
+          REL="https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}"
+          ASSET="kubeconform-linux-amd64.tar.gz"
+          curl --max-time 30 --fail -sLo "/tmp/${ASSET}" "${REL}/${ASSET}"
+          curl --max-time 30 --fail -sLo /tmp/CHECKSUMS "${REL}/CHECKSUMS"
+          (cd /tmp && grep " ${ASSET}\$" CHECKSUMS | sha256sum -c -)
+          tar -xzf "/tmp/${ASSET}" -C /usr/local/bin kubeconform
+          chmod +x /usr/local/bin/kubeconform
+          rm -f "/tmp/${ASSET}" /tmp/CHECKSUMS
+      - name: Verify kubeconform install
+        run: |
+          set -euo pipefail
+          test -x /usr/local/bin/kubeconform
           kubeconform -v
       - name: helm lint
         run: helm lint helm/shopverse
       - name: helm template (defaults) + kubeconform
         run: |
+          set -euo pipefail
           helm template shopverse helm/shopverse \
-            | kubeconform -strict -summary -kubernetes-version 1.30.0 \
-              -schema-location default \
-              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+            | kubeconform -strict -summary -kubernetes-version "${KUBERNETES_VERSION}"
       - name: helm template (production example) + kubeconform
         run: |
+          set -euo pipefail
           helm template shopverse helm/shopverse \
             --values helm/shopverse/values.production.example.yaml \
             --set image.backend.tag=test \
             --set image.frontend.tag=test \
-            | kubeconform -strict -summary -kubernetes-version 1.30.0 \
-              -schema-location default \
-              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+            | kubeconform -strict -summary -kubernetes-version "${KUBERNETES_VERSION}"
 
   k8s-validate:
     # A3: validate the raw K8s manifests render cleanly with envsubst, then
@@ -166,12 +193,33 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      KUBECONFORM_VERSION: v0.6.7
+      KUBERNETES_VERSION: 1.30.0
     steps:
       - uses: actions/checkout@v4
-      - name: Install kubeconform
+      - name: Cache kubeconform
+        id: cache-kubeconform
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/kubeconform
+          key: kubeconform-${{ env.KUBECONFORM_VERSION }}-linux-amd64
+      - name: Install kubeconform (checksum-verified)
+        if: steps.cache-kubeconform.outputs.cache-hit != 'true'
         run: |
-          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
-            | tar -xz -C /usr/local/bin kubeconform
+          set -euo pipefail
+          REL="https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}"
+          ASSET="kubeconform-linux-amd64.tar.gz"
+          curl --max-time 30 --fail -sLo "/tmp/${ASSET}" "${REL}/${ASSET}"
+          curl --max-time 30 --fail -sLo /tmp/CHECKSUMS "${REL}/CHECKSUMS"
+          (cd /tmp && grep " ${ASSET}\$" CHECKSUMS | sha256sum -c -)
+          tar -xzf "/tmp/${ASSET}" -C /usr/local/bin kubeconform
+          chmod +x /usr/local/bin/kubeconform
+          rm -f "/tmp/${ASSET}" /tmp/CHECKSUMS
+      - name: Verify kubeconform install
+        run: |
+          set -euo pipefail
+          test -x /usr/local/bin/kubeconform
           kubeconform -v
       - name: envsubst + kubeconform
         env:
@@ -180,10 +228,11 @@ jobs:
           FRONTEND_IMAGE: registry.example.com/shopverse/frontend:test
           INGRESS_HOST: shopverse.example.com
         run: |
+          set -euo pipefail
           for f in k8s/*.yaml; do
             echo "▶ Validating $f"
-            envsubst < "$f" | kubeconform -strict -summary -kubernetes-version 1.30.0 \
-              -schema-location default
+            envsubst < "$f" | kubeconform -strict -summary \
+              -kubernetes-version "${KUBERNETES_VERSION}"
           done
 
   sentry-release:
