@@ -88,33 +88,37 @@ export class AbandonedCartService {
     await withCronMetric('abandoned-cart-reminders', () =>
       // FINAL §9.4 R-010 / M-005: wrap cron body in distributed lock so only one backend
       // instance sends reminders per tick, even in a multi-replica deployment.
-      this.cronLock.runExclusive('abandoned-cart-reminders', 10 * 60_000, async () => {
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        const records = await this.prisma.abandonedCart.findMany({
-          where: { reminderSentAt: null, updatedAt: { lte: oneHourAgo } },
-          include: { user: { select: { email: true, firstName: true } } },
-        });
+      this.cronLock.runExclusive(
+        'abandoned-cart-reminders',
+        10 * 60_000,
+        async () => {
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+          const records = await this.prisma.abandonedCart.findMany({
+            where: { reminderSentAt: null, updatedAt: { lte: oneHourAgo } },
+            include: { user: { select: { email: true, firstName: true } } },
+          });
 
-        for (const record of records) {
-          const email = record.user?.email ?? record.guestEmail;
-          if (!email) continue;
-          type CartItem = { name: string; quantity: number };
-          const items = (record.cartSnapshot as CartItem[]).map((i) => ({
-            name: i.name,
-            quantity: i.quantity,
-          }));
-          await this.emailService.sendAbandonedCartReminder({
-            to: email,
-            firstName: record.user?.firstName ?? undefined,
-            items,
-          });
-          await this.prisma.abandonedCart.update({
-            where: { id: record.id },
-            data: { reminderSentAt: new Date() },
-          });
-          this.logger.log(`Sent abandoned cart reminder to ${email}`);
-        }
-      }),
+          for (const record of records) {
+            const email = record.user?.email ?? record.guestEmail;
+            if (!email) continue;
+            type CartItem = { name: string; quantity: number };
+            const items = (record.cartSnapshot as CartItem[]).map((i) => ({
+              name: i.name,
+              quantity: i.quantity,
+            }));
+            await this.emailService.sendAbandonedCartReminder({
+              to: email,
+              firstName: record.user?.firstName ?? undefined,
+              items,
+            });
+            await this.prisma.abandonedCart.update({
+              where: { id: record.id },
+              data: { reminderSentAt: new Date() },
+            });
+            this.logger.log(`Sent abandoned cart reminder to ${email}`);
+          }
+        },
+      ),
     );
   }
 }

@@ -115,8 +115,9 @@ export class EmailProcessor
                 await this.emailService.sendRefundConfirmation(payload as any);
                 break;
               case 'abandonedCartReminder':
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                await this.emailService.sendAbandonedCartReminder(payload as any);
+                await this.emailService.sendAbandonedCartReminder(
+                  payload as any,
+                );
                 break;
               case 'lowStockAlert':
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -130,8 +131,7 @@ export class EmailProcessor
                 this.logger.warn(`Unknown email job type: ${String(type)}`);
             }
           } catch (err: unknown) {
-            const msg =
-              err instanceof Error ? err.message : String(err);
+            const msg = err instanceof Error ? err.message : String(err);
             this.logger.error(`Email job failed type=${type}: ${msg}`);
             span.recordException(err as Error);
             span.setStatus({ code: SpanStatusCode.ERROR, message: msg });

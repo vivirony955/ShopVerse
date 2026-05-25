@@ -11,11 +11,7 @@ import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import type { Request, Response } from 'express';
-import {
-  httpRequestDuration,
-  httpRequestTotal,
-  routeLabel,
-} from './metrics';
+import { httpRequestDuration, httpRequestTotal, routeLabel } from './metrics';
 
 /**
  * Records request duration + count into the Prometheus registry.

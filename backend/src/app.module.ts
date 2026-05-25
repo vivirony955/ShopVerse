@@ -72,7 +72,8 @@ import { ObservabilityModule } from './observability/observability.module';
           // rather than permanently closing the connection (which breaks BullMQ init).
           // No retries fire during the 2-minute test run, and the timer is cancelled
           // when app.close() is called — eliminating "Cannot log after tests are done".
-          retryStrategy: process.env.NODE_ENV === 'test' ? () => 3_600_000 : undefined,
+          retryStrategy:
+            process.env.NODE_ENV === 'test' ? () => 3_600_000 : undefined,
         },
       }),
       inject: [ConfigService],

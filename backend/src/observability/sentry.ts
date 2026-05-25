@@ -34,16 +34,14 @@ export function initSentry(): void {
   if (process.env.NODE_ENV === 'test') return;
   const dsn = process.env.SENTRY_DSN;
   if (!dsn) {
-    // eslint-disable-next-line no-console
-    console.log(
-      '[sentry] disabled — set SENTRY_DSN to enable error reporting',
-    );
+    console.log('[sentry] disabled — set SENTRY_DSN to enable error reporting');
     return;
   }
 
   Sentry.init({
     dsn,
-    environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development',
+    environment:
+      process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development',
     release: process.env.SENTRY_RELEASE,
     // We use OpenTelemetry for tracing — keep Sentry to error capture only.
     tracesSampleRate: 0,
@@ -85,7 +83,7 @@ export function initSentry(): void {
   });
 
   g.__shopverse_sentry_initialised = true;
-  // eslint-disable-next-line no-console
+
   console.log(
     `[sentry] enabled — env=${process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV} release=${process.env.SENTRY_RELEASE ?? 'unset'}`,
   );

@@ -1,0 +1,26 @@
+# Force LF line endings for all text files regardless of the developer's
+# OS / git autocrlf setting. Prevents Windows checkouts from converting
+# LF → CRLF, which breaks prettier (and shows up as ~2000 lint errors).
+#
+# Reference: https://docs.github.com/en/get-started/getting-started-with-git/configuring-git-to-handle-line-endings
+
+* text=auto eol=lf
+
+# Explicit overrides for files where Windows tools require CRLF.
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# Binary — never normalise.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.svg       text eol=lf
+*.pdf       binary
+*.zip       binary
+*.tar.gz    binary
+*.dll.node  binary
+*.so        binary
+*.dylib     binary

@@ -61,8 +61,7 @@ if (shouldEnable() && !g.__shopverse_otel_started) {
 
   const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT!.replace(/\/+$/, '');
   const sampleRate = Number(process.env.OTEL_TRACES_SAMPLER_ARG ?? '0.1');
-  const serviceName =
-    process.env.OTEL_SERVICE_NAME ?? 'shopverse-backend';
+  const serviceName = process.env.OTEL_SERVICE_NAME ?? 'shopverse-backend';
   const serviceVersion =
     process.env.SENTRY_RELEASE ?? process.env.npm_package_version ?? 'unknown';
   const environment = process.env.NODE_ENV ?? 'development';
@@ -114,23 +113,21 @@ if (shouldEnable() && !g.__shopverse_otel_started) {
     sdk.start();
     g.__shopverse_otel_started = true;
     g.__shopverse_otel_sdk = sdk;
-    // eslint-disable-next-line no-console
+
     console.log(
       `[otel] tracing enabled — service=${serviceName} env=${environment} sample=${sampleRate} → ${endpoint}/v1/traces`,
     );
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error(`[otel] init failed; continuing without tracing:`, err);
   }
 
   const shutdown = (signal: string) => {
     if (!g.__shopverse_otel_sdk) return;
-    // eslint-disable-next-line no-console
+
     console.log(`[otel] ${signal} — flushing spans…`);
     void g.__shopverse_otel_sdk
       .shutdown()
       .catch((err) => {
-        // eslint-disable-next-line no-console
         console.error('[otel] shutdown error:', err);
       })
       .finally(() => {
@@ -141,7 +138,6 @@ if (shouldEnable() && !g.__shopverse_otel_started) {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
 } else if (process.env.NODE_ENV !== 'test') {
-  // eslint-disable-next-line no-console
   console.log(
     '[otel] tracing disabled — set OTEL_EXPORTER_OTLP_ENDPOINT to enable',
   );

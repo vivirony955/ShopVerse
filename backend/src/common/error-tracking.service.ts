@@ -85,18 +85,22 @@ export class ErrorTrackingService {
     await withCronMetric('error-spike-detection', () =>
       // FINAL §9.4 R-010 / M-005: only one replica fires the alert per tick to avoid
       // flooding PagerDuty/Slack with N copies of the same spike signal.
-      this.cronLock.runExclusive('error-spike-detection', 4 * 60_000, async () => {
-        const since = new Date(Date.now() - SPIKE_WINDOW_MS);
-        const count = await this.prisma.errorLog.count({
-          where: { createdAt: { gte: since }, level: 'error' },
-        });
-        if (count >= ERROR_SPIKE_THRESHOLD) {
-          this.logger.error(
-            `ERROR SPIKE: ${count} errors in the last 5 minutes (threshold: ${ERROR_SPIKE_THRESHOLD})`,
-          );
-          // In production: send PagerDuty / Slack alert here
-        }
-      }),
+      this.cronLock.runExclusive(
+        'error-spike-detection',
+        4 * 60_000,
+        async () => {
+          const since = new Date(Date.now() - SPIKE_WINDOW_MS);
+          const count = await this.prisma.errorLog.count({
+            where: { createdAt: { gte: since }, level: 'error' },
+          });
+          if (count >= ERROR_SPIKE_THRESHOLD) {
+            this.logger.error(
+              `ERROR SPIKE: ${count} errors in the last 5 minutes (threshold: ${ERROR_SPIKE_THRESHOLD})`,
+            );
+            // In production: send PagerDuty / Slack alert here
+          }
+        },
+      ),
     );
   }
 }

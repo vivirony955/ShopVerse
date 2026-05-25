@@ -39,7 +39,6 @@ import { registry } from './observability/metrics';
 const REQUIRED_ENV: string[] = ['DATABASE_URL'];
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
-    // eslint-disable-next-line no-console
     console.error(`FATAL: Missing required env var: ${key}`);
     process.exit(1);
   }
@@ -53,7 +52,9 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   const healthPort = Number(process.env.WORKER_HEALTH_PORT ?? 9091);
-  const healthServer = http.createServer(async (req, res) => {
+  // http.createServer expects a sync handler — wrap the async metrics path
+  // in an inner promise we fire-and-forget so the outer callback is sync.
+  const healthServer = http.createServer((req, res) => {
     // Tiny router. No NestJS HTTP adapter here — we want minimal memory.
     if (req.method !== 'GET') {
       res.writeHead(405).end();
@@ -65,15 +66,17 @@ async function bootstrap(): Promise<void> {
       return;
     }
     if (req.url === '/metrics') {
-      try {
-        const text = await registry.metrics();
-        res.writeHead(200, {
-          'content-type': 'text/plain; version=0.0.4; charset=utf-8',
-        });
-        res.end(text);
-      } catch (err) {
-        res.writeHead(500).end(String(err));
-      }
+      void (async () => {
+        try {
+          const text = await registry.metrics();
+          res.writeHead(200, {
+            'content-type': 'text/plain; version=0.0.4; charset=utf-8',
+          });
+          res.end(text);
+        } catch (err) {
+          res.writeHead(500).end(String(err));
+        }
+      })();
       return;
     }
     res.writeHead(404).end();

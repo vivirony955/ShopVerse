@@ -123,28 +123,24 @@ export class FlashSalesService {
   @Cron(CronExpression.EVERY_MINUTE)
   async syncStatuses() {
     await withCronMetric('flash-sale-status-sync', () =>
-      this.cronLock.runExclusive(
-        'flash-sale-status-sync',
-        45_000,
-        async () => {
-          const now = new Date();
-          await this.prisma.flashSale.updateMany({
-            where: {
-              status: 'SCHEDULED',
-              startsAt: { lte: now },
-              endsAt: { gt: now },
-            },
-            data: { status: 'ACTIVE' },
-          });
-          await this.prisma.flashSale.updateMany({
-            where: {
-              status: { in: ['SCHEDULED', 'ACTIVE'] },
-              endsAt: { lte: now },
-            },
-            data: { status: 'ENDED' },
-          });
-        },
-      ),
+      this.cronLock.runExclusive('flash-sale-status-sync', 45_000, async () => {
+        const now = new Date();
+        await this.prisma.flashSale.updateMany({
+          where: {
+            status: 'SCHEDULED',
+            startsAt: { lte: now },
+            endsAt: { gt: now },
+          },
+          data: { status: 'ACTIVE' },
+        });
+        await this.prisma.flashSale.updateMany({
+          where: {
+            status: { in: ['SCHEDULED', 'ACTIVE'] },
+            endsAt: { lte: now },
+          },
+          data: { status: 'ENDED' },
+        });
+      }),
     );
   }
 }

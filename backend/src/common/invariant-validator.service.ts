@@ -57,7 +57,10 @@ export class InvariantValidatorService {
         const rawCount = await body();
         // Lock held by another pod → treat as no-op for heartbeat.
         if (rawCount === undefined) {
-          cronExecutionTotal.inc({ name: `invariant.${name}`, status: 'skipped' });
+          cronExecutionTotal.inc({
+            name: `invariant.${name}`,
+            status: 'skipped',
+          });
           return;
         }
         const violationCount = rawCount;

@@ -14,10 +14,7 @@ import * as Sentry from '@sentry/node';
 import { trace } from '@opentelemetry/api';
 import { ErrorTrackingService } from './error-tracking.service';
 import { AuthenticatedRequest } from './types';
-import {
-  httpUnhandledErrors,
-  routeLabel,
-} from '../observability/metrics';
+import { httpUnhandledErrors, routeLabel } from '../observability/metrics';
 
 @Catch()
 export class ErrorTrackingFilter implements ExceptionFilter {

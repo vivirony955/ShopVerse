@@ -136,7 +136,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
-  // eslint-disable-next-line no-console
+
   console.log(`Backend running on http://localhost:${port}/api`);
 }
 
@@ -154,7 +154,6 @@ function setupSwagger(
   // setup entirely so /api/docs returns 404 rather than leaking the
   // API surface.
   if (isProd && (!user || !pass)) {
-    // eslint-disable-next-line no-console
     console.log(
       '[swagger] disabled in production — set SWAGGER_USER + SWAGGER_PASS to enable',
     );
@@ -206,7 +205,7 @@ function setupSwagger(
     jsonDocumentUrl: 'api/docs-json',
     swaggerOptions: { persistAuthorization: true },
   });
-  // eslint-disable-next-line no-console
+
   console.log(
     `[swagger] enabled — UI at /api/docs, spec at /api/docs-json${isProd ? ' (BasicAuth)' : ''}`,
   );

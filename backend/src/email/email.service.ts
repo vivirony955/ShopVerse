@@ -90,7 +90,9 @@ export class EmailService {
    * `traceparent` + `tracestate` headers — a few bytes of metadata,
    * negligible vs Redis payload size.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
+  // Producer-side helper. Kept private + unused for now (send-methods call
+  // this.send() directly via SMTP fallback). Wired into the BullMQ
+  // dispatch path when REDIS_URL is set — see A2 plan.
   private async enqueue(
     type: EmailJobData['type'],
     payload: Record<string, unknown>,

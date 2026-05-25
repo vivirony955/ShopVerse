@@ -491,51 +491,51 @@ export class CartReservationService {
         'cart-reservation-expiry',
         50_000,
         async () => {
-        // AUDIT A-3: snapshot + CTE MUST share one tx so `FOR UPDATE SKIP LOCKED`
-        // locks persist across both statements. Without the surrounding tx, Prisma
-        // autocommits each raw call and the row locks release immediately — making
-        // SKIP LOCKED decorative. Correctness would still hold via the CTE's inner
-        // `status='ACTIVE'` guard, but two pods would pointlessly rescan the same
-        // 500 IDs. Wrapping keeps scan exclusivity and matches the comment intent.
-        const flashItems = await this.prisma.$transaction(async (tx) => {
-          // Step 1: snapshot candidate IDs + isFlash flag with SKIP LOCKED so we
-          // don't starve the consume() path when a user is mid-checkout on an
-          // about-to-expire row. isFlash is needed so we can release Redis gates
-          // (B-01) for flash reservations after the CTE commits.
-          const rows = await tx.$queryRaw<{ id: number; isFlash: boolean }[]>`
+          // AUDIT A-3: snapshot + CTE MUST share one tx so `FOR UPDATE SKIP LOCKED`
+          // locks persist across both statements. Without the surrounding tx, Prisma
+          // autocommits each raw call and the row locks release immediately — making
+          // SKIP LOCKED decorative. Correctness would still hold via the CTE's inner
+          // `status='ACTIVE'` guard, but two pods would pointlessly rescan the same
+          // 500 IDs. Wrapping keeps scan exclusivity and matches the comment intent.
+          const flashItems = await this.prisma.$transaction(async (tx) => {
+            // Step 1: snapshot candidate IDs + isFlash flag with SKIP LOCKED so we
+            // don't starve the consume() path when a user is mid-checkout on an
+            // about-to-expire row. isFlash is needed so we can release Redis gates
+            // (B-01) for flash reservations after the CTE commits.
+            const rows = await tx.$queryRaw<{ id: number; isFlash: boolean }[]>`
           SELECT id, "isFlash" FROM "CartReservation"
           WHERE "status" = 'ACTIVE' AND "expiresAt" <= NOW()
           ORDER BY "expiresAt" ASC
           LIMIT 500
           FOR UPDATE SKIP LOCKED
         `;
-          if (rows.length === 0)
-            return [] as {
-              warehouseId: number;
-              variantId: number;
-              quantity: number;
-            }[];
-          const ids = rows.map((r) => r.id);
-          const flashIds = rows.filter((r) => r.isFlash).map((r) => r.id);
+            if (rows.length === 0)
+              return [] as {
+                warehouseId: number;
+                variantId: number;
+                quantity: number;
+              }[];
+            const ids = rows.map((r) => r.id);
+            const flashIds = rows.filter((r) => r.isFlash).map((r) => r.id);
 
-          // Pre-fetch flash item details so we can release Redis gates post-commit.
-          const flash =
-            flashIds.length > 0
-              ? await tx.cartReservationItem.findMany({
-                  where: { reservationId: { in: flashIds } },
-                  select: {
-                    warehouseId: true,
-                    variantId: true,
-                    quantity: true,
-                  },
-                })
-              : [];
+            // Pre-fetch flash item details so we can release Redis gates post-commit.
+            const flash =
+              flashIds.length > 0
+                ? await tx.cartReservationItem.findMany({
+                    where: { reservationId: { in: flashIds } },
+                    select: {
+                      warehouseId: true,
+                      variantId: true,
+                      quantity: true,
+                    },
+                  })
+                : [];
 
-          // Step 2: single CTE releases inventory + syncs cache atomically.
-          // The inner UPDATE re-checks status='ACTIVE' so a concurrent consume()
-          // that won the SKIP LOCKED race still causes the row to be excluded
-          // from the expired CTE (B-12 race-safety preserved).
-          await tx.$executeRaw`
+            // Step 2: single CTE releases inventory + syncs cache atomically.
+            // The inner UPDATE re-checks status='ACTIVE' so a concurrent consume()
+            // that won the SKIP LOCKED race still causes the row to be excluded
+            // from the expired CTE (B-12 race-safety preserved).
+            await tx.$executeRaw`
         WITH expired AS (
           UPDATE "CartReservation"
           SET "status" = 'EXPIRED'
@@ -567,20 +567,20 @@ export class CartReservationService {
           WHERE v."id" = va."variantId"
         `;
 
-          this.logger.log(
-            `Expired ${ids.length} cart reservations (batch CTE)`,
-          );
-          return flash;
-        });
+            this.logger.log(
+              `Expired ${ids.length} cart reservations (batch CTE)`,
+            );
+            return flash;
+          });
 
-        // B-01 PERF: release Redis gate tokens for expired flash reservations.
-        // Post-tx + best-effort: gate is advisory, drift self-heals on next flash-sale start.
-        for (const it of flashItems) {
-          await this.redis.releaseReserveGate(
-            reserveGateKey(it.warehouseId, it.variantId),
-            it.quantity,
-          );
-        }
+          // B-01 PERF: release Redis gate tokens for expired flash reservations.
+          // Post-tx + best-effort: gate is advisory, drift self-heals on next flash-sale start.
+          for (const it of flashItems) {
+            await this.redis.releaseReserveGate(
+              reserveGateKey(it.warehouseId, it.variantId),
+              it.quantity,
+            );
+          }
         },
       ),
     );
