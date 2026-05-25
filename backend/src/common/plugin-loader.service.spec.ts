@@ -16,6 +16,9 @@ function noopKernel(): KernelContext {
     strategies: { register: noop as never },
     logger: { log: noop, warn: noop, error: noop, debug: noop },
     audit: { log: () => Promise.resolve() },
+    crons: { register: noop as never },
+    queues: { register: noop as never },
+    api: { registerRoutes: noop as never },
   };
 }
 

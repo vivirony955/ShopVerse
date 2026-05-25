@@ -159,6 +159,44 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  // ── Set operations (W1.T20 — plugin runtime disable) ─────────────────────
+  // Operational state, NOT cache. Callers must handle the no-Redis case by
+  // falling back to in-memory state.
+
+  async sadd(key: string, member: string): Promise<void> {
+    if (!this.isEnabled()) return;
+    try {
+      await this.client!.sadd(key, member);
+    } catch (e: unknown) {
+      this.logger.warn(
+        `redis.sadd(${key}, ${member}) failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+
+  async srem(key: string, member: string): Promise<void> {
+    if (!this.isEnabled()) return;
+    try {
+      await this.client!.srem(key, member);
+    } catch (e: unknown) {
+      this.logger.warn(
+        `redis.srem(${key}, ${member}) failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+
+  async smembers(key: string): Promise<readonly string[]> {
+    if (!this.isEnabled()) return [];
+    try {
+      return await this.client!.smembers(key);
+    } catch (e: unknown) {
+      this.logger.warn(
+        `redis.smembers(${key}) failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
+      return [];
+    }
+  }
+
   /**
    * W6 B-01: atomic "try-reserve N units" gate. Returns:
    *   - `true`  if the key existed and had ≥ qty, then decremented it

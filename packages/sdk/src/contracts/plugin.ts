@@ -86,6 +86,67 @@ export interface KernelContext {
   readonly audit: {
     log(entry: AuditLogEntry): Promise<void>;
   };
+
+  /**
+   * Cron registration (plan §10 E23 / §5 rule #9 — W1.T34).
+   *
+   * Plugins register one cron at most, with intervalMinutes >= 5.
+   * Crons run on the WORKER process only — the API process skips
+   * them. Failures are logged + recorded as Sentry events tagged
+   * with the plugin id.
+   */
+  readonly crons: {
+    register(spec: PluginCronSpec): void;
+  };
+
+  /**
+   * BullMQ queue registration (plan §10 E24 — W1.T35).
+   *
+   * Plugins may register their own named queues; processors run on
+   * the worker. The kernel automatically prefixes the queue name
+   * with the plugin id (`<plugin>:<queue>`) to prevent collisions.
+   */
+  readonly queues: {
+    register<T = unknown>(spec: PluginQueueSpec<T>): void;
+  };
+
+  /**
+   * NestJS controller registration for plugin REST routes (plan §10
+   * E25 — W1.T36). Routes appear in OpenAPI under the supplied tag.
+   * Routes MUST start with `plugin/<id>/...` (lint-enforced by
+   * W1.T8).
+   */
+  readonly api: {
+    registerRoutes(
+      controllerClass: new (...args: unknown[]) => unknown,
+      options: PluginRouteOptions,
+    ): void;
+  };
+}
+
+// ─── Cron + queue + route specs ─────────────────────────────────────────────
+
+export interface PluginCronSpec {
+  /** Cron name — appears in metrics as `<plugin-id>:<name>`. */
+  readonly name: string;
+  /** Interval in minutes; minimum 5 (anti-storm rule). */
+  readonly intervalMinutes: number;
+  /** Cron body. Called inside a plugin context + CronLock automatically. */
+  readonly handler: () => Promise<void>;
+}
+
+export interface PluginQueueSpec<T = unknown> {
+  /** Queue name (auto-prefixed with plugin id). */
+  readonly name: string;
+  /** Worker concurrency (default 1, max 10). */
+  readonly concurrency?: number;
+  /** Job processor. */
+  readonly processor: (job: { readonly data: T }) => Promise<void>;
+}
+
+export interface PluginRouteOptions {
+  /** OpenAPI tag for the route group. */
+  readonly tag: string;
 }
 
 // ─── Manifest entry (plan §10 E1) ──────────────────────────────────────────
