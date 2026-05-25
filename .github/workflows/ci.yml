@@ -124,8 +124,8 @@ jobs:
 
   helm-lint:
     # A3: validate the Helm chart on every PR. Renders default + production
-    # example values and pipes through `kubectl --dry-run=client` to catch
-    # invalid K8s manifests AND template errors in one shot. Fast (<30s).
+    # example values and pipes through `kubeconform` for schema validation
+    # against bundled K8s OpenAPI schemas (no cluster needed). Fast (<30s).
     name: Helm chart lint + render
     runs-on: ubuntu-latest
     permissions:
@@ -136,35 +136,44 @@ jobs:
         uses: azure/setup-helm@v4
         with:
           version: v3.14.0
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: v1.30.0
+      - name: Install kubeconform
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+            | tar -xz -C /usr/local/bin kubeconform
+          kubeconform -v
       - name: helm lint
         run: helm lint helm/shopverse
-      - name: helm template (defaults)
-        run: helm template shopverse helm/shopverse | kubectl apply --dry-run=client -f -
-      - name: helm template (production example)
+      - name: helm template (defaults) + kubeconform
+        run: |
+          helm template shopverse helm/shopverse \
+            | kubeconform -strict -summary -kubernetes-version 1.30.0 \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+      - name: helm template (production example) + kubeconform
         run: |
           helm template shopverse helm/shopverse \
             --values helm/shopverse/values.production.example.yaml \
             --set image.backend.tag=test \
             --set image.frontend.tag=test \
-            | kubectl apply --dry-run=client -f -
+            | kubeconform -strict -summary -kubernetes-version 1.30.0 \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 
   k8s-validate:
-    # A3: validate the raw K8s manifests render cleanly with envsubst.
-    name: K8s raw manifests dry-run
+    # A3: validate the raw K8s manifests render cleanly with envsubst, then
+    # schema-check each one with kubeconform (offline, no cluster needed).
+    name: K8s raw manifests validation
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: v1.30.0
-      - name: kubectl apply --dry-run=client
+      - name: Install kubeconform
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+            | tar -xz -C /usr/local/bin kubeconform
+          kubeconform -v
+      - name: envsubst + kubeconform
         env:
           NAMESPACE: shopverse
           BACKEND_IMAGE: registry.example.com/shopverse/backend:test
@@ -172,7 +181,9 @@ jobs:
           INGRESS_HOST: shopverse.example.com
         run: |
           for f in k8s/*.yaml; do
-            envsubst < "$f" | kubectl apply --dry-run=client -f -
+            echo "▶ Validating $f"
+            envsubst < "$f" | kubeconform -strict -summary -kubernetes-version 1.30.0 \
+              -schema-location default
           done
 
   sentry-release:
