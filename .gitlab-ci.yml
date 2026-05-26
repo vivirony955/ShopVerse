@@ -3,12 +3,18 @@
 #
 # ShopVerse — GitLab CI/CD Pipeline
 #
+# Trigger model: MANUAL. Branch pushes do NOT auto-spawn pipelines. The
+# pipeline runs only on merge requests, semver tags, "Run pipeline" UI
+# clicks, API triggers, and scheduled runs (see `workflow:` rules below).
+# To verify a branch ad-hoc: GitLab UI → CI/CD → Pipelines → Run pipeline,
+# select the branch. To ship: open an MR or push a v*.*.* tag.
+#
 # Stages:
 #   validate  → typecheck, lint, schema (parallel, fast — ~2 min)
 #   test      → 518 unit tests (in-process) + 714 integration tests against real PostgreSQL (~3 min)
 #   build     → Docker images for backend + frontend pushed to GitLab Registry
 #   release   → GitLab release + tagged image aliases (on v* tags only)
-#   deploy    → Manual triggers for staging and production
+#   deploy    → Manual triggers for staging (web-triggered run on main) and production (tag)
 #
 # Required GitLab CI/CD variables (Settings → CI/CD → Variables):
 #   STRIPE_SECRET_KEY        — Stripe test secret key (sk_test_...)
@@ -33,15 +39,27 @@ include:
   - template: Security/Dependency-Scanning.gitlab-ci.yml
   - template: Security/SAST.gitlab-ci.yml
 
-# ─── Pipeline-spawn gate ─────────────────────────────────────────────────────
-# Without this, every push spawns a pipeline shell even when zero per-job rules
-# match (pipeline status: "skipped" or empty). The MR/branch/tag triad mirrors
-# the per-job `rules:` blocks below so an MR pipeline runs MR rules etc.
+# ─── Pipeline-spawn gate (MANUAL TRIGGER MODEL) ──────────────────────────────
+# Plain branch pushes do NOT auto-spawn a pipeline. Pipelines run only on:
+#
+#   - Merge requests              — auto, to gate the merge
+#   - Semver tags (v1.2.3)        — auto, to gate release/deploy
+#   - Web UI "Run Pipeline" click — operator-initiated, ad-hoc verification
+#   - API trigger token           — for upstream/external systems
+#   - Scheduled pipelines         — for future nightly k6 / security re-scans
+#
+# Pushing to `main`, `develop`, or any feature branch produces ZERO pipelines.
+# To verify a branch, the operator clicks `CI/CD → Pipelines → Run pipeline`
+# in the GitLab UI and selects the branch. To ship: open an MR or tag a
+# release. This avoids surprise CI minute consumption on noisy branches
+# and forces explicit intent before a run consumes runner time.
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH
     - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
 
 stages:
   - validate
