@@ -8,6 +8,13 @@ WORKDIR /app
 # that folder (Prisma 6 requires this layout). A single COPY covers both.
 COPY prisma/schema ./prisma/schema
 
+# Build @shopverse/sdk first. Backend's package.json declares
+# "@shopverse/sdk": "file:../packages/sdk", so the npm ci below symlinks
+# into this directory — its dist/ must exist before any backend compile
+# step reads through it.
+COPY packages/sdk ./packages/sdk
+RUN cd packages/sdk && npm ci && npx tsc
+
 # Install backend deps
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci
@@ -30,7 +37,10 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Install production deps only
+# Install production deps only. The SDK is a `file:` dep so it needs to
+# be on disk at the same relative path before backend's npm ci runs.
+COPY packages/sdk ./packages/sdk
+COPY --from=builder /app/packages/sdk/dist ./packages/sdk/dist
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --omit=dev
 

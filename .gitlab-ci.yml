@@ -61,13 +61,24 @@ variables:
 typecheck:
   stage: validate
   cache:
-    key:
-      files:
-        - backend/package-lock.json
-    paths:
-      - backend/node_modules/
-    policy: pull-push
+    - key:
+        files:
+          - backend/package-lock.json
+      paths:
+        - backend/node_modules/
+      policy: pull-push
+    - key:
+        files:
+          - packages/sdk/package-lock.json
+      paths:
+        - packages/sdk/node_modules/
+      policy: pull-push
   before_script:
+    # Build packages/sdk first so backend's `file:../packages/sdk` install
+    # resolves to a directory with compiled .d.ts + .js (the symlink npm
+    # creates points at packages/sdk/, dist/ has to exist before the
+    # typecheck or lint reads through it).
+    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
     - cd backend && npm ci --prefer-offline --silent && cd ..
   script:
     - cd backend && npx tsc --noEmit
@@ -79,13 +90,22 @@ typecheck:
 lint:
   stage: validate
   cache:
-    key:
-      files:
-        - backend/package-lock.json
-    paths:
-      - backend/node_modules/
-    policy: pull
+    - key:
+        files:
+          - backend/package-lock.json
+      paths:
+        - backend/node_modules/
+      policy: pull
+    - key:
+        files:
+          - packages/sdk/package-lock.json
+      paths:
+        - packages/sdk/node_modules/
+      policy: pull
   before_script:
+    # Same build-SDK-first reason as `typecheck` — without dist/ in place,
+    # typescript-eslint reports every SDK import as an `error` type.
+    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
     - cd backend && npm ci --prefer-offline --silent && cd ..
   script:
     - cd backend && npm run lint -- --max-warnings=0
@@ -209,9 +229,19 @@ integration:
       paths:
         - test/node_modules/
       policy: pull-push
+    - key:
+        files:
+          - packages/sdk/package-lock.json
+      paths:
+        - packages/sdk/node_modules/
+      policy: pull-push
   before_script:
     # Install pg client for the readiness check
     - apk add --no-cache postgresql-client
+    # Build packages/sdk first — backend's `file:../packages/sdk` symlinks
+    # into the source directory and ts-jest compiles backend code at test
+    # time, so the SDK's dist/ has to exist before any backend compile.
+    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
     # Install backend deps (test suite resolves @nestjs/* and @prisma/client from here)
     - cd backend && npm ci --prefer-offline --silent && cd ..
     # Install test suite deps — includes next-auth and axios declared in test/package.json,
@@ -254,13 +284,20 @@ integration:
 e2e:
   stage: test
   cache:
-    key:
-      files:
-        - backend/package-lock.json
-    paths:
-      - backend/node_modules/
-    policy: pull
+    - key:
+        files:
+          - backend/package-lock.json
+      paths:
+        - backend/node_modules/
+      policy: pull
+    - key:
+        files:
+          - packages/sdk/package-lock.json
+      paths:
+        - packages/sdk/node_modules/
+      policy: pull
   before_script:
+    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
     - cd backend && npm ci --prefer-offline --silent && cd ..
   script:
     - cd backend && npm run test:e2e -- --forceExit --ci --reporters=default
@@ -306,8 +343,15 @@ test:coverage:
       paths:
         - test/node_modules/
       policy: pull
+    - key:
+        files:
+          - packages/sdk/package-lock.json
+      paths:
+        - packages/sdk/node_modules/
+      policy: pull
   before_script:
     - apk add --no-cache postgresql-client
+    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
     - cd backend && npm ci --prefer-offline --silent && cd ..
     - cd test && npm ci --prefer-offline --silent && cd ..
     - cd backend && npx prisma generate --schema=../prisma/schema && cd ..

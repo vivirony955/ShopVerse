@@ -85,6 +85,12 @@ export class PluginPaymentWebhookController {
     }
 
     const rawBody = req.rawBody ?? Buffer.alloc(0);
-    return strategy.handleWebhook({ rawBody, headers });
+    // `return await` (not bare `return`) satisfies @typescript-eslint/
+    // require-await without changing observable behaviour: Nest awaits
+    // the returned Promise either way, and keeping the method genuinely
+    // async-aware means the early throws above are surfaced as Promise
+    // rejections (matching the spec's `.rejects.toBeInstanceOf(...)`
+    // assertions and Nest's standard error-handling path).
+    return await strategy.handleWebhook({ rawBody, headers });
   }
 }
