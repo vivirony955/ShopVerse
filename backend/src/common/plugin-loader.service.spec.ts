@@ -28,6 +28,7 @@ function noopKernel(): KernelContext {
       set: () => Promise.resolve(),
       delete: () => Promise.resolve(),
     },
+    db: {},
   };
 }
 

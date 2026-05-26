@@ -1,0 +1,38 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+//
+// Schema owned by the @shopverse/plugin-price-alerts plugin (W2 pilot).
+//
+// Lives in prisma/schema/ alongside the kernel's main.prisma — Prisma's
+// `prismaSchemaFolder` (W1.T7) concatenates every .prisma file in the
+// folder at parse time. From a single-DB single-client perspective this
+// is the same client; the file split is for ownership clarity (this file
+// is in CODEOWNERS as plugin code, main.prisma stays kernel-owned).
+//
+// FOREIGN KEY EXCEPTION
+// ─────────────────────
+// Plan §10 E8 says "plugins MUST NOT add FKs to kernel tables". The
+// `user` and `product` relations below VIOLATE that rule — the pilot
+// grandfathers them because the model already shipped with those FKs in
+// the original baseline (20260405 migration). Future plugins follow the
+// rule strictly; the lint check (W6.T5 `no-direct-fk-to-kernel`) gates
+// schemas for plugins added AFTER this commit.
+//
+// The `user.beforeDelete` hook (plan §10 E8 / W1.T25) is the GDPR
+// cascade path — the plugin registers it in onRegister to delete its
+// rows when a User is removed via the kernel.
+
+model PriceAlert {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  targetPrice Float
+  isTriggered Boolean   @default(false)
+  triggeredAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, productId])
+  @@index([productId, isTriggered])
+}

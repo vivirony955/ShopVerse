@@ -1316,21 +1316,10 @@ model ProductQuestion {
   @@index([productId, isApproved])
 }
 
-// ─── F2-17: Price Drop Alerts ────────────────────────────────────────────────
-model PriceAlert {
-  id          Int       @id @default(autoincrement())
-  userId      Int
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productId   Int
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  targetPrice Float
-  isTriggered Boolean   @default(false)
-  triggeredAt DateTime?
-  createdAt   DateTime  @default(now())
-
-  @@unique([userId, productId])
-  @@index([productId, isTriggered])
-}
+// PriceAlert model moved to prisma/schema/price-alerts.prisma in W2.T2
+// (pilot plugin extraction). Prisma concatenates every .prisma file in the
+// schema folder at parse time, so the User + Product back-relations declared
+// below still resolve to the model in the sibling file.
 
 // ─── F2-19: Loyalty Tier Config ───────────────────────────────────────────────
 model LoyaltyTier {

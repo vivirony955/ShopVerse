@@ -139,7 +139,36 @@ export interface KernelContext {
     set<T = unknown>(key: string, value: T): Promise<void>;
     delete(key: string): Promise<void>;
   };
+
+  /**
+   * Typed Prisma client exposed to the plugin (plan §10 E7 — W2 pilot
+   * cuts the kernel-import cord). Every query through this handle
+   * passes through the kernel's `$use` middleware: the per-plugin
+   * AsyncLocalStorage context counts queries against the sync-hook
+   * budget (plan §5 rule #5), the per-plugin Semaphore enforces the
+   * concurrency cap (default 3, max 10 via manifest.config.
+   * dbConcurrency), and OTel/Sentry attribute the query to the
+   * plugin id automatically.
+   *
+   * Typed as `PluginDbClient` — a structural alias the SDK keeps loose
+   * so this package has no compile-time dependency on @prisma/client.
+   * Plugin authors who want full model autocomplete cast in their
+   * plugin code:
+   *
+   *   import type { PrismaClient } from '@prisma/client';
+   *   const db = kernel.db as unknown as PrismaClient;
+   */
+  readonly db: PluginDbClient;
 }
+
+/**
+ * Structural placeholder for the Prisma client. The runtime value IS a
+ * `PrismaClient` from @prisma/client; the SDK declares it as a record
+ * to stay zero-dep. Plugin authors cast to the real `PrismaClient` type
+ * in their own code for autocomplete (their plugin already declares
+ * @prisma/client as a dep, so the import is free).
+ */
+export type PluginDbClient = Record<string, unknown>;
 
 // ─── Cron + queue + route specs ─────────────────────────────────────────────
 
