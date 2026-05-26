@@ -6,6 +6,11 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
+    // Required so ts-jest emits the `__importDefault` helper for CJS modules
+    // without a real default export (supertest in particular). Without this,
+    // `import request from 'supertest'` compiles fine but throws at runtime
+    // because `supertest_1.default` is undefined.
+    "esModuleInterop": true,
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",

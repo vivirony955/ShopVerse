@@ -114,6 +114,66 @@ schema:validate:
 
 # ─── TEST STAGE ──────────────────────────────────────────────────────────────
 
+# Fast in-process unit tests for code that doesn't need PostgreSQL: backend
+# Nest providers (HookRunner, CircuitBreaker, plugin registries, PluginConfig
+# with mocked Prisma), the SDK runtime helpers, the ESLint rule plugin, and
+# the CLI migration runner. Run in parallel with `integration` — they share
+# no resources so the wall-clock cost is just the longest of the four
+# package suites (backend ~25s).
+unit:
+  stage: test
+  cache:
+    - key:
+        files:
+          - backend/package-lock.json
+      paths:
+        - backend/node_modules/
+      policy: pull-push
+    - key:
+        files:
+          - packages/sdk/package-lock.json
+      paths:
+        - packages/sdk/node_modules/
+      policy: pull-push
+    - key:
+        files:
+          - packages/cli/package-lock.json
+      paths:
+        - packages/cli/node_modules/
+      policy: pull-push
+    - key:
+        files:
+          - packages/eslint-plugin-shopverse/package-lock.json
+      paths:
+        - packages/eslint-plugin-shopverse/node_modules/
+      policy: pull-push
+  before_script:
+    # Backend deps + Prisma client (some unit specs reach the typed client
+    # through a mock that needs the generated types to exist).
+    - cd backend && npm ci --prefer-offline --silent && cd ..
+    - cd backend && npx prisma generate --schema=../prisma/schema && cd ..
+    # SDK first — CLI depends on its built dist.
+    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
+    - cd packages/cli && npm ci --prefer-offline --silent && cd ../..
+    - cd packages/eslint-plugin-shopverse && npm ci --prefer-offline --silent && cd ../..
+  script:
+    # Backend Nest providers (CircuitBreaker, HookRunner, PluginContext,
+    # PluginLoader, plugin registries, PluginConfigService, plugin admin
+    # controllers, PrismaService middleware, etc.) — 42 spec files.
+    - cd backend && npx jest --runInBand --forceExit --ci && cd ..
+    # @shopverse/sdk runtime helpers — 66 tests (semver, manifest validator,
+    # semaphore, custom events, strategy registry, scope checker).
+    - cd packages/sdk && npx jest --runInBand --forceExit --ci && cd ../..
+    # @shopverse/eslint-plugin-shopverse — 14 RuleTester fixtures for the
+    # three plugin-contract rules.
+    - cd packages/eslint-plugin-shopverse && npx jest --runInBand --forceExit --ci && cd ../..
+    # @shopverse/cli — 6 tests for the migration ordering runner.
+    - cd packages/cli && npx jest --runInBand --forceExit --ci && cd ../..
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
 integration:
   stage: test
   services:
