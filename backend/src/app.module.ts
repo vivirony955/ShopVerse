@@ -42,7 +42,9 @@ import { CommonModule } from './common/common.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ExchangeModule } from './exchange/exchange.module';
 import { QaModule } from './qa/qa.module';
-import { PriceAlertsModule } from './price-alerts/price-alerts.module';
+// W2 pilot — price-alerts is now a plugin module. Statically imported here
+// for the pilot; dynamic loading via plugins.config.ts is a W3+ follow-up.
+import { PriceAlertsPluginModule } from '../plugins/price-alerts/src';
 import { BlogModule } from './blog/blog.module';
 import { PriceHistoryModule } from './price-history/price-history.module';
 import { VolumeDiscountsModule } from './volume-discounts/volume-discounts.module';
@@ -117,7 +119,7 @@ import { ObservabilityModule } from './observability/observability.module';
     NotificationsModule, // F2-06: In-app notification center
     ExchangeModule, // F2-12: Exchange flow (swap product after delivery)
     QaModule, // F2-14: Customer Q&A on PDPs
-    PriceAlertsModule, // F2-17: Price drop alert emails
+    PriceAlertsPluginModule, // F2-17 — extracted to backend/plugins/price-alerts/ in W2
     BlogModule, // F3-10: Blog / content CMS
     PriceHistoryModule, // F3-12: Daily price snapshots for charts
     VolumeDiscountsModule, // F4-08: Tiered quantity discounts

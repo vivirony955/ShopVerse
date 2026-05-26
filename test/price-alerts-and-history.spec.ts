@@ -15,7 +15,10 @@ import { INestApplication } from '@nestjs/common';
 import { getTestApp, closeTestApp } from './helpers/app';
 import { prisma, cleanDatabase, createUser } from './helpers/db';
 import { cleanQATables, makeShopper } from './helpers/factories';
-import { PriceAlertsService } from '../backend/src/price-alerts/price-alerts.service';
+// W2: price-alerts extracted to backend/plugins/. The service class is the
+// same and still resolves via app.get(PriceAlertsService) — only the import
+// path changed.
+import { PriceAlertsService } from '../backend/plugins/price-alerts/src/price-alerts.service';
 import { PriceHistoryService } from '../backend/src/price-history/price-history.service';
 
 let app: INestApplication;

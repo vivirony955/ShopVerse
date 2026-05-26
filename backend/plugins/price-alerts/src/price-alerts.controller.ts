@@ -1,50 +1,52 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import type { PriceAlertsService } from './price-alerts.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { PriceAlertsService } from './price-alerts.service';
+import { JwtAuthGuard } from '../../../src/auth/jwt-auth.guard';
+import { CurrentUser } from '../../../src/auth/current-user.decorator';
+import { AuthUser } from '../../../src/common/types';
 
 /**
- * Plugin REST controller. The actual NestJS decorators are deliberately
- * absent here — when the kernel's dynamic-controller-attach lands in
- * W2 session 2, this class gets a `@Controller('plugin/price-alerts')`
- * + `@UseGuards(JwtAuthGuard)` shimmed on at register time (so the
- * plugin source has no compile-time dependency on @nestjs/common).
- *
- * `bindService(...)` is the side-channel used until proper DI wiring
- * exists. The kernel calls it after instantiating the service in
- * onRegister; controllers then use the bound instance.
- *
- * Routes (once attached):
- *   POST   /api/plugin/price-alerts        — set/update alert
- *   GET    /api/plugin/price-alerts        — list current user's alerts
- *   DELETE /api/plugin/price-alerts/:id    — remove
+ * Plugin REST controller — grandfathered to the bare `/price-alerts`
+ * prefix for the W2 pilot. New plugins use `plugin/<id>/...` per the
+ * `plugin-route-prefix` lint rule (W1.T8).
  */
+@ApiTags('Plugin: Price Alerts')
+@ApiBearerAuth('JWT')
+@Controller('price-alerts')
+@UseGuards(JwtAuthGuard)
 export class PriceAlertsController {
-  private static service: PriceAlertsService | null = null;
+  constructor(private readonly svc: PriceAlertsService) {}
 
-  static bindService(svc: PriceAlertsService): void {
-    PriceAlertsController.service = svc;
+  @Post()
+  set(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: { productId: number; targetPrice: number },
+  ) {
+    return this.svc.set(user.id, dto.productId, dto.targetPrice);
   }
 
-  private get svc(): PriceAlertsService {
-    if (!PriceAlertsController.service) {
-      throw new Error(
-        'PriceAlertsController used before bindService() — kernel must call ' +
-          'bindService during onRegister before attaching routes.',
-      );
-    }
-    return PriceAlertsController.service;
+  @Get()
+  getAll(@CurrentUser() user: AuthUser) {
+    return this.svc.getForUser(user.id);
   }
 
-  set(userId: number, dto: { productId: number; targetPrice: number }) {
-    return this.svc.set(userId, dto.productId, dto.targetPrice);
-  }
-
-  list(userId: number) {
-    return this.svc.getForUser(userId);
-  }
-
-  delete(userId: number, productId: number) {
-    return this.svc.delete(userId, productId);
+  @Delete(':productId')
+  delete(
+    @CurrentUser() user: AuthUser,
+    @Param('productId', ParseIntPipe) productId: number,
+  ) {
+    return this.svc.delete(user.id, productId);
   }
 }
