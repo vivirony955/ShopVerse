@@ -35,7 +35,7 @@ spec:
           imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
           command: ["sh", "-c"]
           args:
-            - "cd backend && npx prisma migrate deploy --schema=../prisma/schema.prisma"
+            - "cd backend && npx prisma migrate deploy --schema=../prisma/schema"
           {{- include "shopverse.commonEnv" . | nindent 10 }}
           resources:
             requests:

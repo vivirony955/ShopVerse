@@ -68,7 +68,7 @@ Run before every staging and production deployment:
 
 - [ ] All 638 integration tests pass: `cd test && npx jest --runInBand --forceExit`
 - [ ] TypeScript compiles clean: `cd backend && npx tsc --noEmit`
-- [ ] Prisma schema valid: `npx prisma validate --schema prisma/schema.prisma`
+- [ ] Prisma schema valid: `npx prisma validate --schema prisma/schema`
 - [ ] ESLint clean: `cd backend && npm run lint`
 - [ ] `.env` variables verified (no placeholder values)
 - [ ] Migration SQL reviewed (if schema changed)
@@ -91,7 +91,7 @@ docker compose build --no-cache
 
 # 3. Apply database migrations (zero-downtime — additive only)
 docker compose run --rm backend \
-  npx prisma migrate deploy --schema=../prisma/schema.prisma
+  npx prisma migrate deploy --schema=../prisma/schema
 
 # 4. Rolling restart (zero-downtime if behind a load balancer)
 docker compose up -d --no-deps backend
@@ -114,7 +114,7 @@ curl -I http://localhost:3000
 
 # Database connectivity
 docker compose exec backend npx prisma db execute --stdin \
-  --schema=../prisma/schema.prisma <<< "SELECT 1;"
+  --schema=../prisma/schema <<< "SELECT 1;"
 ```
 
 ### 5.3 Kubernetes (Production Scale)
@@ -143,7 +143,7 @@ maxUnavailable: 0    # zero-downtime
 **Migrations in Kubernetes:** Run as a Job before the Deployment rollout:
 ```yaml
 # migration-job.yaml
-command: ["npx", "prisma", "migrate", "deploy", "--schema=../prisma/schema.prisma"]
+command: ["npx", "prisma", "migrate", "deploy", "--schema=../prisma/schema"]
 ```
 
 ---

@@ -1775,7 +1775,7 @@ Items intentionally out of Phase 1 scope, called out so nothing is silently drop
 
 **Impact**: Cron queries degrade from 10ms to 200ms+. Per-user reservation lookups degrade under load.
 
-**Fix direction**: Add composite indexes in schema.prisma with `@@index` directives.
+**Fix direction**: Add composite indexes in `prisma/schema/main.prisma` with `@@index` directives.
 
 ---
 

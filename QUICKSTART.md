@@ -20,7 +20,7 @@ cp .env.example .env
 docker compose up -d
 
 # Apply migrations and seed sample data
-docker exec shopverse-backend npx prisma migrate deploy --schema=../prisma/schema.prisma
+docker exec shopverse-backend npx prisma migrate deploy --schema=../prisma/schema
 ```
 
 Access:
@@ -80,10 +80,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 createdb shopverse
 
 # Apply all migrations
-npx prisma migrate deploy --schema prisma/schema.prisma
+npx prisma migrate deploy --schema prisma/schema
 
 # Generate Prisma client
-npx prisma generate --schema prisma/schema.prisma
+npx prisma generate --schema prisma/schema
 ```
 
 ### 4. Start the servers

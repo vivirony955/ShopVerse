@@ -88,7 +88,7 @@ export default async function globalSetup() {
   console.log('[Test Setup] Regenerating Prisma client…');
   try {
     const testClientDir = path.join(__dirname, '../node_modules/.prisma/client');
-    execSync(`npx prisma generate --schema=../prisma/schema.prisma`, {
+    execSync(`npx prisma generate --schema=../prisma/schema`, {
       cwd: path.join(__dirname, '../../backend'),
       env: { ...process.env, PRISMA_CLIENT_ENGINE_TYPE: 'library', PRISMA_CLI_QUERY_ENGINE_TYPE: 'library' },
       stdio: 'pipe',

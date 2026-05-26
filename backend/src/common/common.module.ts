@@ -16,6 +16,7 @@ import { PluginQueueRegistry } from './plugin-queue.registry';
 import { PluginRouteRegistry } from './plugin-route.registry';
 import { PluginStrategyRegistry } from './plugin-strategy.registry';
 import { PluginPaymentWebhookController } from './plugin-payment-webhook.controller';
+import { PluginConfigService } from './plugin-config.service';
 
 @Global()
 @Module({
@@ -33,6 +34,7 @@ import { PluginPaymentWebhookController } from './plugin-payment-webhook.control
     PluginQueueRegistry,
     PluginRouteRegistry,
     PluginStrategyRegistry,
+    PluginConfigService,
   ],
   exports: [
     ErrorTrackingService,
@@ -47,6 +49,7 @@ import { PluginPaymentWebhookController } from './plugin-payment-webhook.control
     PluginQueueRegistry,
     PluginRouteRegistry,
     PluginStrategyRegistry,
+    PluginConfigService,
   ],
 })
 export class CommonModule {}

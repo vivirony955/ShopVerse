@@ -2,8 +2,15 @@
 // See LICENSE in the project root for license information.
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../backend/node_modules/.prisma/client"
+  provider        = "prisma-client-js"
+  // Path is relative to this schema FILE — now `prisma/schema/main.prisma`
+  // — so two `../` to reach the repo root, then into backend's node_modules.
+  output          = "../../backend/node_modules/.prisma/client"
+  // W1.T7 — `prismaSchemaFolder` lets the schema span multiple .prisma
+  // files under prisma/schema/. Kernel models live in main.prisma;
+  // first-party plugin schemas (W2+) ship as sibling files in the same
+  // folder and Prisma concatenates them at parse time.
+  previewFeatures = ["prismaSchemaFolder"]
   // A2 observability: Prisma 6+ emits OTel spans automatically when
   // @prisma/instrumentation is registered (no preview flag required).
   // Safe when SDK is absent (test env) — Prisma emits no spans without

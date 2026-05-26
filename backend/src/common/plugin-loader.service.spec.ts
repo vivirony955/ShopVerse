@@ -23,6 +23,11 @@ function noopKernel(): KernelContext {
     crons: { register: noop as never },
     queues: { register: noop as never },
     api: { registerRoutes: noop as never },
+    config: {
+      get: () => Promise.resolve(null),
+      set: () => Promise.resolve(),
+      delete: () => Promise.resolve(),
+    },
   };
 }
 

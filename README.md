@@ -301,8 +301,8 @@ STRIPE_WEBHOOK_SECRET="whsec_..."
 ### Database setup
 
 ```bash
-npx prisma migrate deploy --schema prisma/schema.prisma
-npx prisma generate --schema prisma/schema.prisma
+npx prisma migrate deploy --schema prisma/schema
+npx prisma generate --schema prisma/schema
 ```
 
 ### Run
@@ -401,7 +401,7 @@ scale + ops-complexity spectrum:
 
 ```bash
 docker compose up -d
-docker exec shopverse-backend npx prisma migrate deploy --schema=../prisma/schema.prisma
+docker exec shopverse-backend npx prisma migrate deploy --schema=../prisma/schema
 ```
 
 ### Quick start — Helm

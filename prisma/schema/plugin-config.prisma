@@ -1,0 +1,26 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+//
+// Plan §10 E10 (W1.T27) — kernel-owned plugin config table.
+//
+// Plugins call `kernel.config.set(key, value)` / `.get(key)` to persist
+// settings across restarts. The kernel writes to this table; plugins
+// never touch it directly.
+//
+// Lives in its own .prisma file to exercise the `prismaSchemaFolder`
+// preview (W1.T7) — Prisma concatenates every .prisma file in the
+// folder at parse time, so kernel models can stay split by concern.
+
+model PluginConfig {
+  /// `<plugin-id>:<key>` (concatenated) — primary lookup key.
+  id        String   @id
+  pluginId  String
+  key       String
+  /// JSON-serialized value. Plugin author owns deserialization.
+  value     Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([pluginId, key])
+  @@index([pluginId])
+}

@@ -106,7 +106,7 @@ schema:validate:
   before_script:
     - cd backend && npm ci --prefer-offline --silent && cd ..
   script:
-    - cd backend && npx prisma validate --schema=../prisma/schema.prisma
+    - cd backend && npx prisma validate --schema=../prisma/schema
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
@@ -158,7 +158,7 @@ integration:
     # so frontend-api.spec.ts has no dependency on frontend/node_modules
     - cd test && npm ci --prefer-offline --silent && cd ..
     # Generate Prisma client against the test DB schema
-    - cd backend && npx prisma generate --schema=../prisma/schema.prisma && cd ..
+    - cd backend && npx prisma generate --schema=../prisma/schema && cd ..
     # Wait for PostgreSQL service to accept connections
     - |
       echo "Waiting for PostgreSQL..."
@@ -167,7 +167,7 @@ integration:
         sleep 2
       done
     # Apply all migrations to the test database
-    - cd backend && npx prisma migrate deploy --schema=../prisma/schema.prisma && cd ..
+    - cd backend && npx prisma migrate deploy --schema=../prisma/schema && cd ..
   script:
     - |
       cd test && npx jest \
@@ -250,14 +250,14 @@ test:coverage:
     - apk add --no-cache postgresql-client
     - cd backend && npm ci --prefer-offline --silent && cd ..
     - cd test && npm ci --prefer-offline --silent && cd ..
-    - cd backend && npx prisma generate --schema=../prisma/schema.prisma && cd ..
+    - cd backend && npx prisma generate --schema=../prisma/schema && cd ..
     - |
       echo "Waiting for PostgreSQL..."
       for i in $(seq 1 30); do
         pg_isready -h postgres -U postgres -d shopverse_test && break
         sleep 2
       done
-    - cd backend && npx prisma migrate deploy --schema=../prisma/schema.prisma && cd ..
+    - cd backend && npx prisma migrate deploy --schema=../prisma/schema && cd ..
   script:
     - |
       cd test && npx jest \
@@ -388,7 +388,7 @@ release:
       git fetch --tags && git checkout $CI_COMMIT_TAG
       docker compose pull
       docker compose run --rm backend \
-        npx prisma migrate deploy --schema=../prisma/schema.prisma
+        npx prisma migrate deploy --schema=../prisma/schema
       docker compose up -d --remove-orphans
       docker image prune -f
       ```
@@ -426,7 +426,7 @@ release:
         export FRONTEND_TAG=$CI_COMMIT_SHA
         docker compose pull
         docker compose run --rm backend \
-          npx prisma migrate deploy --schema=../prisma/schema.prisma
+          npx prisma migrate deploy --schema=../prisma/schema
         docker compose up -d --remove-orphans
         docker image prune -f
         echo "Deploy complete: $CI_COMMIT_SHA"

@@ -15,8 +15,8 @@
 /backend/src/admin/         @vivironycrazy
 
 # Schema — any change affects all services
-/prisma/schema.prisma       @vivironycrazy
-/prisma/migrations/         @vivironycrazy
+/prisma/schema/             @vivironycrazy
+/prisma/schema/migrations/  @vivironycrazy
 
 # Architecture and governance documents
 /SYSTEM_DESIGN_FINAL.md    @vivironycrazy

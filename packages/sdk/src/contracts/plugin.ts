@@ -122,6 +122,23 @@ export interface KernelContext {
       options: PluginRouteOptions,
     ): void;
   };
+
+  /**
+   * Per-plugin config persistence (plan §10 E10 — W1.T27). Plugins use
+   * this for operator-managed settings that survive restarts. The
+   * plugin id is implied by the active plugin context (set by
+   * HookRunner / PluginLoader via AsyncLocalStorage); calling outside
+   * a plugin context throws.
+   *
+   * Values are JSON-serialised. Plugin authors own the schema for what
+   * they put under each key — the SDK is a stringly-typed key/value
+   * store, not a config-validation layer.
+   */
+  readonly config: {
+    get<T = unknown>(key: string): Promise<T | null>;
+    set<T = unknown>(key: string, value: T): Promise<void>;
+    delete(key: string): Promise<void>;
+  };
 }
 
 // ─── Cron + queue + route specs ─────────────────────────────────────────────

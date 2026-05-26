@@ -3,9 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install Prisma deps first (layer cache)
-COPY prisma/schema.prisma ./prisma/schema.prisma
-COPY prisma/migrations ./prisma/migrations
+# Install Prisma deps first (layer cache). The schema lives in a folder
+# now (prismaSchemaFolder preview, W1.T7) and its migrations live inside
+# that folder (Prisma 6 requires this layout). A single COPY covers both.
+COPY prisma/schema ./prisma/schema
 
 # Install backend deps
 COPY backend/package*.json ./backend/
@@ -17,7 +18,7 @@ COPY backend/tsconfig*.json ./backend/
 COPY backend/nest-cli.json ./backend/
 
 # Generate Prisma client
-RUN cd backend && npx prisma generate --schema=../prisma/schema.prisma
+RUN cd backend && npx prisma generate --schema=../prisma/schema
 
 # Build NestJS
 RUN cd backend && npm run build
@@ -33,9 +34,8 @@ ENV NODE_ENV=production
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --omit=dev
 
-# Copy Prisma schema and generated client
-COPY prisma/schema.prisma ./prisma/schema.prisma
-COPY prisma/migrations ./prisma/migrations
+# Copy Prisma schema (includes migrations subfolder) and generated client
+COPY prisma/schema ./prisma/schema
 COPY --from=builder /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
 
 # Copy built app
@@ -50,4 +50,4 @@ EXPOSE 9091
 # time: `command: ["node", "dist/worker"]` in docker-compose / k8s.
 # Migrations are run by the API on boot for single-pod compose deployments;
 # in K8s the Helm chart runs them as a pre-install Job instead.
-CMD ["sh", "-c", "cd backend && npx prisma migrate deploy --schema=../prisma/schema.prisma && node dist/main"]
+CMD ["sh", "-c", "cd backend && npx prisma migrate deploy --schema=../prisma/schema && node dist/main"]

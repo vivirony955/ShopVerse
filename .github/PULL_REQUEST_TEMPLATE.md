@@ -15,7 +15,7 @@
 
 - [ ] `cd backend && npx tsc --noEmit` passes (zero type errors)
 - [ ] `cd test && npx jest --runInBand --forceExit` — all 638 tests pass
-- [ ] If schema changed: `npx prisma validate --schema prisma/schema.prisma` passes
+- [ ] If schema changed: `npx prisma validate --schema prisma/schema` passes
 - [ ] If schema changed: migration file is included and reviewed
 
 ## Financial / Inventory Code

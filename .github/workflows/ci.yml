@@ -73,9 +73,9 @@ jobs:
       - name: Install test deps
         run: cd test && npm ci
       - name: Generate Prisma client
-        run: npx prisma generate --schema prisma/schema.prisma
+        run: npx prisma generate --schema prisma/schema
       - name: Apply migrations
-        run: cd backend && npx prisma migrate deploy --schema=../prisma/schema.prisma
+        run: cd backend && npx prisma migrate deploy --schema=../prisma/schema
       - name: Run integration tests
         run: cd test && npx jest --runInBand --forceExit --passWithNoTests
         timeout-minutes: 15
@@ -97,7 +97,7 @@ jobs:
       - name: Install backend deps
         run: cd backend && npm ci
       - name: Validate schema
-        run: npx prisma validate --schema prisma/schema.prisma
+        run: npx prisma validate --schema prisma/schema
 
   sbom:
     name: SBOM (CycloneDX)

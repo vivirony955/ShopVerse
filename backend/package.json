@@ -41,10 +41,10 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "ts-node src/prisma/seed.ts",
-    "postinstall": "prisma generate --schema ../prisma/schema.prisma"
+    "postinstall": "prisma generate --schema ../prisma/schema"
   },
   "prisma": {
-    "schema": "../prisma/schema.prisma",
+    "schema": "../prisma/schema",
     "seed": "ts-node src/prisma/seed.ts"
   },
   "dependencies": {

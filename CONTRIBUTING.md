@@ -43,8 +43,8 @@ cp .env.example .env
 cd backend && npm install
 cd ../frontend && npm install
 
-npx prisma migrate deploy --schema prisma/schema.prisma
-npx prisma generate --schema prisma/schema.prisma
+npx prisma migrate deploy --schema prisma/schema
+npx prisma generate --schema prisma/schema
 
 # Backend (http://localhost:3001)
 cd backend && npm run start:dev
@@ -76,9 +76,9 @@ See [QUICKSTART.md](QUICKSTART.md) for detailed setup and common issues.
    cd test && npx jest --runInBand --forceExit
    ```
 
-5. If you changed `prisma/schema.prisma`:
+5. If you changed any file in `prisma/schema/`:
    ```bash
-   npx prisma validate --schema prisma/schema.prisma
+   npx prisma validate --schema prisma/schema
    ```
 
 6. Sign your commits (`git commit -s`) and open a PR using the [PR template](.github/PULL_REQUEST_TEMPLATE.md).
@@ -118,10 +118,10 @@ Financial code PRs **require maintainer approval** regardless of CODEOWNERS auto
 
 ### Schema Changes
 
-1. Edit `prisma/schema.prisma`
-2. `npx prisma validate --schema prisma/schema.prisma`
-3. `npx prisma generate --schema prisma/schema.prisma`
-4. `npx prisma migrate dev --schema prisma/schema.prisma --name descriptive-name`
+1. Edit the relevant file under `prisma/schema/` (kernel models in `main.prisma`, plugin-owned models in their own `.prisma` file in the same folder)
+2. `npx prisma validate --schema prisma/schema`
+3. `npx prisma generate --schema prisma/schema`
+4. `npx prisma migrate dev --schema prisma/schema --name descriptive-name`
 5. Review the generated SQL — verify it's correct and has a safe rollback path
 6. Never edit migration files after they've been applied to any environment
 

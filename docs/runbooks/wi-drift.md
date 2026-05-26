@@ -20,7 +20,7 @@ Drift is surfaced by `InvariantValidatorService.validateInventoryInvariants` (cr
 
 1. **Scope** — how many variants? Single variant = isolated bug. >100 variants = systemic (recent deploy / migration / cron outage). Check `violations=N` in the alert line.
 2. **Severity** — I-2 violation (`reservedStock < activeOrderQty`) is **P0** — we may oversell. I-1 cache drift alone is **P1** — UI shows wrong stock but cannot oversell because WI is authoritative at reserve time.
-3. **Recent changes** — `git log --since="6 hours ago" -- backend/src/inventory backend/src/warehouse backend/src/cart backend/src/orders prisma/schema.prisma` — any inventory-path change is the prime suspect.
+3. **Recent changes** — `git log --since="6 hours ago" -- backend/src/inventory backend/src/warehouse backend/src/cart backend/src/orders prisma/schema/` — any inventory-path change is the prime suspect.
 4. **Cron health** — confirm `invariant-inventory`, `reservation-expiry`, and `cart-reservation-cleanup` all ran in the last hour. A silent cron outage masquerades as "drift".
 
 ## 3. Containment (P0 only)
