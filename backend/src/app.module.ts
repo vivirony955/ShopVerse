@@ -39,6 +39,7 @@ import { AffiliateModule } from './affiliate/affiliate.module';
 import { ExperienceModule } from './experience/experience.module';
 import { LegalModule } from './legal/legal.module';
 import { CommonModule } from './common/common.module';
+import { EventBusModule } from './common/event-bus.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ExchangeModule } from './exchange/exchange.module';
 import { QaModule } from './qa/qa.module';
@@ -115,7 +116,8 @@ import { ObservabilityModule } from './observability/observability.module';
     AffiliateModule, // Affiliate/influencer tracking, UTM attribution
     ExperienceModule, // Save-for-later, delivery slots, gift options, buy-again
     LegalModule, // Policies, cookie consent
-    CommonModule, // @Global: ErrorTrackingService available everywhere
+    CommonModule, // @Global: ErrorTrackingService + plugin services everywhere
+    EventBusModule, // @Global: kernel + plugin event bus (BullMQ-backed, W3)
     NotificationsModule, // F2-06: In-app notification center
     ExchangeModule, // F2-12: Exchange flow (swap product after delivery)
     QaModule, // F2-14: Customer Q&A on PDPs
