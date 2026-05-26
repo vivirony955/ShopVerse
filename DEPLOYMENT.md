@@ -66,7 +66,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 Run before every staging and production deployment:
 
-- [ ] All 638 integration tests pass: `cd test && npx jest --runInBand --forceExit`
+- [ ] All 714 integration tests pass: `cd test && npx jest --runInBand --forceExit`
 - [ ] TypeScript compiles clean: `cd backend && npx tsc --noEmit`
 - [ ] Prisma schema valid: `npx prisma validate --schema prisma/schema`
 - [ ] ESLint clean: `cd backend && npm run lint`

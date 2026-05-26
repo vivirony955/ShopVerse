@@ -5,7 +5,7 @@
 #
 # Stages:
 #   validate  → typecheck, lint, schema (parallel, fast — ~2 min)
-#   test      → 638 integration tests against real PostgreSQL (~3 min)
+#   test      → 518 unit tests (in-process) + 714 integration tests against real PostgreSQL (~3 min)
 #   build     → Docker images for backend + frontend pushed to GitLab Registry
 #   release   → GitLab release + tagged image aliases (on v* tags only)
 #   deploy    → Manual triggers for staging and production
@@ -21,6 +21,27 @@
 # Auto-provided by GitLab (no setup needed):
 #   CI_REGISTRY, CI_REGISTRY_USER, CI_REGISTRY_PASSWORD, CI_COMMIT_SHA,
 #   CI_COMMIT_TAG, CI_COMMIT_BRANCH, CI_PROJECT_PATH
+
+# ─── GitLab security scans (added as `include:`) ────────────────────────────
+# These templates inject jobs into the `test` stage on the project's default
+# branch + every MR. Each is opt-in via its own rule, no extra config needed:
+#   - Secret-Detection      → gitleaks scan of the repo history (.gitleaks.toml allowed)
+#   - Dependency-Scanning   → gemnasium against package-lock.json files
+#   - SAST                  → semgrep + typescript-eslint security ruleset
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+
+# ─── Pipeline-spawn gate ─────────────────────────────────────────────────────
+# Without this, every push spawns a pipeline shell even when zero per-job rules
+# match (pipeline status: "skipped" or empty). The MR/branch/tag triad mirrors
+# the per-job `rules:` blocks below so an MR pipeline runs MR rules etc.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
 
 stages:
   - validate
@@ -204,7 +225,7 @@ integration:
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
     POSTGRES_HOST_AUTH_METHOD: trust
-    # connection_limit=3: with 39 sequential specs each booting a NestJS PrismaService
+    # connection_limit=3: with 45 sequential specs each booting a NestJS PrismaService
     # (3 conns) plus globalThis.__testPrisma (3 conns), max in-flight = 6, well under
     # PG's default max_connections=100. pool_timeout=30 surfaces exhaustion immediately.
     DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/shopverse_test?connection_limit=3&pool_timeout=30"
@@ -259,23 +280,34 @@ integration:
     # Apply all migrations to the test database
     - cd backend && npx prisma migrate deploy --schema=../prisma/schema && cd ..
   script:
+    # `--coverage` is folded into the gating run (used to be a separate
+    # `test:coverage` job re-executing the full 714-test suite on main).
+    # Jest's `coverageThreshold` config (test/jest.config.ts) makes the
+    # job fail if statements/branches/functions/lines drop below the
+    # configured floor — coverage regressions are now blocking, not
+    # informational.
     - |
       cd test && npx jest \
         --runInBand \
         --forceExit \
         --ci \
+        --coverage \
         --reporters=default \
         --reporters=jest-junit \
         --testResultsProcessor=jest-junit
   after_script:
     - cp test/junit.xml junit.xml 2>/dev/null || true
+  # GitLab parses Jest's `All files | <pct>` row for the badge + MR widget.
+  coverage: '/All files\s*\|\s*([\d.]+)/'
   artifacts:
     when: always
     reports:
       junit: junit.xml
     paths:
       - junit.xml
-    expire_in: 7 days
+      - test/coverage/lcov.info
+      - test/coverage/coverage-summary.json
+    expire_in: 30 days
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
@@ -311,81 +343,12 @@ e2e:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_COMMIT_TAG
 
-# ─── COVERAGE ────────────────────────────────────────────────────────────────
-# Runs the full integration suite with --coverage and publishes lcov.info +
-# coverage-summary.json as 30-day artifacts. Only on main — keeps PR pipelines
-# fast. Does NOT gate the build stage; coverage is informational.
-#
-# GitLab picks up the percentage via the coverage: regex and shows it on the
-# pipeline page and the coverage badge in README.
-
-test:coverage:
-  stage: test
-  services:
-    - name: postgres:16-alpine
-      alias: postgres
-  variables:
-    POSTGRES_DB: shopverse_test
-    POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: postgres
-    POSTGRES_HOST_AUTH_METHOD: trust
-    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/shopverse_test?connection_limit=3&pool_timeout=30"
-  cache:
-    - key:
-        files:
-          - backend/package-lock.json
-      paths:
-        - backend/node_modules/
-      policy: pull
-    - key:
-        files:
-          - test/package-lock.json
-      paths:
-        - test/node_modules/
-      policy: pull
-    - key:
-        files:
-          - packages/sdk/package-lock.json
-      paths:
-        - packages/sdk/node_modules/
-      policy: pull
-  before_script:
-    - apk add --no-cache postgresql-client
-    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
-    - cd backend && npm ci --prefer-offline --silent && cd ..
-    - cd test && npm ci --prefer-offline --silent && cd ..
-    - cd backend && npx prisma generate --schema=../prisma/schema && cd ..
-    - |
-      echo "Waiting for PostgreSQL..."
-      for i in $(seq 1 30); do
-        pg_isready -h postgres -U postgres -d shopverse_test && break
-        sleep 2
-      done
-    - cd backend && npx prisma migrate deploy --schema=../prisma/schema && cd ..
-  script:
-    - |
-      cd test && npx jest \
-        --runInBand \
-        --forceExit \
-        --ci \
-        --coverage
-  # Extracts Statements % from the "All files" row of Jest's text table.
-  # Example: "All files  |   78.56 |  ..."  →  captures 78.56
-  coverage: '/All files\s*\|\s*([\d.]+)/'
-  artifacts:
-    when: always
-    paths:
-      - test/coverage/lcov.info
-      - test/coverage/coverage-summary.json
-    expire_in: 30 days
-  needs:
-    - typecheck
-    - lint
-    - schema:validate
-    - integration
-    - e2e
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+# Coverage is collected by the `integration` job above (`--coverage` flag,
+# `coverage:` regex, lcov + coverage-summary artifacts). Was previously a
+# separate `test:coverage` job that re-ran the full 714-test suite on main
+# just to add `--coverage` — wasteful and the threshold was advisory only.
+# Now Jest's `coverageThreshold` in test/jest.config.ts gates the same
+# integration run, so regressions block the build instead of being silent.
 
 # ─── BUILD STAGE ─────────────────────────────────────────────────────────────
 # Build multi-stage Docker images and push to GitLab Container Registry.
@@ -403,6 +366,7 @@ test:coverage:
     - typecheck
     - lint
     - schema:validate
+    - unit
     - integration
     - e2e
   rules:
@@ -471,8 +435,10 @@ release:
     - build:frontend
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+  # The release-cli image processes the `release:` block below directly.
+  # `script:` is required by the GitLab CI schema but its body is a no-op.
   script:
-    - echo "Creating GitLab release for $CI_COMMIT_TAG"
+    - ':'
   release:
     tag_name: "$CI_COMMIT_TAG"
     name: "ShopVerse $CI_COMMIT_TAG"
@@ -520,14 +486,30 @@ release:
     - echo "$DEPLOY_SSH_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+    # The heredoc delimiter is SINGLE-QUOTED (`'ENDSSH'`) so the GitLab
+    # Runner does NOT expand `$CI_REGISTRY_PASSWORD` locally — the literal
+    # `$CI_REGISTRY_PASSWORD` travels in the heredoc body and is looked up
+    # on the remote against env vars we set inline on the ssh command
+    # invocation. The password is interpolated into the SSH command line
+    # (so the encrypted SSH channel sees the value once), but it does NOT
+    # appear in the bash SCRIPT BODY that the remote host parses — so
+    # `set -x` in the heredoc, auditd, or anyone reading the bash trace
+    # only ever sees the variable reference, not the secret. This is the
+    # canonical "set env on ssh command line, reference via $VAR in
+    # quoted heredoc" pattern.
     - |
-      ssh "deploy@$DEPLOY_HOST" bash -s << ENDSSH
+      ssh "deploy@$DEPLOY_HOST" \
+        CI_REGISTRY_USER="$CI_REGISTRY_USER" \
+        CI_REGISTRY_PASSWORD="$CI_REGISTRY_PASSWORD" \
+        CI_REGISTRY="$CI_REGISTRY" \
+        CI_COMMIT_SHA="$CI_COMMIT_SHA" \
+        bash -s << 'ENDSSH'
         set -e
         cd /opt/shopverse
         echo "$CI_REGISTRY_PASSWORD" | docker login \
           -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-        export BACKEND_TAG=$CI_COMMIT_SHA
-        export FRONTEND_TAG=$CI_COMMIT_SHA
+        export BACKEND_TAG="$CI_COMMIT_SHA"
+        export FRONTEND_TAG="$CI_COMMIT_SHA"
         docker compose pull
         docker compose run --rm backend \
           npx prisma migrate deploy --schema=../prisma/schema

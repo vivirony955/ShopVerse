@@ -75,6 +75,19 @@ const config: Config = {
     '!../backend/src/prisma/seed.ts',   // dev utility
     '!../backend/src/**/*.spec.ts',     // exclude any colocated unit tests
   ],
+  // Coverage regression gate (CI). Numbers are intentionally CONSERVATIVE —
+  // sized as "almost certainly below current actual" so this gate doesn't
+  // break on first contact. The first green CI coverage artifact will give
+  // us real numbers; bump these toward `(current - 5pp)` so any drop > 5
+  // percentage points fails the build. Tracked as a follow-up.
+  coverageThreshold: {
+    global: {
+      statements: 30,
+      branches: 20,
+      functions: 30,
+      lines: 30,
+    },
+  },
   testTimeout: 30000,
   reporters: [
     'default',

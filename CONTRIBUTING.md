@@ -71,7 +71,7 @@ See [QUICKSTART.md](QUICKSTART.md) for detailed setup and common issues.
    cd backend && npx tsc --noEmit
    ```
 
-4. Run the full test suite — **all 638 tests must pass:**
+4. Run the full test suite — **all 714 integration tests must pass:**
    ```bash
    cd test && npx jest --runInBand --forceExit
    ```
@@ -144,7 +144,7 @@ Tests live in `test/` and run against a real PostgreSQL database — no DB mocks
 
 ## PR Review Standards
 
-**Automated checks (CI):** TypeScript, ESLint, all 638 tests, Prisma schema validation
+**Automated checks (CI):** TypeScript, ESLint, 518 unit + 714 integration tests, Prisma schema validation
 
 **Manual review focuses on:**
 - Does it break any of the 13 invariants?
