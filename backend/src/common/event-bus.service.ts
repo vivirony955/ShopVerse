@@ -5,8 +5,24 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { context, propagation } from '@opentelemetry/api';
 import { Queue } from 'bullmq';
-import type { EventConsumer, EventName, EventPayloadMap } from '@shopverse/sdk';
+import type {
+  EventConsumer,
+  EventEnvelope as SdkEventEnvelope,
+  EventName,
+  EventPayloadMap,
+} from '@shopverse/sdk';
 import { EventHandlerRegistry } from './event-handler.registry';
+
+/**
+ * Caller-facing payload for `publish<E>(event, payload)`. Each
+ * `EventPayloadMap[E]` extends `SdkEventEnvelope` (carries `name`,
+ * `version`, `occurredAt`, `traceparent`); the EventBus fills those
+ * in automatically so callers supply only the domain-specific fields.
+ */
+export type EventPayloadInput<E extends EventName> = Omit<
+  EventPayloadMap[E],
+  keyof SdkEventEnvelope
+>;
 
 /**
  * Wire-level shape of a job on the shopverse-events queue. The
@@ -62,9 +78,17 @@ export class EventBus {
    */
   publish<E extends EventName>(
     event: E,
-    payload: EventPayloadMap[E],
+    payload: EventPayloadInput<E>,
   ): Promise<void> {
-    return this.enqueue(event, payload);
+    // Fold the SDK envelope fields onto the caller's domain payload so
+    // consumers see a single `EventPayloadMap[E]`-shaped object.
+    const full = {
+      name: event,
+      version: 1 as const,
+      occurredAt: new Date().toISOString(),
+      ...payload,
+    };
+    return this.enqueue(event, full);
   }
 
   /**

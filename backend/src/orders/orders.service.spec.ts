@@ -18,6 +18,7 @@ import { ReferralService } from '../referral/referral.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { AbandonedCartService } from '../abandoned-cart/abandoned-cart.service';
 import { WalletService } from '../wallet/wallet.service';
+import { EventBus } from '../common/event-bus.service';
 import { createPrismaMock, MockPrisma } from '../test-utils/prisma.mock';
 
 describe('OrdersService', () => {
@@ -51,6 +52,13 @@ describe('OrdersService', () => {
     clearSnapshot: jest.fn(),
     clearForUser: jest.fn().mockResolvedValue(undefined),
   };
+  const mockEventBus = {
+    publish: jest.fn().mockResolvedValue(undefined),
+    publishCustom: jest.fn().mockResolvedValue(undefined),
+    subscribe: jest.fn(),
+    subscribeCustom: jest.fn(),
+    dispatchSyncForTests: jest.fn().mockResolvedValue(undefined),
+  };
   const mockWalletService = {
     debit: jest.fn().mockResolvedValue(undefined),
     getBalance: jest.fn().mockResolvedValue(0),
@@ -71,6 +79,7 @@ describe('OrdersService', () => {
         { provide: InventoryService, useValue: mockInventoryService },
         { provide: AbandonedCartService, useValue: mockAbandonedCartService },
         { provide: WalletService, useValue: mockWalletService },
+        { provide: EventBus, useValue: mockEventBus },
       ],
     }).compile();
 

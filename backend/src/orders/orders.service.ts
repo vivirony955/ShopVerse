@@ -23,6 +23,7 @@ import { ReferralService } from '../referral/referral.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { AbandonedCartService } from '../abandoned-cart/abandoned-cart.service';
 import { WalletService } from '../wallet/wallet.service';
+import { EventBus } from '../common/event-bus.service';
 
 // FINAL §9.4: statuses for which an order still holds reservedStock (pre-fulfilment).
 // Cancelling from these states releases the reservation; cancelling from later states restocks.
@@ -41,6 +42,7 @@ export class OrdersService {
     private readonly inventoryService: InventoryService,
     private readonly abandonedCartService: AbandonedCartService,
     private readonly walletService: WalletService,
+    private readonly eventBus: EventBus,
   ) {}
 
   // ─── Business-rate constants (server-authoritative — never from client) ────
@@ -289,6 +291,32 @@ export class OrdersService {
     // B-07 PERF: fire-and-forget email. Migrate to BullMQ queue in Wave 5+.
     // TODO(queue): enqueue `order.confirmation` job instead of direct SMTP call.
     this.emailService.sendOrderConfirmation(order).catch(() => {});
+
+    // W3.T1 — publish order.placed event for plugin + kernel consumers.
+    // ADDITIVE this session: no consumers subscribed yet, so no
+    // observable behaviour change. W3.T2-T5 migrate the inline side-
+    // effects above (email, wallet cashback, abandoned-cart clear,
+    // loyalty earn) into event subscribers one task at a time.
+    //
+    // FIRE-AND-FORGET — matches the existing post-tx side-effect pattern
+    // above (email, wallet credit, abandoned-cart clear). Awaiting would
+    // tie the order-placement HTTP response to BullMQ queue.add(), which
+    // stalls in test environments where Redis isn't running (offline
+    // queue + 1h retry strategy). Failures are caught + swallowed; the
+    // order is already committed to the DB.
+    void this.eventBus
+      .publish('order.placed', {
+        orderId: order.id,
+        userId: order.userId,
+        guestEmail: order.guestEmail ?? null,
+        total: order.total,
+        couponCode: dto.couponCode ?? null,
+        itemCount: order.items?.length ?? 0,
+      })
+      .catch(() => {
+        // Non-fatal — order is already placed. EventBus logs internally.
+      });
+
     return order;
   }
 

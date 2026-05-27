@@ -59,7 +59,17 @@ describe('EventBus', () => {
         total: 100,
       } as never);
 
-      expect(calls).toEqual([{ orderId: 1, userId: 2, total: 100 }]);
+      // EventBus folds the SDK envelope (name/version/occurredAt) onto
+      // the caller's payload, so handlers see them alongside the
+      // domain fields.
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toMatchObject({
+        name: 'order.placed',
+        version: 1,
+        orderId: 1,
+        userId: 2,
+        total: 100,
+      });
     });
 
     it('publish() falls back to in-process dispatch when queue throws', async () => {
@@ -97,7 +107,9 @@ describe('EventBus', () => {
         occurredAt: string;
       };
       expect(envelope.event).toBe('order.cancelled');
-      expect(envelope.payload).toEqual({
+      expect(envelope.payload).toMatchObject({
+        name: 'order.cancelled',
+        version: 1,
         orderId: 42,
         userId: 1,
         reason: 'user-cancel',
