@@ -21,7 +21,6 @@ import { CartReservationService } from '../cart/cart-reservation.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { ReferralService } from '../referral/referral.service';
 import { InventoryService } from '../inventory/inventory.service';
-import { AbandonedCartService } from '../abandoned-cart/abandoned-cart.service';
 import { WalletService } from '../wallet/wallet.service';
 import { EventBus } from '../common/event-bus.service';
 
@@ -40,7 +39,6 @@ export class OrdersService {
     private readonly loyaltyService: LoyaltyService,
     private readonly referralService: ReferralService,
     private readonly inventoryService: InventoryService,
-    private readonly abandonedCartService: AbandonedCartService,
     private readonly walletService: WalletService,
     private readonly eventBus: EventBus,
   ) {}
@@ -255,11 +253,14 @@ export class OrdersService {
       })
       .catch(() => {});
 
-    // GAP-F07: clear any abandoned-cart snapshot so the hourly reminder cron
-    // does not email a customer who just completed checkout. Best-effort —
-    // a stale snapshot only surfaces as a harmless "hey, you left items"
-    // email (minor UX glitch), never as an order integrity issue.
-    await this.abandonedCartService.clearForUser(userId).catch(() => {});
+    // W3.T4 — abandoned-cart clear is now handled by
+    // OrderPlacedAbandonedCartSubscriber listening on the order.placed
+    // event published below (backend/src/abandoned-cart/order-placed.subscriber.ts).
+    // The previous inline `await this.abandonedCartService.clearForUser(userId)`
+    // was removed — same call, routed through the event bus, runs on
+    // the worker process. GAP-F07 contract preserved: stale snapshot →
+    // worst case is one extra "you left items" email, never an order
+    // integrity issue.
 
     // F4-07: Cashback credit for CASHBACK-type coupons — post-order, wallet credit
     if (dto.couponCode) {
@@ -297,15 +298,18 @@ export class OrdersService {
     // because the inline call was already fire-and-forget.
 
     // W3.T1 — publish order.placed event for plugin + kernel consumers.
-    // Inline side-effects above (wallet cashback credit, abandoned-cart
-    // clear, loyalty earn) get migrated to subscribers in W3.T3-T5.
+    // Remaining inline side-effects above (wallet cashback credit +
+    // loyalty earn) get migrated to subscribers in W3.T3 / T5.
     //
-    // FIRE-AND-FORGET — matches the existing post-tx pattern (wallet,
-    // abandoned-cart). Awaiting would tie the HTTP response to BullMQ
-    // queue.add() which stalls in Redis-disabled tests (offline queue +
-    // 1h retry). The order is already DB-committed; loss of a published
-    // event is recoverable via audit log + reprocess tooling (W6).
-    void this.eventBus
+    // AWAITED — EventBus.publish picks its path from REDIS_URL: when
+    // Redis is configured, the await resolves in ~ms after the BullMQ
+    // queue.add() ack (NOT after consumers finish — those run on the
+    // worker process). When Redis is absent (dev / test / single-pod),
+    // the in-process dispatch path awaits handlers inline so callers
+    // that assert post-publish state (e.g. GAP-F07 abandoned-cart
+    // cleared after placeOrder) observe the consumer effect. Failure
+    // is caught + swallowed; the order is already DB-committed.
+    await this.eventBus
       .publish('order.placed', {
         orderId: order.id,
         userId: order.userId,

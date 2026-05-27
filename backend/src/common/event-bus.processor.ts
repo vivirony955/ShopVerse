@@ -49,10 +49,22 @@ export class EventDispatcherProcessor
   }
 
   onApplicationBootstrap(): void {
-    if (process.env.DISABLE_WORKERS !== 'true') return;
+    // Pause the BullMQ Worker when:
+    //   - DISABLE_WORKERS=true   (A3 split deployment — API pauses all
+    //     workers; dedicated worker pods consume)
+    //   - REDIS_URL is unset     (no Redis means EventBus uses the
+    //     in-process dispatch path; the Worker has no queue to read
+    //     from and would otherwise burn teardown time retrying the
+    //     connection on every test app.close())
+    const noRedis = !process.env.REDIS_URL;
+    const disabled = process.env.DISABLE_WORKERS === 'true';
+    if (!noRedis && !disabled) return;
+
     void this.worker.pause();
     this.logger.warn(
-      'DISABLE_WORKERS=true — event-dispatcher paused; publish path still functions',
+      noRedis
+        ? 'REDIS_URL unset — event-dispatcher paused; publish path uses in-process dispatch'
+        : 'DISABLE_WORKERS=true — event-dispatcher paused; publish path still functions',
     );
   }
 

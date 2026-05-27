@@ -16,7 +16,6 @@ import { CartReservationService } from '../cart/cart-reservation.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { ReferralService } from '../referral/referral.service';
 import { InventoryService } from '../inventory/inventory.service';
-import { AbandonedCartService } from '../abandoned-cart/abandoned-cart.service';
 import { WalletService } from '../wallet/wallet.service';
 import { EventBus } from '../common/event-bus.service';
 import { createPrismaMock, MockPrisma } from '../test-utils/prisma.mock';
@@ -48,10 +47,6 @@ describe('OrdersService', () => {
   };
   const mockReferralService = { rewardOnFirstOrder: jest.fn() };
   const mockInventoryService = { reserve: jest.fn(), release: jest.fn() };
-  const mockAbandonedCartService = {
-    clearSnapshot: jest.fn(),
-    clearForUser: jest.fn().mockResolvedValue(undefined),
-  };
   const mockEventBus = {
     publish: jest.fn().mockResolvedValue(undefined),
     publishCustom: jest.fn().mockResolvedValue(undefined),
@@ -77,7 +72,6 @@ describe('OrdersService', () => {
         { provide: LoyaltyService, useValue: mockLoyaltyService },
         { provide: ReferralService, useValue: mockReferralService },
         { provide: InventoryService, useValue: mockInventoryService },
-        { provide: AbandonedCartService, useValue: mockAbandonedCartService },
         { provide: WalletService, useValue: mockWalletService },
         { provide: EventBus, useValue: mockEventBus },
       ],

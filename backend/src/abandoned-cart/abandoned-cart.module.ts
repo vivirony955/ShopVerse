@@ -3,10 +3,11 @@
 
 import { Global, Module } from '@nestjs/common';
 import { AbandonedCartService } from './abandoned-cart.service';
+import { OrderPlacedAbandonedCartSubscriber } from './order-placed.subscriber';
 
 @Global()
 @Module({
-  providers: [AbandonedCartService],
+  providers: [AbandonedCartService, OrderPlacedAbandonedCartSubscriber],
   exports: [AbandonedCartService],
 })
 export class AbandonedCartModule {}

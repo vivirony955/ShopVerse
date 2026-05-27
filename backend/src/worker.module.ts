@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { EmailModule } from './email/email.module';
 import { EventBusModule } from './common/event-bus.module';
+import { AbandonedCartModule } from './abandoned-cart/abandoned-cart.module';
 
 /**
  * Minimal module graph for the worker process.
@@ -52,8 +53,9 @@ import { EventBusModule } from './common/event-bus.module';
 
     PrismaModule,
     CommonModule,
-    EventBusModule, // W3 — kernel + plugin event bus (consumed by EmailModule's order-email subscriber)
-    EmailModule,
+    EventBusModule, // W3 — kernel + plugin event bus
+    EmailModule, // OrderEmailSubscriber subscribes to order.placed (W3.T2)
+    AbandonedCartModule, // OrderPlacedAbandonedCartSubscriber (W3.T4) — its @Cron stays inert here (ScheduleModule omitted)
   ],
 })
 export class WorkerModule {}

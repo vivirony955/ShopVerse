@@ -37,15 +37,30 @@ describe('EventBus', () => {
   let registry: EventHandlerRegistry;
   let queue: FakeQueue | null;
   let bus: EventBus;
+  const originalRedisUrl = process.env.REDIS_URL;
 
   beforeEach(() => {
     registry = new EventHandlerRegistry();
     queue = new FakeQueue();
     bus = new EventBus(registry, queue as unknown as never);
+    // Default test posture: pretend REDIS_URL is set so the queue path
+    // is taken. Individual tests can override via process.env.REDIS_URL
+    // when they want the in-process fallback specifically.
+    process.env.REDIS_URL = 'redis://localhost:6379';
+  });
+
+  afterEach(() => {
+    if (originalRedisUrl === undefined) delete process.env.REDIS_URL;
+    else process.env.REDIS_URL = originalRedisUrl;
   });
 
   describe('Redis-disabled fallback', () => {
-    it('publish() runs in-process when queue is null', async () => {
+    beforeEach(() => {
+      // Force the in-process path by clearing REDIS_URL for these specs.
+      delete process.env.REDIS_URL;
+    });
+
+    it('publish() runs in-process when REDIS_URL is unset (queue null)', async () => {
       bus = new EventBus(registry, null);
       const calls: unknown[] = [];
       registry.register('order.placed', 'kernel', (p) => {

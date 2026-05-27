@@ -136,11 +136,27 @@ export class EventBus {
     }
   }
 
+  /**
+   * True when REDIS_URL is set (non-empty). The global BullMQ config
+   * (AppModule + WorkerModule) defaults to `redis://localhost:6379`
+   * if absent, but tests + Redis-less dev set REDIS_URL to "" to
+   * force this path. Net effect: behaviour follows the deployment
+   * topology — Redis configured → BullMQ delivers; not configured →
+   * in-process dispatch (single-pod assumption).
+   */
+  private redisConfigured(): boolean {
+    const url = process.env.REDIS_URL;
+    return typeof url === 'string' && url.length > 0;
+  }
+
   private async enqueue<P>(event: string, payload: P): Promise<void> {
-    if (!this.queue) {
-      // Redis-disabled or queue binding unavailable — degrade to the
-      // in-process dispatch path so single-pod dev/test setups still
-      // see consumers fire.
+    if (!this.queue || !this.redisConfigured()) {
+      // No Redis configured — degrade to the in-process dispatch path
+      // so single-pod dev/test setups still see consumers fire. This
+      // matches the topology: with no Redis, no separate worker pod
+      // exists either, so in-process is the only path that can deliver.
+      // Multi-pod prod deployments MUST set REDIS_URL (operators get an
+      // explicit boot warning when it's missing — see RedisService).
       await this.dispatchSyncForTests(event, payload);
       return;
     }
