@@ -7,6 +7,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { EmailModule } from './email/email.module';
+import { EventBusModule } from './common/event-bus.module';
 
 /**
  * Minimal module graph for the worker process.
@@ -51,6 +52,7 @@ import { EmailModule } from './email/email.module';
 
     PrismaModule,
     CommonModule,
+    EventBusModule, // W3 — kernel + plugin event bus (consumed by EmailModule's order-email subscriber)
     EmailModule,
   ],
 })

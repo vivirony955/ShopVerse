@@ -288,22 +288,23 @@ export class OrdersService {
       }
     }
 
-    // B-07 PERF: fire-and-forget email. Migrate to BullMQ queue in Wave 5+.
-    // TODO(queue): enqueue `order.confirmation` job instead of direct SMTP call.
-    this.emailService.sendOrderConfirmation(order).catch(() => {});
+    // W3.T2 — Order confirmation email is now sent by OrderEmailSubscriber
+    // listening on the `order.placed` event published below
+    // (backend/src/email/order-email.subscriber.ts). The previous inline
+    // `emailService.sendOrderConfirmation(order)` was removed — same
+    // delivery, just routed through the event bus so the email worker
+    // handles it (DISABLE_WORKERS contract). Net latency unchanged
+    // because the inline call was already fire-and-forget.
 
     // W3.T1 — publish order.placed event for plugin + kernel consumers.
-    // ADDITIVE this session: no consumers subscribed yet, so no
-    // observable behaviour change. W3.T2-T5 migrate the inline side-
-    // effects above (email, wallet cashback, abandoned-cart clear,
-    // loyalty earn) into event subscribers one task at a time.
+    // Inline side-effects above (wallet cashback credit, abandoned-cart
+    // clear, loyalty earn) get migrated to subscribers in W3.T3-T5.
     //
-    // FIRE-AND-FORGET — matches the existing post-tx side-effect pattern
-    // above (email, wallet credit, abandoned-cart clear). Awaiting would
-    // tie the order-placement HTTP response to BullMQ queue.add(), which
-    // stalls in test environments where Redis isn't running (offline
-    // queue + 1h retry strategy). Failures are caught + swallowed; the
-    // order is already committed to the DB.
+    // FIRE-AND-FORGET — matches the existing post-tx pattern (wallet,
+    // abandoned-cart). Awaiting would tie the HTTP response to BullMQ
+    // queue.add() which stalls in Redis-disabled tests (offline queue +
+    // 1h retry). The order is already DB-committed; loss of a published
+    // event is recoverable via audit log + reprocess tooling (W6).
     void this.eventBus
       .publish('order.placed', {
         orderId: order.id,
