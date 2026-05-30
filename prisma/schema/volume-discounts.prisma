@@ -1,0 +1,31 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
+// ─── @shopverse/plugin-volume-discounts (F4-08) — W4.T9 ──────────────────────
+//
+// Owned by `backend/plugins/volume-discounts/`. Disabling the plugin
+// in `backend/plugins.config.ts` removes the controller but the
+// VolumeDiscount table stays in the DB (data retention per plan
+// §10 E5). Explicit drop requires `pnpm shopverse plugin uninstall
+// --drop-data` (W6.T7).
+//
+// GRANDFATHERED FKs: `productId → Product` and `categoryId → Category`,
+// both with onDelete: Cascade. The cascade is correct behaviour (a
+// volume discount tied to a deleted product / category is dead data),
+// but the FKs themselves are kernel-table grandfathering documented
+// in blog.prisma, price-history.prisma, and price-alerts.prisma.
+
+model VolumeDiscount {
+  id          Int       @id @default(autoincrement())
+  productId   Int?
+  product     Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  minQty      Int
+  discountPct Float
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([productId])
+  @@index([categoryId])
+}

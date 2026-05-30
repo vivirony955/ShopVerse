@@ -44,6 +44,12 @@ const pluginsConfig: PluginManifest = {
       workspacePath: './plugins/price-history/src',
       enabled: true,
     },
+    {
+      id: '@shopverse/plugin-volume-discounts',
+      source: 'workspace',
+      workspacePath: './plugins/volume-discounts/src',
+      enabled: true,
+    },
   ],
 };
 

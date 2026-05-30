@@ -2,7 +2,9 @@
 // See LICENSE in the project root for license information.
 
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+// W4.T9 grandfathered import — PrismaService is kernel infra; SDK
+// re-export migration is W4.CI3 (continuous).
+import { PrismaService } from '../../../src/prisma/prisma.service';
 
 @Injectable()
 export class VolumeDiscountsService {

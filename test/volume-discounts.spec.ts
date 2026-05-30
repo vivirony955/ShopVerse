@@ -12,7 +12,8 @@ import { INestApplication } from '@nestjs/common';
 import { getTestApp, closeTestApp } from './helpers/app';
 import { prisma, cleanDatabase } from './helpers/db';
 import { cleanQATables, makeShopper } from './helpers/factories';
-import { VolumeDiscountsService } from '../backend/src/volume-discounts/volume-discounts.service';
+// W4.T9 — volume-discounts extracted to @shopverse/plugin-volume-discounts.
+import { VolumeDiscountsService } from '../backend/plugins/volume-discounts/src/volume-discounts.service';
 
 let app: INestApplication;
 let svc: VolumeDiscountsService;

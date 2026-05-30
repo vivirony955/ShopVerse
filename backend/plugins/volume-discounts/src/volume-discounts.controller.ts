@@ -14,9 +14,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { VolumeDiscountsService } from './volume-discounts.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles, Role } from '../auth/roles.decorator';
+// W4.T9 grandfathered auth primitives — SDK re-export under W4.CI3.
+import { JwtAuthGuard } from '../../../src/auth/jwt-auth.guard';
+import { RolesGuard } from '../../../src/auth/roles.guard';
+import { Roles, Role } from '../../../src/auth/roles.decorator';
 
 @ApiTags('Volume Discounts')
 @Controller('volume-discounts')

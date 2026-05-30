@@ -1334,18 +1334,4 @@ model LoyaltyTier {
 
 // ─── F3-12: Price History — moved to prisma/schema/price-history.prisma in W4.T5
 
-// ─── F4-08: Volume / Tiered Quantity Discounts ───────────────────────────────
-model VolumeDiscount {
-  id          Int       @id @default(autoincrement())
-  productId   Int?
-  product     Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  categoryId  Int?
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  minQty      Int
-  discountPct Float
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-
-  @@index([productId])
-  @@index([categoryId])
-}
+// ─── F4-08: Volume / Tiered Quantity Discounts — moved to prisma/schema/volume-discounts.prisma in W4.T9

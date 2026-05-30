@@ -51,7 +51,7 @@ import { resolvePluginModules } from './common/plugin-module-resolver';
 import pluginsConfig from '../plugins.config';
 // W4.T1 — BlogModule extracted to @shopverse/plugin-blog; manifest-resolved.
 // W4.T5 — PriceHistoryModule extracted to @shopverse/plugin-price-history.
-import { VolumeDiscountsModule } from './volume-discounts/volume-discounts.module';
+// W4.T9 — VolumeDiscountsModule extracted to @shopverse/plugin-volume-discounts.
 import { ObservabilityModule } from './observability/observability.module';
 
 @Module({
@@ -130,7 +130,7 @@ import { ObservabilityModule } from './observability/observability.module';
     ...resolvePluginModules(pluginsConfig),
     // F3-10 Blog moved to @shopverse/plugin-blog (W4.T1) — see plugins.config.ts
     // F3-12 PriceHistory moved to @shopverse/plugin-price-history (W4.T5) — see plugins.config.ts
-    VolumeDiscountsModule, // F4-08: Tiered quantity discounts
+    // F4-08 VolumeDiscounts moved to @shopverse/plugin-volume-discounts (W4.T9) — see plugins.config.ts
 
     // ─── Observability (A2) ───────────────────────────────────────────────────
     // Hosts /api/metrics. OTel SDK + Sentry initialise in main.ts before
