@@ -28,6 +28,9 @@
 import { noHookInTx } from './rules/no-hook-in-tx';
 import { pluginRoutePrefix } from './rules/plugin-route-prefix';
 import { userBeforeDeleteRequired } from './rules/user-before-delete';
+import { noKernelImport } from './rules/no-kernel-import';
+import { noRuntimeDynamicImport } from './rules/no-runtime-dynamic-import';
+import { slotNoDataFetch } from './rules/slot-no-data-fetch';
 
 const plugin = {
   meta: {
@@ -38,8 +41,18 @@ const plugin = {
     'no-hook-in-tx': noHookInTx,
     'plugin-route-prefix': pluginRoutePrefix,
     'user-before-delete-required': userBeforeDeleteRequired,
+    'no-kernel-import': noKernelImport,
+    'no-runtime-dynamic-import': noRuntimeDynamicImport,
+    'slot-no-data-fetch': slotNoDataFetch,
   },
 };
 
 export default plugin;
-export { noHookInTx, pluginRoutePrefix, userBeforeDeleteRequired };
+export {
+  noHookInTx,
+  pluginRoutePrefix,
+  userBeforeDeleteRequired,
+  noKernelImport,
+  noRuntimeDynamicImport,
+  slotNoDataFetch,
+};
