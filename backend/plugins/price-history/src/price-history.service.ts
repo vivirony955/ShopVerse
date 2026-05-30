@@ -2,9 +2,14 @@
 // See LICENSE in the project root for license information.
 
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { withCronMetric } from '../observability/cron-trace';
+// W4.T5 grandfathered imports — PrismaService and withCronMetric are
+// kernel infrastructure; SDK re-export migration is W4.CI3 (continuous).
+// The snapshot cron itself is a @Cron decorator on a wrapper class in
+// `price-history.module.ts` — the service stays decorator-free for
+// testability (Jest specs that exercise `runSnapshot` directly don't
+// need the scheduler to be running).
+import { PrismaService } from '../../../src/prisma/prisma.service';
+import { withCronMetric } from '../../../src/observability/cron-trace';
 
 @Injectable()
 export class PriceHistoryService {
@@ -20,13 +25,18 @@ export class PriceHistoryService {
     });
   }
 
-  // Daily snapshot — runs at midnight
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async snapshotPrices() {
+  /**
+   * Daily snapshot of every active product's current price + discount.
+   * Triggered by the `@Cron` wrapper in PriceHistoryPluginModule (runs
+   * at midnight per `EVERY_DAY_AT_MIDNIGHT`). Also registered with the
+   * kernel's PluginCronRegistry so `/admin/plugins` lists it under
+   * `@shopverse/plugin-price-history:snapshot`.
+   */
+  async snapshotPrices(): Promise<void> {
     await withCronMetric('price-history-snapshot', () => this.runSnapshot());
   }
 
-  private async runSnapshot() {
+  private async runSnapshot(): Promise<void> {
     const products = await this.prisma.product.findMany({
       where: { isActive: true },
       select: { id: true, basePrice: true, discountPct: true },

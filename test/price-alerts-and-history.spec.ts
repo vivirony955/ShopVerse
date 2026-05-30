@@ -19,7 +19,8 @@ import { cleanQATables, makeShopper } from './helpers/factories';
 // same and still resolves via app.get(PriceAlertsService) — only the import
 // path changed.
 import { PriceAlertsService } from '../backend/plugins/price-alerts/src/price-alerts.service';
-import { PriceHistoryService } from '../backend/src/price-history/price-history.service';
+// W4.T5 — price-history extracted to @shopverse/plugin-price-history.
+import { PriceHistoryService } from '../backend/plugins/price-history/src/price-history.service';
 
 let app: INestApplication;
 let alertsSvc: PriceAlertsService;

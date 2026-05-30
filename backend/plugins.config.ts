@@ -38,6 +38,12 @@ const pluginsConfig: PluginManifest = {
       workspacePath: './plugins/blog/src',
       enabled: true,
     },
+    {
+      id: '@shopverse/plugin-price-history',
+      source: 'workspace',
+      workspacePath: './plugins/price-history/src',
+      enabled: true,
+    },
   ],
 };
 

@@ -1,0 +1,26 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
+// ─── @shopverse/plugin-price-history (F3-12) — W4.T5 ─────────────────────────
+//
+// Owned by `backend/plugins/price-history/`. Disabling the plugin in
+// `backend/plugins.config.ts` removes the controller + snapshot cron
+// but the PriceHistory table stays in the DB (data retention per
+// plan §10 E5). Explicit drop requires
+// `pnpm shopverse plugin uninstall --drop-data` (W6.T7).
+//
+// GRANDFATHERED FK: `productId → Product` with onDelete: Cascade. The
+// cascade is correct behaviour (when a product disappears, its price
+// history is meaningless), but the FK itself is the same kernel-table
+// grandfathering documented in blog.prisma and price-alerts.prisma.
+
+model PriceHistory {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  price       Float
+  discountPct Float    @default(0)
+  recordedAt  DateTime @default(now())
+
+  @@index([productId, recordedAt])
+}

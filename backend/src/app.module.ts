@@ -50,7 +50,7 @@ import { QaModule } from './qa/qa.module';
 import { resolvePluginModules } from './common/plugin-module-resolver';
 import pluginsConfig from '../plugins.config';
 // W4.T1 — BlogModule extracted to @shopverse/plugin-blog; manifest-resolved.
-import { PriceHistoryModule } from './price-history/price-history.module';
+// W4.T5 — PriceHistoryModule extracted to @shopverse/plugin-price-history.
 import { VolumeDiscountsModule } from './volume-discounts/volume-discounts.module';
 import { ObservabilityModule } from './observability/observability.module';
 
@@ -129,7 +129,7 @@ import { ObservabilityModule } from './observability/observability.module';
     // normal module class list. Disabled entries are silently dropped.
     ...resolvePluginModules(pluginsConfig),
     // F3-10 Blog moved to @shopverse/plugin-blog (W4.T1) — see plugins.config.ts
-    PriceHistoryModule, // F3-12: Daily price snapshots for charts
+    // F3-12 PriceHistory moved to @shopverse/plugin-price-history (W4.T5) — see plugins.config.ts
     VolumeDiscountsModule, // F4-08: Tiered quantity discounts
 
     // ─── Observability (A2) ───────────────────────────────────────────────────

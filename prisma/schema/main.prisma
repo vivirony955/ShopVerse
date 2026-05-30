@@ -1332,17 +1332,7 @@ model LoyaltyTier {
 
 // ─── F3-10: Blog / Content CMS — moved to prisma/schema/blog.prisma in W4.T1 ─
 
-// ─── F3-12: Price History (daily snapshot for chart) ─────────────────────────
-model PriceHistory {
-  id          Int      @id @default(autoincrement())
-  productId   Int
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  price       Float
-  discountPct Float    @default(0)
-  recordedAt  DateTime @default(now())
-
-  @@index([productId, recordedAt])
-}
+// ─── F3-12: Price History — moved to prisma/schema/price-history.prisma in W4.T5
 
 // ─── F4-08: Volume / Tiered Quantity Discounts ───────────────────────────────
 model VolumeDiscount {
