@@ -417,6 +417,22 @@ export const blogApi = {
   getBySlug: (slug: string) => http.get(`/blog/${slug}`).then((r) => r.data),
 };
 
+// ─── W6.T3: Admin Plugins (plan §6 admin surface) ───────────────────────────
+export interface PluginAdminEntry {
+  id: string;
+  loadStatus: 'loaded' | 'disabled' | 'version-mismatch' | 'failed';
+  operatorDisabled: boolean;
+  error?: string;
+}
+export const adminPluginsApi = {
+  list: (): Promise<PluginAdminEntry[]> =>
+    http.get("/admin/plugins").then((r) => r.data),
+  disable: (id: string) =>
+    http.post(`/admin/plugins/${encodeURIComponent(id)}/disable`).then((r) => r.data),
+  enable: (id: string) =>
+    http.post(`/admin/plugins/${encodeURIComponent(id)}/enable`).then((r) => r.data),
+};
+
 // ─── F3-12: Price History ────────────────────────────────────────────────────
 export const priceHistoryApi = {
   get: (productId: number, days?: number) =>

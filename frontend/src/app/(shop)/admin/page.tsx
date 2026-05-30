@@ -23,6 +23,7 @@ import {
   Warehouse,
   UserCheck,
   Upload,
+  Puzzle,
 } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import type { Order } from "@/types";
@@ -233,6 +234,7 @@ function AdminDashboardContent() {
               { label: "Warehouses", href: "/admin/warehouses", icon: Warehouse, color: "bg-teal-50 text-teal-600" },
               { label: "Impersonate", href: "/admin/impersonate", icon: UserCheck, color: "bg-rose-50 text-rose-600" },
               { label: "Bulk Upload", href: "/admin/products/bulk-upload", icon: Upload, color: "bg-blue-50 text-blue-600" },
+              { label: "Plugins", href: "/admin/plugins", icon: Puzzle, color: "bg-violet-50 text-violet-600" },
             ].map(({ label, href, icon: Icon, color }) => (
               <a
                 key={href}

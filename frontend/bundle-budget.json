@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-30T15:52:46.535Z",
+  "generatedAt": "2026-05-30T16:56:47.747Z",
   "deltaCapKb": 50,
   "routes": {
     "/": {
@@ -11,11 +11,11 @@
       "firstLoadJs": 103
     },
     "/admin": {
-      "size": 3.74,
+      "size": 5.61,
       "firstLoadJs": 156
     },
     "/admin/analytics": {
-      "size": 1.48,
+      "size": 3.12,
       "firstLoadJs": 154
     },
     "/admin/audit": {
@@ -35,8 +35,8 @@
       "firstLoadJs": 160
     },
     "/admin/finance": {
-      "size": 2.03,
-      "firstLoadJs": 155
+      "size": 3.61,
+      "firstLoadJs": 154
     },
     "/admin/flash-sales": {
       "size": 6.09,
@@ -57,6 +57,10 @@
     "/admin/orders": {
       "size": 4.64,
       "firstLoadJs": 161
+    },
+    "/admin/plugins": {
+      "size": 4.04,
+      "firstLoadJs": 152
     },
     "/admin/products": {
       "size": 5.43,
