@@ -1,0 +1,166 @@
+{
+  "generatedAt": "2026-05-30T15:52:46.535Z",
+  "deltaCapKb": 50,
+  "routes": {
+    "/": {
+      "size": 4.85,
+      "firstLoadJs": 225
+    },
+    "/_not-found": {
+      "size": 0.966796875,
+      "firstLoadJs": 103
+    },
+    "/admin": {
+      "size": 3.74,
+      "firstLoadJs": 156
+    },
+    "/admin/analytics": {
+      "size": 1.48,
+      "firstLoadJs": 154
+    },
+    "/admin/audit": {
+      "size": 2.88,
+      "firstLoadJs": 154
+    },
+    "/admin/categories": {
+      "size": 6.23,
+      "firstLoadJs": 157
+    },
+    "/admin/coupons": {
+      "size": 6.28,
+      "firstLoadJs": 157
+    },
+    "/admin/errors": {
+      "size": 3.75,
+      "firstLoadJs": 160
+    },
+    "/admin/finance": {
+      "size": 2.03,
+      "firstLoadJs": 155
+    },
+    "/admin/flash-sales": {
+      "size": 6.09,
+      "firstLoadJs": 157
+    },
+    "/admin/fraud": {
+      "size": 4.2,
+      "firstLoadJs": 161
+    },
+    "/admin/impersonate": {
+      "size": 4.21,
+      "firstLoadJs": 155
+    },
+    "/admin/inventory": {
+      "size": 6.58,
+      "firstLoadJs": 157
+    },
+    "/admin/orders": {
+      "size": 4.64,
+      "firstLoadJs": 161
+    },
+    "/admin/products": {
+      "size": 5.43,
+      "firstLoadJs": 167
+    },
+    "/admin/products/[id]/edit": {
+      "size": 4.5,
+      "firstLoadJs": 156
+    },
+    "/admin/products/bulk-upload": {
+      "size": 2.6,
+      "firstLoadJs": 143
+    },
+    "/admin/products/new": {
+      "size": 4.21,
+      "firstLoadJs": 156
+    },
+    "/admin/refund-approvals": {
+      "size": 3.27,
+      "firstLoadJs": 203
+    },
+    "/admin/users": {
+      "size": 3.78,
+      "firstLoadJs": 155
+    },
+    "/admin/warehouses": {
+      "size": 6.43,
+      "firstLoadJs": 157
+    },
+    "/api/auth/[...nextauth]": {
+      "size": 0.1376953125,
+      "firstLoadJs": 102
+    },
+    "/blog": {
+      "size": 1.85,
+      "firstLoadJs": 161
+    },
+    "/blog/[slug]": {
+      "size": 2.71,
+      "firstLoadJs": 162
+    },
+    "/checkout": {
+      "size": 14.9,
+      "firstLoadJs": 224
+    },
+    "/compare": {
+      "size": 5.61,
+      "firstLoadJs": 124
+    },
+    "/flash-sales": {
+      "size": 3.5,
+      "firstLoadJs": 214
+    },
+    "/login": {
+      "size": 2.3,
+      "firstLoadJs": 162
+    },
+    "/loyalty": {
+      "size": 3.11,
+      "firstLoadJs": 163
+    },
+    "/orders": {
+      "size": 6.63,
+      "firstLoadJs": 212
+    },
+    "/orders/[id]": {
+      "size": 8.02,
+      "firstLoadJs": 213
+    },
+    "/orders/confirmation": {
+      "size": 3.87,
+      "firstLoadJs": 198
+    },
+    "/products": {
+      "size": 4.2,
+      "firstLoadJs": 219
+    },
+    "/products/[id]": {
+      "size": 10.6,
+      "firstLoadJs": 225
+    },
+    "/profile": {
+      "size": 3.9,
+      "firstLoadJs": 199
+    },
+    "/referral": {
+      "size": 2.28,
+      "firstLoadJs": 162
+    },
+    "/register": {
+      "size": 2.65,
+      "firstLoadJs": 186
+    },
+    "/support": {
+      "size": 2.2,
+      "firstLoadJs": 162
+    },
+    "/wallet": {
+      "size": 3.33,
+      "firstLoadJs": 154
+    },
+    "/wishlist": {
+      "size": 5.09,
+      "firstLoadJs": 214
+    }
+  }
+}
