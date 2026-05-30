@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-05-30T15:50:00.000Z",
+  "categoryDeltaCap": 3,
+  "clsDeltaCap": 0.02,
+  "baseUrl": "PLACEHOLDER",
+  "runs": [
+    {
+      "path": "/products",
+      "scores": {
+        "performance": 90,
+        "accessibility": 95,
+        "bestPractices": 95,
+        "seo": 100
+      },
+      "cls": 0.05
+    },
+    {
+      "path": "/products/1",
+      "scores": {
+        "performance": 85,
+        "accessibility": 95,
+        "bestPractices": 95,
+        "seo": 100
+      },
+      "cls": 0.05
+    }
+  ],
+  "_note": "PLACEHOLDER baseline shipped with W5.T10 scaffold. Rebaseline against a real Next.js server with `LIGHTHOUSE_BASE_URL=http://localhost:3000 npm run lighthouse:baseline` once W6 staging URL provisioning lands. Current values are conservative defaults — actual scores typically exceed these on the seeded test catalog."
+}

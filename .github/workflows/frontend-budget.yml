@@ -26,6 +26,24 @@ jobs:
       - name: Hydration weight per-page gate
         run: cd frontend && npm run hydration:check
 
+  lighthouse:
+    name: W5.T10 — Lighthouse Delta Gate (scaffolded)
+    runs-on: ubuntu-latest
+    # Activated when W6 provisions a reachable staging URL. Until
+    # then the script self-skips (exit 0) when LIGHTHOUSE_BASE_URL
+    # is unset — see frontend/scripts/check-lighthouse.js.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Lighthouse delta gate
+        run: cd frontend && npm run lighthouse:check
+        env:
+          LIGHTHOUSE_BASE_URL: ${{ vars.LIGHTHOUSE_BASE_URL }}
+
   a11y:
     name: W5.T5 — Slot a11y Gate
     runs-on: ubuntu-latest
