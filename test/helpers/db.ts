@@ -72,8 +72,14 @@ export async function cleanDatabase(): Promise<void> {
   await prisma.flashSale.deleteMany().catch(() => {});
   // Orders
   await prisma.orderItem.deleteMany();
-  await prisma.$executeRaw`DELETE FROM "Invoice"`.catch(() => {});
-  await prisma.$executeRaw`DELETE FROM "RefundApproval"`.catch(() => {});
+  // W6.T-flakes PAY-E02 cleanup: do NOT swallow Invoice / RefundApproval
+  // DELETE failures. The previous `.catch(() => {})` masked rare
+  // failures here and surfaced them downstream as
+  // `order.deleteMany()` FK violations (Invoice.orderId references
+  // Order.id with NO cascade). Letting the raw delete throw means
+  // investigators see the actual problem at the actual call site.
+  await prisma.$executeRaw`DELETE FROM "Invoice"`;
+  await prisma.$executeRaw`DELETE FROM "RefundApproval"`;
   await prisma.order.deleteMany();
   await prisma.cartItem.deleteMany();
   await prisma.cart.deleteMany();
