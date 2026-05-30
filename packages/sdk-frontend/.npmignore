@@ -1,0 +1,19 @@
+# Source — published artifacts ship the compiled `dist/` only.
+src/
+tsconfig.json
+jest.config.js
+jest.config.ts
+
+# Local dev artefacts.
+node_modules/
+*.log
+.DS_Store
+coverage/
+*.spec.ts
+*.spec.d.ts
+*.spec.js
+
+# Per-environment overrides + secrets.
+.env
+.env.local
+.env.*.local

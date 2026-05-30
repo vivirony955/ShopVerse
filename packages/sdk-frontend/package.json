@@ -1,0 +1,45 @@
+{
+  "name": "@shopverse/sdk-frontend",
+  "version": "0.1.0-alpha.1",
+  "description": "ShopVerse frontend plugin SDK — slot registration shapes, i18n placeholder, and browser-safe contracts. Source-available under Elastic License 2.0.",
+  "license": "Elastic-2.0",
+  "author": "Vivek Negi <vivironycrazy@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/aiexperts/ecommWeb.git",
+    "directory": "packages/sdk-frontend"
+  },
+  "homepage": "https://gitlab.com/aiexperts/ecommWeb/-/tree/main/packages/sdk-frontend",
+  "bugs": {
+    "url": "https://gitlab.com/aiexperts/ecommWeb/-/issues"
+  },
+  "keywords": [
+    "shopverse",
+    "ecommerce",
+    "plugin",
+    "sdk",
+    "react",
+    "nextjs",
+    "frontend"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "lint": "eslint \"src/**/*.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
