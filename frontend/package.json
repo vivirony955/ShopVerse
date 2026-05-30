@@ -31,6 +31,7 @@
     "test:watch": "jest --watch",
     "bundle:check": "node scripts/check-bundle-budget.js",
     "bundle:baseline": "node scripts/check-bundle-budget.js --baseline",
+    "hydration:check": "node scripts/check-hydration-weight.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

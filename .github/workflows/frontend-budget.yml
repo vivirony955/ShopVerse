@@ -23,6 +23,8 @@ jobs:
         run: cd frontend && npm ci
       - name: Bundle size budget gate
         run: cd frontend && npm run bundle:check
+      - name: Hydration weight per-page gate
+        run: cd frontend && npm run hydration:check
 
   a11y:
     name: W5.T5 — Slot a11y Gate
