@@ -23,6 +23,7 @@ import {
   migrateAll,
   type PluginMigrationResult,
 } from './migrate';
+import { runAudit } from './audit';
 import type { PluginManifest } from '@shopverse/sdk';
 
 function parseArgs(argv: readonly string[]): {
@@ -74,11 +75,30 @@ function pluginMigrate(flags: Record<string, string | true>): void {
   }
 }
 
+function auditCompleteness(flags: Record<string, string | true>): void {
+  const matrixPath =
+    typeof flags.matrix === 'string'
+      ? flags.matrix
+      : path.resolve(
+          process.cwd(),
+          'cross-cutting',
+          'COMPLETENESS_MATRIX.md',
+        );
+  const code = runAudit({
+    matrixPath,
+    strict: flags.strict === true,
+  });
+  process.exit(code);
+}
+
 function main(): void {
   const { command, flags } = parseArgs(process.argv.slice(2));
   switch (command) {
     case 'plugin:migrate':
       pluginMigrate(flags);
+      return;
+    case 'audit:completeness':
+      auditCompleteness(flags);
       return;
     case undefined:
     case 'help':
@@ -86,7 +106,8 @@ function main(): void {
       console.log(
         'Usage: shopverse <command> [options]\n' +
           '\nCommands:\n' +
-          '  plugin:migrate [--manifest=plugins.config.ts]   Run plugin migrations in declared order\n',
+          '  plugin:migrate [--manifest=plugins.config.ts]   Run plugin migrations in declared order\n' +
+          '  audit:completeness [--matrix=path] [--strict]   Report COMPLETENESS_MATRIX status; exit 0 only when done\n',
       );
       return;
     default:

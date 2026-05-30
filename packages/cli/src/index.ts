@@ -19,3 +19,5 @@ export type {
   MigrationRunner,
   PluginMigrationResult,
 } from './migrate';
+export { auditMatrix, formatReport, runAudit } from './audit';
+export type { AuditCounts, AuditOptions, AuditResult } from './audit';
