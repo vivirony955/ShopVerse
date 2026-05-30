@@ -2,7 +2,9 @@
 // See LICENSE in the project root for license information.
 
 /**
- * Day-1 event contracts (10 events per plan §4).
+ * Day-1 event contracts (11 events; started at 10, added `order.delivered`
+ * in W3.T5 when loyalty earn migrated from inline `OrdersService.update
+ * OrderStatus(DELIVERED)` call to an event subscriber).
  *
  * Events are ASYNCHRONOUS pub/sub via BullMQ topic queues. Kernel
  * publishes; plugins subscribe. Multiple consumers per event. No
@@ -23,6 +25,7 @@
 export type EventName =
   | 'order.placed'
   | 'order.cancelled'
+  | 'order.delivered'
   | 'payment.captured'
   | 'payment.refunded'
   | 'wallet.credited'
@@ -60,6 +63,21 @@ export interface OrderCancelledEvent extends EventEnvelope {
   readonly orderId: number;
   readonly userId: number | null;
   readonly reason: string | null;
+}
+
+/**
+ * Emitted when an order transitions to DELIVERED. Subscribers earn loyalty
+ * points (kernel.loyalty), pay first-delivery referral bonuses (referral
+ * plugin in a later wave), and trigger NPS surveys / review-prompt emails.
+ *
+ * `total` carries the order total at delivery time so subscribers don't
+ * have to re-fetch the Order row just to compute loyalty earn.
+ */
+export interface OrderDeliveredEvent extends EventEnvelope {
+  readonly name: 'order.delivered';
+  readonly orderId: number;
+  readonly userId: number | null;
+  readonly total: number;
 }
 
 export interface PaymentCapturedEvent extends EventEnvelope {
@@ -133,6 +151,7 @@ export interface InventoryLowStockEvent extends EventEnvelope {
 export type KernelEvent =
   | OrderPlacedEvent
   | OrderCancelledEvent
+  | OrderDeliveredEvent
   | PaymentCapturedEvent
   | PaymentRefundedEvent
   | WalletCreditedEvent
@@ -146,6 +165,7 @@ export type KernelEvent =
 export interface EventPayloadMap {
   'order.placed': OrderPlacedEvent;
   'order.cancelled': OrderCancelledEvent;
+  'order.delivered': OrderDeliveredEvent;
   'payment.captured': PaymentCapturedEvent;
   'payment.refunded': PaymentRefundedEvent;
   'wallet.credited': WalletCreditedEvent;

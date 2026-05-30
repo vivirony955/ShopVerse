@@ -646,19 +646,27 @@ export class OrdersService {
         .catch(() => {});
     } else if (status === 'DELIVERED') {
       this.emailService.sendOrderDelivered(order).catch(() => {});
-      // FINAL §9.4 R-005: loyalty points earned on delivery (revenue-recognized basis),
-      // not at order placement. Idempotent — safe if admin toggles status repeatedly.
+      // W3.T5 — loyalty earn (FINAL §9.4 R-005, revenue-recognized basis)
+      // is now handled by OrderDeliveredLoyaltySubscriber listening on
+      // the `order.delivered` event published below
+      // (backend/src/loyalty/order-delivered.subscriber.ts). Idempotency
+      // is preserved at the service level — LoyaltyService.earnPoints
+      // already gates on a unique `earn:order:<id>` reference, so BullMQ
+      // retries are safe (P2002 → no-op return 0).
       if (order.userId) {
-        await this.loyaltyService.earnPoints(
-          order.userId,
-          order.id,
-          order.total,
-        );
         // FINAL §9.4 H-009: if this was a referred user's first delivered order, pay the bonus.
+        // Still inline (out of W3.T5 scope) — could become its own subscriber on order.delivered later.
         this.referralService
           .creditOnFirstDelivery(order.userId)
           .catch(() => {});
       }
+      await this.eventBus
+        .publish('order.delivered', {
+          orderId: order.id,
+          userId: order.userId,
+          total: order.total,
+        })
+        .catch(() => {});
     } else if (status === 'REFUNDED') {
       this.emailService.sendRefundConfirmation(order).catch(() => {});
       // V-08 FIX: claw back loyalty points earned on delivery when order is refunded

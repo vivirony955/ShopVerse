@@ -10,6 +10,7 @@ import { EmailModule } from './email/email.module';
 import { EventBusModule } from './common/event-bus.module';
 import { AbandonedCartModule } from './abandoned-cart/abandoned-cart.module';
 import { WalletModule } from './wallet/wallet.module';
+import { LoyaltyModule } from './loyalty/loyalty.module';
 
 /**
  * Minimal module graph for the worker process.
@@ -58,6 +59,7 @@ import { WalletModule } from './wallet/wallet.module';
     EmailModule, // OrderEmailSubscriber subscribes to order.placed (W3.T2)
     AbandonedCartModule, // OrderPlacedAbandonedCartSubscriber (W3.T4) — its @Cron stays inert here (ScheduleModule omitted)
     WalletModule, // OrderCashbackSubscriber subscribes to order.placed (W3.T3)
+    LoyaltyModule, // OrderDeliveredLoyaltySubscriber subscribes to order.delivered (W3.T5)
   ],
 })
 export class WorkerModule {}

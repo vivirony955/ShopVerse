@@ -4,10 +4,11 @@
 import { Module } from '@nestjs/common';
 import { LoyaltyService } from './loyalty.service';
 import { LoyaltyController } from './loyalty.controller';
+import { OrderDeliveredLoyaltySubscriber } from './order-delivered.subscriber';
 
 @Module({
   controllers: [LoyaltyController],
-  providers: [LoyaltyService],
+  providers: [LoyaltyService, OrderDeliveredLoyaltySubscriber],
   exports: [LoyaltyService],
 })
 export class LoyaltyModule {}
