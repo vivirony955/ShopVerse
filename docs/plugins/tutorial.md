@@ -53,7 +53,9 @@ mkdir -p frontend/src/plugins/hello-world
 ```ts
 import { Injectable, Module, OnApplicationBootstrap } from '@nestjs/common';
 import { EventBus } from '../../../src/common/event-bus.service';
-import { HookRunner } from '../../../src/common/hook-runner';
+import { HookRunner } from '../../../src/common/hook-runner.service';
+
+const PLUGIN_ID = '@shopverse/plugin-hello-world';
 
 @Injectable()
 class HelloWorldBootstrap implements OnApplicationBootstrap {
@@ -63,16 +65,16 @@ class HelloWorldBootstrap implements OnApplicationBootstrap {
   ) {}
 
   onApplicationBootstrap() {
-    // Hook: warn (don't reject) on a specific cart shape
-    this.hooks.register('cart.beforeReserve', async (ctx) => {
-      if (ctx.cart.items.length === 0) return;
+    // Hook: observe (don't reject) on cart reserves
+    this.hooks.register('cart.beforeReserve', PLUGIN_ID, async (ctx) => {
+      if (ctx.cart.items.length === 0) return undefined;
       console.log(`[hello-world] cart.beforeReserve fired for user ${ctx.userId}`);
       return undefined; // never reject — this is just observation
     });
 
-    // Event subscriber: confirm orders heard about
-    this.eventBus.subscribe('order.placed', async (event) => {
-      console.log(`[hello-world] order #${event.orderId} placed for $${event.total}`);
+    // Event subscriber: log orders the kernel publishes
+    this.eventBus.subscribe('order.placed', PLUGIN_ID, async (event) => {
+      console.log(`[hello-world] order #${event.orderId} placed`);
     });
   }
 }
@@ -82,6 +84,10 @@ class HelloWorldBootstrap implements OnApplicationBootstrap {
 })
 export class HelloWorldPluginModule {}
 ```
+
+(Both `hooks.register` and `eventBus.subscribe` take the plugin id
+as the second argument — that's what gets attached to OTel spans
+and Prometheus metric labels.)
 
 `backend/plugins/hello-world/src/index.ts`:
 

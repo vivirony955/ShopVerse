@@ -56,6 +56,14 @@ const pluginsConfig: PluginManifest = {
       workspacePath: './plugins/notifications/src',
       enabled: true,
     },
+    {
+      // W6.T10 tutorial plugin — exercises hook + event + frontend slot
+      // in ~100 LOC. Paired with docs/plugins/tutorial.md.
+      id: '@shopverse/plugin-hello-world',
+      source: 'workspace',
+      workspacePath: './plugins/hello-world/src',
+      enabled: true,
+    },
   ],
 };
 

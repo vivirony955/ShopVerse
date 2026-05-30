@@ -23,7 +23,9 @@
 
 import type { SlotRegistration } from '@/lib/slots';
 import { slots as priceAlertsSlots } from '@/plugins/price-alerts';
+import { slots as helloWorldSlots } from '@/plugins/hello-world';
 
 export const ALL_PLUGIN_SLOTS: SlotRegistration[] = [
   ...priceAlertsSlots,
+  ...helloWorldSlots,
 ];
