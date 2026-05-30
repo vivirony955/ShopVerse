@@ -23,6 +23,13 @@ import { ReferralService } from '../referral/referral.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { WalletService } from '../wallet/wallet.service';
 import { EventBus } from '../common/event-bus.service';
+import { HookRunner } from '../common/hook-runner.service';
+import type {
+  ReadOnlyCart,
+  ReadOnlyAddress,
+  ReadOnlyOrder,
+  WarehouseContext,
+} from '@shopverse/sdk';
 
 // FINAL §9.4: statuses for which an order still holds reservedStock (pre-fulfilment).
 // Cancelling from these states releases the reservation; cancelling from later states restocks.
@@ -41,7 +48,31 @@ export class OrdersService {
     private readonly inventoryService: InventoryService,
     private readonly walletService: WalletService,
     private readonly eventBus: EventBus,
+    private readonly hookRunner: HookRunner,
   ) {}
+
+  /**
+   * Cached default warehouse id, looked up lazily on first hook invocation.
+   * Single-WH today (Phase 1) — the SDK's `WarehouseContext` carries an
+   * empty `availableWarehouseIds[]` per the contract's "Empty in single-WH
+   * deployments" semantics. The cache shaves the lookup off every hot-path
+   * placeOrder call once the lookup has happened.
+   */
+  private defaultWarehouseIdCache: number | null = null;
+  private async getDefaultWarehouseContext(): Promise<WarehouseContext> {
+    if (this.defaultWarehouseIdCache === null) {
+      const wh = await this.prisma.warehouse.findUnique({
+        where: { code: 'DEFAULT' },
+        select: { id: true },
+      });
+      if (!wh) throw new Error('DEFAULT warehouse not seeded');
+      this.defaultWarehouseIdCache = wh.id;
+    }
+    return {
+      primaryWarehouseId: this.defaultWarehouseIdCache,
+      availableWarehouseIds: [],
+    };
+  }
 
   // ─── Business-rate constants (server-authoritative — never from client) ────
   private static readonly FREE_SHIPPING_THRESHOLD = 500; // INR
@@ -152,6 +183,53 @@ export class OrdersService {
 
     // Snapshot address (so future address changes don't affect order history)
     const { id: _id, userId: _uid, ...addressSnapshot } = address;
+
+    // W3.T7 — `order.preValidate` hook site (plan §4 Type 1).
+    // Runs AFTER fraud + reservation + address validation, BEFORE the
+    // $transaction block (per plan §5 rule #1 — no hooks inside tx).
+    // Plugins can return RejectReason to abort with 400; HookRunner
+    // enforces the 100ms budget + per-plugin CircuitBreaker. The
+    // handlerCount check preserves the no-op fast path for sites with
+    // no registered plugins (zero allocations + zero awaits).
+    if (this.hookRunner.handlerCount('order.preValidate') > 0) {
+      const cart: ReadOnlyCart = {
+        id: reservation.id,
+        userId,
+        items: reservation.items.map((it) => ({
+          variantId: it.variantId,
+          quantity: it.quantity,
+          unitPrice: it.lockedPrice,
+        })),
+        subtotal,
+      };
+      const addrCtx: ReadOnlyAddress = {
+        id: address.id,
+        fullName: address.fullName,
+        line1: address.line1,
+        line2: address.line2 ?? null,
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+        // India-only platform (CLAUDE.md §A); Address model has no
+        // `country` column. Hardcode here keeps the SDK contract stable
+        // when multi-country lands without a migration.
+        country: 'IN',
+      };
+      const warehouseContext = await this.getDefaultWarehouseContext();
+      const preResult = await this.hookRunner.runSync('order.preValidate', {
+        userId,
+        cart,
+        address: addrCtx,
+        warehouseContext,
+        couponCode: dto.couponCode ?? null,
+        walletAmountUsed,
+      });
+      if (preResult.rejected) {
+        throw new BadRequestException(
+          preResult.rejectReason?.message ?? 'Order rejected by plugin',
+        );
+      }
+    }
 
     // B-06 PERF: narrow transaction scope. Only financial-critical writes run inside
     // the tx (order creation, reservation CONSUMED, atomic coupon decrement). Cart
@@ -303,6 +381,40 @@ export class OrdersService {
       .catch(() => {
         // Non-fatal — order is already placed. EventBus logs internally.
       });
+
+    // W3.T7 — `order.afterPlace` hook site (plan §4 Type 2).
+    // Synchronous, runs AFTER the $transaction commits and the async
+    // event has been queued, BEFORE returning to the controller. Plugins
+    // can do immediate user-visible side effects (cache priming, in-
+    // request notifications). Throwing here is logged + counted toward
+    // the breaker but does NOT roll back the order — see plan §6
+    // failure-model row "Sync post-commit hook". Budget: 50ms total.
+    if (this.hookRunner.handlerCount('order.afterPlace') > 0) {
+      const orderCtx: ReadOnlyOrder = {
+        id: order.id,
+        userId: order.userId,
+        guestEmail: order.guestEmail ?? null,
+        subtotal: order.subtotal,
+        discountAmount: order.discountAmount,
+        shippingFee: order.shippingFee,
+        taxAmount: order.taxAmount,
+        total: order.total,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        items: (order.items ?? []).map((it) => ({
+          id: it.id,
+          variantId: it.variantId,
+          quantity: it.quantity,
+          unitPrice: it.price,
+          totalPrice: it.price * it.quantity,
+        })),
+      };
+      const warehouseContext = await this.getDefaultWarehouseContext();
+      await this.hookRunner.runSync('order.afterPlace', {
+        order: orderCtx,
+        warehouseContext,
+      });
+    }
 
     return order;
   }

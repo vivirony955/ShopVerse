@@ -14,6 +14,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CronLockService } from '../common/cron-lock.service';
 import { RedisService } from '../common/redis.service';
 import { withCronMetric } from '../observability/cron-trace';
+import { HookRunner } from '../common/hook-runner.service';
+import type { ReadOnlyCart, WarehouseContext } from '@shopverse/sdk';
 
 const RESERVATION_TTL_MS = 15 * 60 * 1000; // 15 minutes — FINAL §4.2
 const FLASH_RESERVATION_TTL_MS = 5 * 60 * 1000; // 5 minutes for flash-sale items
@@ -52,6 +54,7 @@ export class CartReservationService {
     private readonly prisma: PrismaService,
     private readonly cronLock: CronLockService,
     private readonly redis: RedisService,
+    private readonly hookRunner: HookRunner,
   ) {}
 
   private async getDefaultWarehouseId(
@@ -62,6 +65,28 @@ export class CartReservationService {
     if (!wh) throw new Error('DEFAULT warehouse not seeded');
     this.defaultWarehouseId = wh.id;
     return wh.id;
+  }
+
+  /**
+   * Non-tx warehouse-context loader for the `cart.beforeReserve` hook
+   * site. Reuses the same `defaultWarehouseId` cache as the tx-bound
+   * `getDefaultWarehouseId` — first call from either path warms it.
+   * Single-WH today; `availableWarehouseIds[]` stays empty per SDK
+   * contract.
+   */
+  private async loadDefaultWarehouseContext(): Promise<WarehouseContext> {
+    if (this.defaultWarehouseId === null) {
+      const wh = await this.prisma.warehouse.findUnique({
+        where: { code: 'DEFAULT' },
+        select: { id: true },
+      });
+      if (!wh) throw new Error('DEFAULT warehouse not seeded');
+      this.defaultWarehouseId = wh.id;
+    }
+    return {
+      primaryWarehouseId: this.defaultWarehouseId,
+      availableWarehouseIds: [],
+    };
   }
 
   /**
@@ -87,6 +112,54 @@ export class CartReservationService {
     });
     if (!cart || cart.items.length === 0)
       throw new BadRequestException('Cart is empty');
+
+    // W3.T7 — `cart.beforeReserve` hook site (plan §4 Type 1).
+    // Runs AFTER cart load + empty check, BEFORE the reservation
+    // transaction. Plugins can early-reject for geographic restrictions,
+    // sold-out signals, etc. handlerCount check preserves the no-op
+    // fast path. Budget: 100ms, per-plugin CircuitBreaker.
+    if (this.hookRunner.handlerCount('cart.beforeReserve') > 0) {
+      // Effective sticker price (base × (1 − discount%)). Flash-sale
+      // discounts are NOT folded in here — that's still being negotiated
+      // inside the reservation logic below, and the hook only needs a
+      // useful approximation for plugin decisions (e.g. "reject if cart
+      // total < ₹X").
+      const computePrice = (basePrice: number, discountPct: number) =>
+        basePrice * (1 - discountPct / 100);
+      const cartCtx: ReadOnlyCart = {
+        id: cart.id,
+        userId,
+        items: cart.items.map((it) => ({
+          variantId: it.variantId,
+          quantity: it.quantity,
+          unitPrice: computePrice(
+            it.variant.product.basePrice,
+            it.variant.product.discountPct,
+          ),
+        })),
+        subtotal: cart.items.reduce(
+          (s, it) =>
+            s +
+            computePrice(
+              it.variant.product.basePrice,
+              it.variant.product.discountPct,
+            ) *
+              it.quantity,
+          0,
+        ),
+      };
+      const warehouseContext = await this.loadDefaultWarehouseContext();
+      const result = await this.hookRunner.runSync('cart.beforeReserve', {
+        userId,
+        cart: cartCtx,
+        warehouseContext,
+      });
+      if (result.rejected) {
+        throw new BadRequestException(
+          result.rejectReason?.message ?? 'Reservation rejected by plugin',
+        );
+      }
+    }
 
     // Per-user cap: expire oldest ACTIVE if at limit.
     await this.enforceConcurrentCap(userId);

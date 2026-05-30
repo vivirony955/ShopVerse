@@ -15,6 +15,8 @@ import { WalletService } from '../wallet/wallet.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { EventBus } from '../common/event-bus.service';
+import { HookRunner } from '../common/hook-runner.service';
+import type { ReadOnlyOrder, ReadOnlyPaymentIntent } from '@shopverse/sdk';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -30,6 +32,7 @@ export class PaymentsService {
     private readonly invoicesService: InvoicesService,
     private readonly loyaltyService: LoyaltyService,
     private readonly eventBus: EventBus,
+    private readonly hookRunner: HookRunner,
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
@@ -243,6 +246,43 @@ export class PaymentsService {
               gateway: 'stripe',
             })
             .catch(() => {});
+          // W3.T7 — `payment.afterCapture` hook site (plan §4 Type 2).
+          // Synchronous post-commit hook. Plugins can sync external
+          // fulfilment systems, register the payment with accounting,
+          // etc. Budget: 50ms, per-plugin CircuitBreaker. handlerCount
+          // check preserves the no-op fast path; we only re-shape the
+          // payload into ReadOnly* types when there's a handler waiting.
+          if (this.hookRunner.handlerCount('payment.afterCapture') > 0) {
+            const orderCtx: ReadOnlyOrder = {
+              id: order.id,
+              userId: order.userId,
+              guestEmail: order.guestEmail ?? null,
+              subtotal: order.subtotal,
+              discountAmount: order.discountAmount,
+              shippingFee: order.shippingFee,
+              taxAmount: order.taxAmount,
+              total: order.total,
+              status: 'CONFIRMED',
+              paymentStatus: 'PAID',
+              items: order.items.map((it) => ({
+                id: it.id,
+                variantId: it.variantId,
+                quantity: it.quantity,
+                unitPrice: it.price,
+                totalPrice: it.price * it.quantity,
+              })),
+            };
+            const paymentIntentCtx: ReadOnlyPaymentIntent = {
+              id: pi.id,
+              amount: pi.amount / 100,
+              currency: pi.currency,
+              orderId,
+            };
+            await this.hookRunner.runSync('payment.afterCapture', {
+              order: orderCtx,
+              paymentIntent: paymentIntentCtx,
+            });
+          }
           this.logger.log(`Payment confirmed for order #${orderId}`);
         }
         break;

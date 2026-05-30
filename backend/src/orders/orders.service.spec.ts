@@ -18,6 +18,7 @@ import { ReferralService } from '../referral/referral.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { WalletService } from '../wallet/wallet.service';
 import { EventBus } from '../common/event-bus.service';
+import { HookRunner } from '../common/hook-runner.service';
 import { createPrismaMock, MockPrisma } from '../test-utils/prisma.mock';
 
 describe('OrdersService', () => {
@@ -58,6 +59,14 @@ describe('OrdersService', () => {
     debit: jest.fn().mockResolvedValue(undefined),
     getBalance: jest.fn().mockResolvedValue(0),
   };
+  // No-handler stub — `handlerCount` returns 0, so the hook sites take
+  // the fast path and never call `runSync` in these unit tests.
+  const mockHookRunner = {
+    handlerCount: jest.fn().mockReturnValue(0),
+    runSync: jest
+      .fn()
+      .mockResolvedValue({ rejected: false, rejectReason: null, outcomes: [] }),
+  };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
@@ -74,6 +83,7 @@ describe('OrdersService', () => {
         { provide: InventoryService, useValue: mockInventoryService },
         { provide: WalletService, useValue: mockWalletService },
         { provide: EventBus, useValue: mockEventBus },
+        { provide: HookRunner, useValue: mockHookRunner },
       ],
     }).compile();
 

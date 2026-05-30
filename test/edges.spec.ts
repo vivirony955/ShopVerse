@@ -73,7 +73,13 @@ describe('QA Phase-5: B-series edges', () => {
       async initReserveGate() { /* no-op */ },
       async releaseReserveGate() { /* no-op */ },
     } as any;
-    reservations = new CartReservationService(prisma as any, cronLockStub, redisStub);
+    // W3.T7: HookRunner is on the DI graph but tests bypass it (no plugins
+    // registered), so a no-handler stub matches the production fast-path.
+    const hookRunnerStub = {
+      handlerCount: () => 0,
+      runSync: async () => ({ rejected: false, rejectReason: null, outcomes: [] }),
+    } as any;
+    reservations = new CartReservationService(prisma as any, cronLockStub, redisStub, hookRunnerStub);
   });
 
   beforeEach(async () => {

@@ -19,6 +19,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { EventBus } from '../common/event-bus.service';
+import { HookRunner } from '../common/hook-runner.service';
 import { createPrismaMock, MockPrisma } from '../test-utils/prisma.mock';
 
 describe('PaymentsService', () => {
@@ -49,6 +50,14 @@ describe('PaymentsService', () => {
   };
   const mockLoyaltyService = { clawbackPoints: jest.fn().mockResolvedValue(0) };
   const mockEventBus = { publish: jest.fn().mockResolvedValue(undefined) };
+  // No-handler stub — `handlerCount` returns 0 so the payment.afterCapture
+  // site takes the fast path and never invokes `runSync` in unit tests.
+  const mockHookRunner = {
+    handlerCount: jest.fn().mockReturnValue(0),
+    runSync: jest
+      .fn()
+      .mockResolvedValue({ rejected: false, rejectReason: null, outcomes: [] }),
+  };
 
   beforeEach(async () => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
@@ -78,6 +87,7 @@ describe('PaymentsService', () => {
         { provide: InvoicesService, useValue: mockInvoicesService },
         { provide: LoyaltyService, useValue: mockLoyaltyService },
         { provide: EventBus, useValue: mockEventBus },
+        { provide: HookRunner, useValue: mockHookRunner },
       ],
     }).compile();
 
