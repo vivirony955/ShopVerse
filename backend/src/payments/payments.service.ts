@@ -14,6 +14,7 @@ import { WebhooksService } from '../webhooks/webhooks.service';
 import { WalletService } from '../wallet/wallet.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { EventBus } from '../common/event-bus.service';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -28,6 +29,7 @@ export class PaymentsService {
     private readonly walletService: WalletService,
     private readonly invoicesService: InvoicesService,
     private readonly loyaltyService: LoyaltyService,
+    private readonly eventBus: EventBus,
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
@@ -228,6 +230,19 @@ export class PaymentsService {
               paymentIntentId: pi.id,
             })
             .catch(() => {});
+          // W3.T6 — publish payment.captured for plugin + kernel consumers.
+          // ADDITIVE in this wave: no subscribers yet, so emitting here is a
+          // no-op delivery. Future analytics / fraud / loyalty consumers
+          // listen here instead of hooking the webhook controller.
+          await this.eventBus
+            .publish('payment.captured', {
+              orderId,
+              paymentIntentId: pi.id,
+              amount: pi.amount / 100,
+              currency: pi.currency,
+              gateway: 'stripe',
+            })
+            .catch(() => {});
           this.logger.log(`Payment confirmed for order #${orderId}`);
         }
         break;
@@ -274,6 +289,18 @@ export class PaymentsService {
         }
 
         this.logger.warn(`Payment failed for order #${orderId}`);
+        // W3.T6 — publish payment.failed for plugin + kernel consumers
+        // (checkout recovery emails, fraud signals, analytics). The
+        // mixed-payment wallet reversal above is NOT pluggable (financial
+        // path → Tier 1 kernel-only), so it stays inline.
+        await this.eventBus
+          .publish('payment.failed', {
+            orderId,
+            paymentIntentId: pi.id,
+            reason: pi.last_payment_error?.message ?? null,
+            gateway: 'stripe',
+          })
+          .catch(() => {});
         break;
       }
 
@@ -387,6 +414,21 @@ export class PaymentsService {
                 .clawbackPoints(order.userId, order.id)
                 .catch(() => {});
             }
+            // W3.T6 — publish payment.refunded for plugin + kernel consumers.
+            // refundRequestId is null here because Stripe-Dashboard-initiated
+            // refunds don't create a RefundRequest row (only OrdersService.
+            // refundOrder does); the SDK contract marks the field nullable
+            // specifically for this case. Amount comes from `amount_refunded`
+            // (cents → rupees) to handle partial refunds correctly.
+            await this.eventBus
+              .publish('payment.refunded', {
+                orderId: order.id,
+                refundRequestId: null,
+                amount: charge.amount_refunded / 100,
+                currency: charge.currency,
+                destination: 'ORIGINAL_PAYMENT',
+              })
+              .catch(() => {});
           }
         }
         break;

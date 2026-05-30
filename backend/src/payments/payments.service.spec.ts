@@ -18,6 +18,7 @@ import { WebhooksService } from '../webhooks/webhooks.service';
 import { WalletService } from '../wallet/wallet.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { EventBus } from '../common/event-bus.service';
 import { createPrismaMock, MockPrisma } from '../test-utils/prisma.mock';
 
 describe('PaymentsService', () => {
@@ -47,6 +48,7 @@ describe('PaymentsService', () => {
     createInvoiceRecord: jest.fn().mockResolvedValue(undefined),
   };
   const mockLoyaltyService = { clawbackPoints: jest.fn().mockResolvedValue(0) };
+  const mockEventBus = { publish: jest.fn().mockResolvedValue(undefined) };
 
   beforeEach(async () => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
@@ -75,6 +77,7 @@ describe('PaymentsService', () => {
         { provide: WalletService, useValue: mockWalletService },
         { provide: InvoicesService, useValue: mockInvoicesService },
         { provide: LoyaltyService, useValue: mockLoyaltyService },
+        { provide: EventBus, useValue: mockEventBus },
       ],
     }).compile();
 

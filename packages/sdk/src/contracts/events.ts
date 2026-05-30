@@ -2,9 +2,11 @@
 // See LICENSE in the project root for license information.
 
 /**
- * Day-1 event contracts (11 events; started at 10, added `order.delivered`
+ * Day-1 event contracts (12 events; started at 10, added `order.delivered`
  * in W3.T5 when loyalty earn migrated from inline `OrdersService.update
- * OrderStatus(DELIVERED)` call to an event subscriber).
+ * OrderStatus(DELIVERED)` call to an event subscriber; added `payment.
+ * failed` in W3.T6 when the Stripe webhook handler started publishing
+ * payment-lifecycle events).
  *
  * Events are ASYNCHRONOUS pub/sub via BullMQ topic queues. Kernel
  * publishes; plugins subscribe. Multiple consumers per event. No
@@ -27,6 +29,7 @@ export type EventName =
   | 'order.cancelled'
   | 'order.delivered'
   | 'payment.captured'
+  | 'payment.failed'
   | 'payment.refunded'
   | 'wallet.credited'
   | 'wallet.debited'
@@ -89,10 +92,30 @@ export interface PaymentCapturedEvent extends EventEnvelope {
   readonly gateway: string; // 'stripe' | 'razorpay' | etc.
 }
 
+/**
+ * Emitted when a Stripe `payment_intent.payment_failed` webhook lands.
+ * Subscribers may surface checkout-recovery emails, fraud signals, or
+ * analytics. Wallet reversal for mixed payments stays in the kernel
+ * webhook handler (financial path — not pluggable per Tier 1 policy).
+ */
+export interface PaymentFailedEvent extends EventEnvelope {
+  readonly name: 'payment.failed';
+  readonly orderId: number;
+  readonly paymentIntentId: string;
+  readonly reason: string | null;
+  readonly gateway: string;
+}
+
 export interface PaymentRefundedEvent extends EventEnvelope {
   readonly name: 'payment.refunded';
   readonly orderId: number;
-  readonly refundRequestId: number;
+  /**
+   * Null when the refund originated outside the in-app refund flow
+   * (e.g., Stripe Dashboard manual refund → `charge.refunded` webhook):
+   * no `RefundRequest` row exists in that case. Non-null when the
+   * refund came from `OrdersService.refundOrder` / `refundOrderItem`.
+   */
+  readonly refundRequestId: number | null;
   readonly amount: number;
   readonly currency: string;
   readonly destination: 'ORIGINAL_PAYMENT' | 'WALLET';
@@ -153,6 +176,7 @@ export type KernelEvent =
   | OrderCancelledEvent
   | OrderDeliveredEvent
   | PaymentCapturedEvent
+  | PaymentFailedEvent
   | PaymentRefundedEvent
   | WalletCreditedEvent
   | WalletDebitedEvent
@@ -167,6 +191,7 @@ export interface EventPayloadMap {
   'order.cancelled': OrderCancelledEvent;
   'order.delivered': OrderDeliveredEvent;
   'payment.captured': PaymentCapturedEvent;
+  'payment.failed': PaymentFailedEvent;
   'payment.refunded': PaymentRefundedEvent;
   'wallet.credited': WalletCreditedEvent;
   'wallet.debited': WalletDebitedEvent;
