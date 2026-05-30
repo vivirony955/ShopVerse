@@ -25,6 +25,8 @@ jobs:
         run: cd frontend && npm run bundle:check
       - name: Hydration weight per-page gate
         run: cd frontend && npm run hydration:check
+      - name: Per-plugin memory budget gate
+        run: cd frontend && npm run plugin-memory:check
 
   lighthouse:
     name: W5.T10 — Lighthouse Delta Gate (scaffolded)
