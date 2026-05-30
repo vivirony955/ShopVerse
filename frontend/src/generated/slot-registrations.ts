@@ -2,19 +2,28 @@
 // See LICENSE in the project root for license information.
 
 /**
- * AUTO-GENERATED — do not edit by hand.
+ * AUTO-GENERATED — do not edit by hand once W6 codegen lands.
  *
  * Codegen target for `frontend/src/lib/slots.ts`. The build pipeline
- * reads `plugins.config.ts` and, for each enabled plugin that ships a
- * `frontend/index.ts`, emits an `import` + a `SlotRegistration` entry
- * into the array below.
+ * reads `backend/plugins.config.ts` and, for each enabled plugin
+ * with a frontend module, emits an `import` + flattens the plugin's
+ * `slots` array into `ALL_PLUGIN_SLOTS`.
  *
- * For W5.T1 the file is a populated-on-demand stub: empty until
- * W5.T9 wires the first plugin (`@shopverse/plugin-price-alerts`)
- * widget. Hand-edits are acceptable during W5 development; the
- * codegen replaces the file at build time once W5.T9 lands.
+ * For W5.T9 the file is hand-edited to wire the first plugin
+ * (`@shopverse/plugin-price-alerts`). When W6 codegen ships, this
+ * file becomes auto-generated and the hand-edit is replaced.
+ *
+ * Plugin frontend code location (per W5.D3):
+ *   - First-party plugins: `frontend/src/plugins/<plugin>/` —
+ *     shares the host's node_modules for React/Next deps.
+ *   - Third-party plugins (W6+): published as npm packages,
+ *     installed into `frontend/node_modules/@shopverse/plugin-X`,
+ *     imported via the package's `frontend` exports entry.
  */
 
 import type { SlotRegistration } from '@/lib/slots';
+import { slots as priceAlertsSlots } from '@/plugins/price-alerts';
 
-export const ALL_PLUGIN_SLOTS: SlotRegistration[] = [];
+export const ALL_PLUGIN_SLOTS: SlotRegistration[] = [
+  ...priceAlertsSlots,
+];

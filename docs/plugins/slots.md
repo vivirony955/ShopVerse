@@ -29,8 +29,24 @@ through an RFC issue.
 
 ## Authoring a slot component
 
+Frontend plugin code location depends on plugin source (W5.D3):
+
+- **First-party plugins** (this repo): `frontend/src/plugins/<plugin>/`.
+  Shares the host's `node_modules` so React, next-auth, tanstack-query,
+  etc. resolve normally. The backend plugin package at
+  `backend/plugins/<plugin>/` stays React-free.
+- **Third-party plugins** (W6+ ecosystem): published as npm packages
+  with a `frontend` exports entry. Installed into
+  `frontend/node_modules/@shopverse/plugin-X`, bring their own React
+  peer deps.
+
+The slot registration shape is identical in both cases:
+
 ```tsx
-// backend/plugins/<my-plugin>/frontend/index.ts
+// frontend/src/plugins/<my-plugin>/index.ts   (first-party)
+// — OR —
+// node_modules/@shopverse/plugin-<my-plugin>/frontend/index.ts  (third-party)
+
 import type { SlotRegistration } from '@/lib/slots';
 import { MyWidget } from './MyWidget';
 
@@ -45,10 +61,11 @@ export const slots: SlotRegistration[] = [
 ];
 ```
 
-The build-time codegen reads `plugins.config.ts`, finds each enabled
-plugin with a `frontend/index.ts`, and emits a single
+The build-time codegen reads `backend/plugins.config.ts`, finds each
+enabled plugin with a frontend module, and emits a single
 `frontend/src/generated/slot-registrations.ts` that flattens all
-registrations into `ALL_PLUGIN_SLOTS`.
+registrations into `ALL_PLUGIN_SLOTS`. For the W5 baseline the file
+is hand-edited; codegen automation lands in W6.
 
 ## Hard rules (enforced + reviewed)
 

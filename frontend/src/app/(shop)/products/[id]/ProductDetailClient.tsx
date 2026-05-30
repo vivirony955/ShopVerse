@@ -11,10 +11,11 @@ import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart, ShoppingBag, ChevronLeft, ChevronRight, X,
-  Truck, RotateCcw, Shield, Share2, Tag, Check, TrendingUp, Package, Bell, BellOff, MessageSquare,
+  Truck, RotateCcw, Shield, Share2, Tag, Check, TrendingUp, Package, MessageSquare,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { productsApi, cartApi, wishlistApi, reviewsApi, faqsApi, deliverySlotsApi, qaApi, priceAlertsApi, priceHistoryApi, volumeDiscountsApi } from "@/lib/api";
+import { productsApi, cartApi, wishlistApi, reviewsApi, faqsApi, deliverySlotsApi, qaApi, priceHistoryApi, volumeDiscountsApi } from "@/lib/api";
+import { Slot } from "@/components/Slot";
 import { useWishlistStore, useRecentlyViewedStore } from "@/lib/store";
 import { calcDiscountedPrice, formatPrice, formatDate, getProductImage } from "@/lib/utils";
 import Rating from "@/components/ui/Rating";
@@ -98,13 +99,8 @@ export default function ProductDetailPage() {
     enabled: !isNaN(productId),
   });
 
-  // F2-17: Price drop alert for this user/product
-  const { data: myAlerts } = useQuery({
-    queryKey: ["price-alert", productId],
-    queryFn: () => priceAlertsApi.getAll(),
-    enabled: !!session,
-  });
-  const hasAlert = myAlerts?.some((a: any) => a.productId === productId && !a.isTriggered) ?? false;
+  // F2-17: Price drop alert — moved to @shopverse/plugin-price-alerts
+  // and rendered through the W5.T1 slot system at pdp.beforeAddToCart.
 
   // F3-12: Price history
   const { data: priceHistory } = useQuery({
@@ -137,19 +133,7 @@ export default function ProductDetailPage() {
     finally { setQaSubmitting(false); }
   }
 
-  async function togglePriceAlert() {
-    if (!session) { router.push("/login"); return; }
-    if (hasAlert) {
-      await priceAlertsApi.delete(productId);
-      qc2.invalidateQueries({ queryKey: ["price-alert", productId] });
-      toast.success("Price alert removed");
-    } else {
-      const effectivePrice = product ? product.basePrice * (1 - product.discountPct / 100) : 0;
-      await priceAlertsApi.set(productId, Math.round(effectivePrice * 0.9 * 100) / 100);
-      qc2.invalidateQueries({ queryKey: ["price-alert", productId] });
-      toast.success("Alert set! We'll email you when price drops 10%.");
-    }
-  }
+  // togglePriceAlert moved into @shopverse/plugin-price-alerts (W5.T9).
 
   // Cross-sell / upsell queries (enabled once productId is valid)
   const { data: relatedProducts } = useQuery({
@@ -524,16 +508,14 @@ export default function ProductDetailPage() {
             </button>
           </div>
 
-          {/* F2-17: Price drop alert */}
-          <button
-            onClick={togglePriceAlert}
-            className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-full border transition-all mb-4 ${
-              hasAlert ? "border-amber-400 text-amber-600 bg-amber-50" : "border-slate-200 text-slate-600 hover:border-amber-300 hover:text-amber-500"
-            }`}
-          >
-            {hasAlert ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-            {hasAlert ? "Remove price alert" : "Alert me when price drops"}
-          </button>
+          {/* F2-17: Price drop alert — rendered via @shopverse/plugin-price-alerts (W5.T9) */}
+          <Slot
+            name="pdp.beforeAddToCart"
+            productId={productId}
+            basePrice={product.basePrice}
+            discountPct={product.discountPct}
+          />
+
 
           {/* F4-08: Volume discounts */}
           {volumeDiscounts && volumeDiscounts.length > 0 && (
