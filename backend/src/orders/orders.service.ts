@@ -262,32 +262,14 @@ export class OrdersService {
     // worst case is one extra "you left items" email, never an order
     // integrity issue.
 
-    // F4-07: Cashback credit for CASHBACK-type coupons — post-order, wallet credit
-    if (dto.couponCode) {
-      try {
-        const coupon = await this.prisma.coupon.findUnique({
-          where: { code: dto.couponCode },
-        });
-        if (coupon && coupon.discountType === 'CASHBACK') {
-          const cashback = this.couponsService.calcCashback(
-            coupon,
-            order.subtotal,
-          );
-          if (cashback > 0) {
-            await this.walletService
-              .credit({
-                userId,
-                amount: cashback,
-                reference: `order:${order.id}:cashback`,
-                description: `Cashback for order #${order.id} (coupon ${dto.couponCode})`,
-              })
-              .catch(() => {});
-          }
-        }
-      } catch {
-        /* non-fatal */
-      }
-    }
+    // W3.T3 — F4-07 cashback credit is now handled by OrderCashbackSubscriber
+    // listening on the order.placed event published below
+    // (backend/src/wallet/order-cashback.subscriber.ts). The previous inline
+    // CASHBACK-coupon → walletService.credit block was removed — same
+    // semantics, same reference (`order:<id>:cashback`) preserving I-12
+    // idempotency, same non-fatal failure posture (handler swallows errors).
+    // Subscriber re-fetches the order + coupon, so the event payload stays
+    // contract-stable.
 
     // W3.T2 — Order confirmation email is now sent by OrderEmailSubscriber
     // listening on the `order.placed` event published below
