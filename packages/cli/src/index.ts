@@ -21,3 +21,12 @@ export type {
 } from './migrate';
 export { auditMatrix, formatReport, runAudit } from './audit';
 export type { AuditCounts, AuditOptions, AuditResult } from './audit';
+export { planUninstall, runUninstall } from './uninstall';
+export type { UninstallOptions, UninstallResult } from './uninstall';
+export { seedAll, formatSeedReport, allSucceededSeed } from './seed';
+export type {
+  SeedContext,
+  PluginSeedFn,
+  SeedRunOptions,
+  SeedResult,
+} from './seed';
