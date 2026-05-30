@@ -49,7 +49,7 @@ import { QaModule } from './qa/qa.module';
 // adding a plugin is now a manifest edit, not a code edit.
 import { resolvePluginModules } from './common/plugin-module-resolver';
 import pluginsConfig from '../plugins.config';
-import { BlogModule } from './blog/blog.module';
+// W4.T1 — BlogModule extracted to @shopverse/plugin-blog; manifest-resolved.
 import { PriceHistoryModule } from './price-history/price-history.module';
 import { VolumeDiscountsModule } from './volume-discounts/volume-discounts.module';
 import { ObservabilityModule } from './observability/observability.module';
@@ -128,7 +128,7 @@ import { ObservabilityModule } from './observability/observability.module';
     // Spreads at decoration time into the static imports array; Nest sees a
     // normal module class list. Disabled entries are silently dropped.
     ...resolvePluginModules(pluginsConfig),
-    BlogModule, // F3-10: Blog / content CMS
+    // F3-10 Blog moved to @shopverse/plugin-blog (W4.T1) — see plugins.config.ts
     PriceHistoryModule, // F3-12: Daily price snapshots for charts
     VolumeDiscountsModule, // F4-08: Tiered quantity discounts
 

@@ -15,11 +15,15 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { BlogService } from './blog.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles, Role } from '../auth/roles.decorator';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { AuthUser } from '../common/types';
+// W4.T1 grandfathered imports — auth primitives sit in the kernel
+// today; SDK re-export migration is W4.CI3. Mirrors the price-alerts
+// pilot's grandfathered list (documented at the top of
+// price-alerts.service.ts).
+import { JwtAuthGuard } from '../../../src/auth/jwt-auth.guard';
+import { RolesGuard } from '../../../src/auth/roles.guard';
+import { Roles, Role } from '../../../src/auth/roles.decorator';
+import { CurrentUser } from '../../../src/auth/current-user.decorator';
+import { AuthUser } from '../../../src/common/types';
 
 @ApiTags('Blog')
 @Controller('blog')

@@ -32,6 +32,12 @@ const pluginsConfig: PluginManifest = {
       workspacePath: './plugins/price-alerts/src',
       enabled: true,
     },
+    {
+      id: '@shopverse/plugin-blog',
+      source: 'workspace',
+      workspacePath: './plugins/blog/src',
+      enabled: true,
+    },
   ],
 };
 

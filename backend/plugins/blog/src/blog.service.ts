@@ -6,8 +6,12 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+// W4.T1 grandfathered import — PrismaService is a kernel infra service.
+// The SDK exposes the same connection via `kernel.db` (W1.T7), but the
+// plugin currently consumes Prisma via Nest DI. SDK re-export migration
+// is W4.CI3 (continuous).
+import { PrismaService } from '../../../src/prisma/prisma.service';
 
 @Injectable()
 export class BlogService {
@@ -87,5 +91,16 @@ export class BlogService {
 
   async delete(id: number) {
     return this.prisma.blogPost.delete({ where: { id } });
+  }
+
+  /**
+   * GDPR cascade — invoked by the kernel via `user.beforeDelete` hook
+   * (registered in BlogPluginModule's bootstrap). Drops every post the
+   * user authored. Idempotent: deleteMany with no matches returns
+   * `{ count: 0 }` cleanly. The user-deletion endpoint that triggers
+   * this hook is not yet wired (W3.T7 note); contract is ready.
+   */
+  async deleteAllForUser(userId: number): Promise<void> {
+    await this.prisma.blogPost.deleteMany({ where: { authorId: userId } });
   }
 }

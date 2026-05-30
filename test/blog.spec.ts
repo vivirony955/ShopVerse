@@ -12,7 +12,10 @@ import { INestApplication } from '@nestjs/common';
 import { getTestApp, closeTestApp } from './helpers/app';
 import { prisma, cleanDatabase, createUser } from './helpers/db';
 import { cleanQATables } from './helpers/factories';
-import { BlogService } from '../backend/src/blog/blog.service';
+// W4.T1 — blog was extracted from kernel to @shopverse/plugin-blog.
+// Service class is the same; Nest DI still resolves it via the plugin
+// module imported from plugins.config.ts.
+import { BlogService } from '../backend/plugins/blog/src/blog.service';
 
 let app: INestApplication;
 let blogSvc: BlogService;

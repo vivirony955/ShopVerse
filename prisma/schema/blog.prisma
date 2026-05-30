@@ -1,0 +1,40 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
+// ─── @shopverse/plugin-blog (F3-10) — W4.T1 ──────────────────────────────────
+//
+// Owned by `backend/plugins/blog/`. Plugin schemas live alongside the
+// kernel main.prisma in `prisma/schema/` (Prisma 6 prismaSchemaFolder
+// layout, enabled in W1.T7). The kernel boots without this plugin —
+// disabling it in `backend/plugins.config.ts` removes the controllers
+// from Nest but the BlogPost table stays in the DB (data retention per
+// plan §10 E5; explicit drop only via `pnpm shopverse plugin uninstall
+// --drop-data`).
+//
+// GRANDFATHERED FK: `authorId → User`. Plan §10 E8 + plugin governance
+// allow plugins to FK kernel tables ONLY via the SDK's
+// `user.beforeDelete` hook (which the plugin registers via its
+// BlogBootstrap class). The hook deletes posts before the kernel
+// deletes the user, satisfying the FK's default RESTRICT.
+//
+// When multi-tenant or kernel-table FK migration arrives, this entry
+// becomes a userId Int (no relation), and the cascade lives only in
+// the hook. The pilot (price-alerts) carries the same FK pattern.
+
+model BlogPost {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  content     String
+  excerpt     String?
+  coverImage  String?
+  authorId    Int
+  author      User      @relation(fields: [authorId], references: [id])
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  tags        String[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isPublished, publishedAt])
+}
