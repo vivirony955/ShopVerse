@@ -489,12 +489,43 @@ Quick start: fork → branch → code → `cd backend && npx tsc --noEmit` → P
 
 ---
 
+## Building plugins
+
+ShopVerse is a modular monolith with a plugin contract — kernel
+(non-removable) + core-extended strategies + fully pluggable
+extensions. Five first-party plugins ship in this repo:
+`price-alerts`, `blog`, `price-history`, `volume-discounts`,
+`notifications`. The kernel loads them through
+[`backend/plugins.config.ts`](backend/plugins.config.ts) at boot.
+
+| You want to... | Read |
+|---|---|
+| Build your first plugin in 10 min | [docs/plugins/tutorial.md](docs/plugins/tutorial.md) |
+| Catalog of first-party plugins | [docs/plugins/index.md](docs/plugins/index.md) |
+| Full author guide | [docs/plugins/guide.md](docs/plugins/guide.md) |
+| Every hook / event / strategy / slot | [docs/plugins/sdk-reference.md](docs/plugins/sdk-reference.md) |
+| Performance budgets + CI gates | [docs/plugins/performance.md](docs/plugins/performance.md) |
+| Slot taxonomy + a11y + i18n | [slots](docs/plugins/slots.md) · [a11y](docs/plugins/a11y.md) · [i18n](docs/plugins/i18n.md) |
+| Lint rules + PR template | [docs/plugins/conventions.md](docs/plugins/conventions.md) |
+| Failure isolation + audit | [failure-model](docs/plugins/failure-model.md) · [security](docs/plugins/security.md) |
+
+The plugin model is documented at the architectural level under
+[docs/architecture/](docs/architecture/) (kernel boundary, scope,
+first-party plugin catalog). Plan reference: the architecture
+evolution programme that delivered the plugin model is captured in
+`waves/` and `cross-cutting/COMPLETENESS_MATRIX.md` (run
+`npx shopverse audit:completeness` to see programme state).
+
+---
+
 ## Documentation
 
 | Document | Purpose |
 |---|---|
 | [QUICKSTART.md](QUICKSTART.md) | Get running in 10 minutes |
 | [SYSTEM_DESIGN_FINAL.md](SYSTEM_DESIGN_FINAL.md) | Full architecture reference (state machines, invariants, threat model) |
+| [docs/plugins/](docs/plugins/) | Plugin author docs (tutorial, guide, SDK reference, conventions) |
+| [docs/architecture/](docs/architecture/) | Kernel boundary, scope, plugin catalog |
 | [MASTER_TRACKER.md](MASTER_TRACKER.md) | Implementation status and launch readiness |
 | [ROADMAP.md](ROADMAP.md) | What's coming next |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contributor guide |
