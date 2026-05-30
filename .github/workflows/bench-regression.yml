@@ -1,0 +1,27 @@
+name: Bench Regression
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  k6-bench:
+    name: W6.T2 — k6 p95 + throughput regression gate
+    runs-on: ubuntu-latest
+    # Self-skips when BENCH_BASE_URL is unset OR k6 isn't installed;
+    # CI uses the official k6 install action. The gate becomes a hard
+    # fail when staging URL provisioning lands operator-side.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install k6
+        uses: grafana/setup-k6-action@v1
+      - name: Bench regression check
+        run: node bench/check-regression.js
+        env:
+          BENCH_BASE_URL: ${{ vars.BENCH_BASE_URL }}
