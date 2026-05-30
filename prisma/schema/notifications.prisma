@@ -1,0 +1,32 @@
+// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// See LICENSE in the project root for license information.
+
+// ─── @shopverse/plugin-notifications (F2-06) — W4.T13 ────────────────────────
+//
+// Owned by `backend/plugins/notifications/`. Disabling the plugin in
+// `backend/plugins.config.ts` removes the controller but the
+// Notification table stays in the DB (data retention per plan §10 E5).
+// Explicit drop requires `pnpm shopverse plugin uninstall
+// --drop-data` (W6.T7).
+//
+// GRANDFATHERED FK: `userId → User` with `onDelete: Cascade`. The
+// cascade is intentional — when a user disappears, their notifications
+// vanish at the DB level without requiring a `user.beforeDelete` hook.
+// (Compare to blog.prisma, where authorId → User has no cascade and a
+// hook is needed to preempt the RESTRICT.) Structurally still a
+// kernel-table FK that the SDK will eventually formalise through
+// `kernel.db`.
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // ORDER_UPDATE | PRICE_DROP | PROMO | SYSTEM
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+}

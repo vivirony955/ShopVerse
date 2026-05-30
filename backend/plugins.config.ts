@@ -50,6 +50,12 @@ const pluginsConfig: PluginManifest = {
       workspacePath: './plugins/volume-discounts/src',
       enabled: true,
     },
+    {
+      id: '@shopverse/plugin-notifications',
+      source: 'workspace',
+      workspacePath: './plugins/notifications/src',
+      enabled: true,
+    },
   ],
 };
 

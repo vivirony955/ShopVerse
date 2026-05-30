@@ -12,9 +12,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { AuthUser } from '../common/types';
+// W4.T13 grandfathered auth primitives — SDK re-export under W4.CI3.
+import { JwtAuthGuard } from '../../../src/auth/jwt-auth.guard';
+import { CurrentUser } from '../../../src/auth/current-user.decorator';
+import { AuthUser } from '../../../src/common/types';
 
 @ApiTags('Notifications')
 @ApiBearerAuth('JWT')

@@ -40,7 +40,7 @@ import { ExperienceModule } from './experience/experience.module';
 import { LegalModule } from './legal/legal.module';
 import { CommonModule } from './common/common.module';
 import { EventBusModule } from './common/event-bus.module';
-import { NotificationsModule } from './notifications/notifications.module';
+// W4.T13 — NotificationsModule extracted to @shopverse/plugin-notifications.
 import { ExchangeModule } from './exchange/exchange.module';
 import { QaModule } from './qa/qa.module';
 // W4.CI1 — first-party plugins are now resolved from plugins.config.ts at
@@ -121,7 +121,7 @@ import { ObservabilityModule } from './observability/observability.module';
     LegalModule, // Policies, cookie consent
     CommonModule, // @Global: ErrorTrackingService + plugin services everywhere
     EventBusModule, // @Global: kernel + plugin event bus (BullMQ-backed, W3)
-    NotificationsModule, // F2-06: In-app notification center
+    // F2-06 Notifications moved to @shopverse/plugin-notifications (W4.T13) — see plugins.config.ts
     ExchangeModule, // F2-12: Exchange flow (swap product after delivery)
     QaModule, // F2-14: Customer Q&A on PDPs
     // W4.CI1 — workspace plugins resolved from plugins.config.ts manifest.

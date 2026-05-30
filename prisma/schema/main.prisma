@@ -1235,20 +1235,7 @@ model RecentlyViewed {
   @@index([userId, viewedAt(sort: Desc)])
 }
 
-// ─── F2-06: In-app Notification Center ───────────────────────────────────────
-model Notification {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // ORDER_UPDATE | PRICE_DROP | PROMO | SYSTEM
-  title     String
-  body      String
-  link      String?
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([userId, isRead, createdAt])
-}
+// ─── F2-06: In-app Notification Center — moved to prisma/schema/notifications.prisma in W4.T13
 
 // ─── F2-11: Trending / Popular Searches ──────────────────────────────────────
 model SearchLog {

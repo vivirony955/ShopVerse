@@ -11,7 +11,8 @@ import { INestApplication } from '@nestjs/common';
 import { getTestApp, closeTestApp } from './helpers/app';
 import { prisma, cleanDatabase, createUser } from './helpers/db';
 import { cleanQATables } from './helpers/factories';
-import { NotificationsService } from '../backend/src/notifications/notifications.service';
+// W4.T13 — notifications extracted to @shopverse/plugin-notifications.
+import { NotificationsService } from '../backend/plugins/notifications/src/notifications.service';
 
 let app: INestApplication;
 let svc: NotificationsService;

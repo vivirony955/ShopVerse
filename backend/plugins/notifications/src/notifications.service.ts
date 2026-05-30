@@ -2,7 +2,9 @@
 // See LICENSE in the project root for license information.
 
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+// W4.T13 grandfathered import — PrismaService is kernel infra; SDK
+// re-export under W4.CI3 (continuous).
+import { PrismaService } from '../../../src/prisma/prisma.service';
 
 @Injectable()
 export class NotificationsService {
