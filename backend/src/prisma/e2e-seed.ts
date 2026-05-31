@@ -2,14 +2,54 @@
 // See LICENSE in the project root for license information.
 
 /**
- * E2E seed: creates test products so Playwright tests have data to work with.
- * Run from backend/: npx ts-node src/prisma/e2e-seed.ts
+ * E2E seed: creates test users + products so Playwright tests have data to
+ * work with. Run from backend/: npx ts-node src/prisma/e2e-seed.ts
+ *
+ * Idempotent — safe to run multiple times. Existing rows are skipped.
+ *
+ * Users created (must match frontend/e2e/helpers.ts TEST_USER / TEST_ADMIN):
+ *   - e2e_test@shopverse.local  / Test@1234   (USER role)
+ *   - e2e_admin@shopverse.local / Admin@1234  (ADMIN role)
+ *
+ * Without these the Playwright suite's user.setup.ts and admin.setup.ts
+ * tasks fail at login, cascading every authenticated test to red.
  */
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+async function seedUsers() {
+  const users: Array<{ email: string; password: string; firstName: string; role: 'USER' | 'ADMIN' }> = [
+    { email: 'e2e_test@shopverse.local',  password: 'Test@1234',  firstName: 'E2E',      role: 'USER' },
+    { email: 'e2e_admin@shopverse.local', password: 'Admin@1234', firstName: 'E2EAdmin', role: 'ADMIN' },
+  ];
+
+  for (const u of users) {
+    // Upsert so a re-run resets the password back to the canonical value.
+    // Important when a previous spec mutated the password (e.g. password-
+    // change tests) or an earlier seed used a different hash.
+    const hashed = await bcrypt.hash(u.password, 10);
+    const user = await prisma.user.upsert({
+      where: { email: u.email },
+      update: { password: hashed, firstName: u.firstName, role: u.role },
+      create: {
+        email: u.email,
+        password: hashed,
+        firstName: u.firstName,
+        role: u.role,
+      },
+    });
+    console.log(`Seeded ${u.role}: ${user.email} (id=${user.id})`);
+  }
+}
+
 async function main() {
+  // Users first — Playwright's user.setup.ts / admin.setup.ts log in with
+  // these credentials BEFORE any tests run. Without them every chromium-user
+  // and chromium-admin test fails at setup.
+  await seedUsers();
+
   // Upsert category + brand
   const cat = await prisma.category.upsert({
     where: { slug: 'e2e-category' },
