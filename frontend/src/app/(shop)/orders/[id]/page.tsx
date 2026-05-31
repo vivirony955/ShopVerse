@@ -67,6 +67,28 @@ export default function OrderDetailPage() {
     onError: (err: any) => toast.error(err?.response?.data?.message || "Refund failed"),
   });
 
+  // Hooks below MUST run on every render — they used to live after the
+  // `if (isLoading) return …` / `if (!order) return …` early returns,
+  // which violates rules-of-hooks (hooks count changes when the order
+  // load completes). Order-shape access guards `order?.…` because
+  // `order` is undefined on the first render.
+  // F2-13: Delivery rating
+  const { data: deliveryRating } = useQuery({
+    queryKey: ["delivery-rating", orderId],
+    queryFn: () => deliveryRatingApi.get(orderId),
+    enabled: order?.status === "DELIVERED",
+  });
+  const [ratingVal, setRatingVal] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
+  const [showRatingForm, setShowRatingForm] = useState(false);
+
+  // F2-12: Exchange request — state lives above the early returns so
+  // the hook order is stable across loading → loaded transitions.
+  const [showExchangeForm, setShowExchangeForm] = useState(false);
+  const [exchangeItemId, setExchangeItemId] = useState<number | null>(null);
+  const [exchangeVariantId, setExchangeVariantId] = useState<number | null>(null);
+  const [exchangeReason, setExchangeReason] = useState("");
+
   if (isLoading) return <PageSkeleton />;
   if (!order) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -86,16 +108,6 @@ export default function OrderDetailPage() {
   const canRefundToCard = order.status === "RETURN_REQUESTED" && order.paymentStatus === "PAID" && !!order.paymentId;
   const addr = order.addressSnapshot;
 
-  // F2-13: Delivery rating
-  const { data: deliveryRating } = useQuery({
-    queryKey: ["delivery-rating", orderId],
-    queryFn: () => deliveryRatingApi.get(orderId),
-    enabled: order.status === "DELIVERED",
-  });
-  const [ratingVal, setRatingVal] = useState(0);
-  const [ratingComment, setRatingComment] = useState("");
-  const [showRatingForm, setShowRatingForm] = useState(false);
-
   async function submitRating() {
     try {
       await deliveryRatingApi.rate(orderId, ratingVal, ratingComment);
@@ -104,12 +116,6 @@ export default function OrderDetailPage() {
       toast.success("Thanks for your feedback!");
     } catch { toast.error("Failed to submit rating"); }
   }
-
-  // F2-12: Exchange request
-  const [showExchangeForm, setShowExchangeForm] = useState(false);
-  const [exchangeItemId, setExchangeItemId] = useState<number | null>(null);
-  const [exchangeVariantId, setExchangeVariantId] = useState<number | null>(null);
-  const [exchangeReason, setExchangeReason] = useState("");
 
   async function submitExchange() {
     if (!exchangeItemId || !exchangeVariantId || !exchangeReason) return;
