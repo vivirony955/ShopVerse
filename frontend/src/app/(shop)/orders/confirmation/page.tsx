@@ -53,7 +53,7 @@ function OrderConfirmationContent() {
         </div>
         <h1 className="text-2xl font-extrabold text-slate-900 mb-2">Order Confirmed!</h1>
         <p className="text-slate-500 text-sm">
-          Thank you for your purchase. We'll send you an email with order details shortly.
+          Thank you for your purchase. We&apos;ll send you an email with order details shortly.
         </p>
       </motion.div>
 

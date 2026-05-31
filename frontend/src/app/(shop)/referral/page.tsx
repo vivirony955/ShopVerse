@@ -101,7 +101,7 @@ export default function ReferralPage() {
       {/* Apply a code */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-6">
         <h2 className="font-bold text-slate-800 mb-1">Have a referral code?</h2>
-        <p className="text-sm text-slate-500 mb-4">Enter a friend's code to claim your 100 bonus points.</p>
+        <p className="text-sm text-slate-500 mb-4">Enter a friend&apos;s code to claim your 100 bonus points.</p>
         <div className="flex gap-3">
           <input
             type="text"

@@ -254,7 +254,7 @@ export default function ProductsPage() {
                     <div className="w-6 h-6 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
                   )}
                   {!isLoading && (filters.page ?? 1) >= totalPages && allItems.length > 0 && (
-                    <p className="text-sm text-slate-400">You've seen all products</p>
+                    <p className="text-sm text-slate-400">You&apos;ve seen all products</p>
                   )}
                 </div>
               )}

@@ -69,7 +69,7 @@ export default function ExitIntentPopup() {
               <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Tag className="h-7 w-7 text-white" />
               </div>
-              <h2 className="text-2xl font-extrabold mb-2">Wait! Don't go yet 🎁</h2>
+              <h2 className="text-2xl font-extrabold mb-2">Wait! Don&apos;t go yet 🎁</h2>
               <p className="text-white/80 text-sm">
                 You have items in your cart. Complete your order and save!
               </p>
@@ -94,7 +94,7 @@ export default function ExitIntentPopup() {
                   onClick={() => setVisible(false)}
                   className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  No thanks, I'll pass on the savings
+                  No thanks, I&apos;ll pass on the savings
                 </button>
               </div>
             </div>
