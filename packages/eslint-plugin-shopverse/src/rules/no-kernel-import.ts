@@ -44,6 +44,23 @@ const GRANDFATHERED_TAIL_PATTERNS: RegExp[] = [
   // Plan §8 carry-ins; cleared incrementally by the SDK re-export
   // sweep. Each entry is documented in the W6 tracker so the lint
   // surface shrinks as the SDK surface grows.
+  //
+  // POST_W6 §5.1 / Task 10 architect-pre finding (2026-05-31): clearing
+  // these entries via an `@shopverse/sdk/nest` sub-export is non-
+  // trivial because NestJS DI uses CLASS IDENTITY for token resolution.
+  // The SDK can't simply `export { PrismaService } from '<kernel>'`:
+  //   - In monorepo dev mode it could, via a relative import to
+  //     backend/src/... — but then the published npm tarball expects
+  //     the kernel to be at the same relative path, which it isn't
+  //     for third-party SDK consumers.
+  //   - The clean fix is token-based DI: kernel registers
+  //     `{ provide: 'KERNEL_PRISMA', useExisting: PrismaService }`,
+  //     SDK exports the token + a TypeScript type for the interface,
+  //     plugins inject via `@Inject('KERNEL_PRISMA')`. That's a
+  //     moderate refactor — multiple-hour scope, not 30 min/plugin.
+  // Deferred to a dedicated session with the architect lens. The
+  // current allow-list is NOT a bug — it's the documented contract
+  // for first-party plugins co-located with the kernel.
   /\/prisma\/prisma\.service$/,
   /\/common\/(hook-runner|plugin-cron-registry|plugin-context|with-cron-metric)$/,
   /\/email\/email\.service$/,

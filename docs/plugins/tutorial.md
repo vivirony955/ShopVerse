@@ -103,11 +103,17 @@ Add to `backend/plugins.config.ts`:
 {
   id: '@shopverse/plugin-hello-world',
   source: 'workspace',
-  workspacePath: './plugins/hello-world',
+  // Points at the directory holding the plugin's NestJS module —
+  // that's `src/`, not the package root. The resolver loads
+  // `<workspacePath>/index.ts` (or `index.js`) as the plugin entry.
+  workspacePath: './plugins/hello-world/src',
   enabled: true,
-  kernelVersion: '0.1.0-alpha.1',
 },
 ```
+
+(`kernelVersion` is a manifest-root field, not per-plugin — see the
+top of `plugins.config.ts`. Each plugin's peer-dep on the SDK is
+declared in its own `package.json`.)
 
 Run `cd backend && npm run start:dev`. The boot log should show:
 

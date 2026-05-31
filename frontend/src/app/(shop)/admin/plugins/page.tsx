@@ -3,21 +3,24 @@
 
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminPluginsApi, type PluginAdminEntry } from "@/lib/api";
+import { adminPluginsApi, type PluginAdminEntry, type PluginRuntimeMetricsEntry } from "@/lib/api";
 import { Power, PowerOff, CheckCircle2, AlertTriangle, Shield } from "lucide-react";
 import toast from "react-hot-toast";
 
 /**
- * /admin/plugins — W6.T3 (plan §6 admin surface).
+ * /admin/plugins — W6.T3 (plan §6 admin surface) + Task 6 metrics bridge.
  *
  * Surfaces every loaded plugin's runtime state from
- * `GET /admin/plugins` (PluginAdminController). Admin operators can
- * flip the W1.T20 Redis kill-switch per plugin without redeploying.
+ * `GET /admin/plugins` (PluginAdminController) plus rolling p95 +
+ * breaker state from `GET /admin/plugins/runtime-metrics`. Admin
+ * operators can flip the W1.T20 Redis kill-switch per plugin without
+ * redeploying.
  *
- * Currently shows: load status, operator-disabled state, last load
- * error (when failed). Breaker state + p95 from Prometheus is a
- * follow-on once a metrics-bridge endpoint ships (live data is
- * already in /metrics; the admin page just needs to consume it).
+ * Two independent queries: load status (refetch every 30 s — only
+ * changes on redeploy) and runtime metrics (every 10 s — breaker
+ * state can flip rapidly under failure). An outage of the metrics
+ * endpoint degrades gracefully: rows still render, "—" replaces
+ * missing values.
  */
 export default function AdminPluginsPage() {
   const qc = useQueryClient();
@@ -26,6 +29,16 @@ export default function AdminPluginsPage() {
     queryKey: ["admin-plugins"],
     queryFn: () => adminPluginsApi.list(),
     refetchInterval: 30_000,
+  });
+
+  // Task 6 — separate query so an outage of the metrics endpoint
+  // doesn't block the load-status table. Higher refresh rate (10s)
+  // because breaker state can change rapidly when a plugin starts
+  // failing; load status changes only on redeploy.
+  const { data: runtimeMetrics = {} } = useQuery({
+    queryKey: ["admin-plugins-runtime-metrics"],
+    queryFn: () => adminPluginsApi.runtimeMetrics(),
+    refetchInterval: 10_000,
   });
 
   const disableMutation = useMutation({
@@ -81,12 +94,16 @@ export default function AdminPluginsPage() {
                 <th className="px-5 py-3 text-left">Plugin</th>
                 <th className="px-5 py-3 text-left">Load status</th>
                 <th className="px-5 py-3 text-left">Operator state</th>
+                <th className="px-5 py-3 text-left">Breaker</th>
+                <th className="px-5 py-3 text-left">p95 (5 min)</th>
                 <th className="px-5 py-3 text-left">Error</th>
                 <th className="px-5 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {plugins.map((p) => (
+              {plugins.map((p) => {
+                const m = runtimeMetrics[p.id];
+                return (
                 <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-5 py-4">
                     <code className="font-mono text-xs text-slate-700">{p.id}</code>
@@ -104,6 +121,12 @@ export default function AdminPluginsPage() {
                         <CheckCircle2 className="h-3 w-3" /> Active
                       </span>
                     )}
+                  </td>
+                  <td className="px-5 py-4">
+                    <BreakerBadge state={m?.breakerState ?? null} />
+                  </td>
+                  <td className="px-5 py-4">
+                    <P95Cell ms={m?.hookP95Ms ?? null} />
                   </td>
                   <td className="px-5 py-4">
                     {p.error ? (
@@ -138,7 +161,7 @@ export default function AdminPluginsPage() {
                     )}
                   </td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         )}
@@ -152,6 +175,33 @@ export default function AdminPluginsPage() {
       </p>
     </div>
   );
+}
+
+function BreakerBadge({ state }: { state: PluginRuntimeMetricsEntry["breakerState"] }) {
+  if (state === null) {
+    // Plugin has no hooks registered (e.g. content-only). Rendered
+    // as "—" to distinguish "no measurement" from a closed breaker.
+    return <span className="text-xs text-slate-300">—</span>;
+  }
+  const map = {
+    closed: { label: "Closed", cls: "text-emerald-700 bg-emerald-50" },
+    "half-open": { label: "Half-open", cls: "text-amber-700 bg-amber-50" },
+    open: { label: "Open", cls: "text-rose-700 bg-rose-50" },
+  } as const;
+  const entry = map[state];
+  return (
+    <span className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${entry.cls}`}>
+      {entry.label}
+    </span>
+  );
+}
+
+function P95Cell({ ms }: { ms: number | null }) {
+  if (ms === null) {
+    // Never measured — distinct from "0 ms" (an instant return).
+    return <span className="text-xs text-slate-300">—</span>;
+  }
+  return <span className="text-xs font-mono text-slate-700">{ms.toFixed(1)} ms</span>;
 }
 
 function LoadStatusBadge({ status }: { status: PluginAdminEntry["loadStatus"] }) {

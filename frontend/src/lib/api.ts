@@ -424,9 +424,20 @@ export interface PluginAdminEntry {
   operatorDisabled: boolean;
   error?: string;
 }
+// Task 6 / POST_W6 §4.4 runtime metrics. `breakerState: null` means the
+// plugin has registered zero hooks (e.g. content-only plugin). `*P95Ms`
+// + `lastFailureMs` null mean "never measured" — render as "—", not 0.
+export interface PluginRuntimeMetricsEntry {
+  breakerState: 'closed' | 'open' | 'half-open' | null;
+  hookP95Ms: number | null;
+  eventP95Ms: number | null;
+  lastFailureMs: number | null;
+}
 export const adminPluginsApi = {
   list: (): Promise<PluginAdminEntry[]> =>
     http.get("/admin/plugins").then((r) => r.data),
+  runtimeMetrics: (): Promise<Record<string, PluginRuntimeMetricsEntry>> =>
+    http.get("/admin/plugins/runtime-metrics").then((r) => r.data),
   disable: (id: string) =>
     http.post(`/admin/plugins/${encodeURIComponent(id)}/disable`).then((r) => r.data),
   enable: (id: string) =>

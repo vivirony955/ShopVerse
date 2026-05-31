@@ -20,6 +20,30 @@ if (!global.__testPrisma) {
 }
 export const prisma: PrismaClient = global.__testPrisma;
 
+/**
+ * Task 8 / POST_W6 §3.2 narrow swallow.
+ *
+ * Replaces the older `.catch(ignoreMissingTable)` blanket pattern in cleanDatabase.
+ * The blanket caused PAY-E02 (Invoice + RefundApproval FK violations
+ * masked) and could be hiding other real failures the same way.
+ *
+ * P2021 = "The table `X` does not exist in the current database."
+ * Prisma surfaces this when:
+ *   - A table referenced in the schema hasn't been migrated yet
+ *   - An old migration baseline doesn't include a Phase-2+ table
+ *
+ * Anything else (FK violations, connection errors, syntax errors, etc.)
+ * MUST surface so the test investigator sees the actual problem at
+ * the actual call site, not as a cascading failure ten lines later.
+ *
+ * Usage: `await prisma.foo.deleteMany().catch(ignoreMissingTable);`
+ */
+export function ignoreMissingTable(err: unknown): void {
+  const code = (err as { code?: string } | null)?.code;
+  if (code === 'P2021') return; // table doesn't exist — fine, nothing to delete
+  throw err;
+}
+
 // ─── Cleanup ─────────────────────────────────────────────────────────────────
 
 /**
@@ -31,49 +55,49 @@ export async function cleanDatabase(): Promise<void> {
   await prisma.review.deleteMany();
   await prisma.wishlist.deleteMany();
   // Phase-2+ models that FK-constrain Order/User/Product
-  await prisma.notification.deleteMany().catch(() => {});
-  await prisma.recentlyViewed.deleteMany().catch(() => {});
-  await prisma.exchangeRequest.deleteMany().catch(() => {});
-  await prisma.deliveryRating.deleteMany().catch(() => {});
-  await prisma.productQuestion.deleteMany().catch(() => {});
-  await prisma.priceAlert.deleteMany().catch(() => {});
-  await prisma.priceHistory.deleteMany().catch(() => {});
-  await prisma.volumeDiscount.deleteMany().catch(() => {});
-  await prisma.searchLog.deleteMany().catch(() => {});
-  await prisma.blogPost.deleteMany().catch(() => {});
+  await prisma.notification.deleteMany().catch(ignoreMissingTable);
+  await prisma.recentlyViewed.deleteMany().catch(ignoreMissingTable);
+  await prisma.exchangeRequest.deleteMany().catch(ignoreMissingTable);
+  await prisma.deliveryRating.deleteMany().catch(ignoreMissingTable);
+  await prisma.productQuestion.deleteMany().catch(ignoreMissingTable);
+  await prisma.priceAlert.deleteMany().catch(ignoreMissingTable);
+  await prisma.priceHistory.deleteMany().catch(ignoreMissingTable);
+  await prisma.volumeDiscount.deleteMany().catch(ignoreMissingTable);
+  await prisma.searchLog.deleteMany().catch(ignoreMissingTable);
+  await prisma.blogPost.deleteMany().catch(ignoreMissingTable);
   // Return / refund chain
-  await prisma.returnItem.deleteMany().catch(() => {});
-  await prisma.returnRequest.deleteMany().catch(() => {});
+  await prisma.returnItem.deleteMany().catch(ignoreMissingTable);
+  await prisma.returnRequest.deleteMany().catch(ignoreMissingTable);
   // Loyalty / tracking
-  await prisma.loyaltyTransaction.deleteMany().catch(() => {});
-  await prisma.trackingEvent.deleteMany().catch(() => {});
-  await prisma.ledgerEntry.deleteMany().catch(() => {});
-  await prisma.paymentReconciliation.deleteMany().catch(() => {});
+  await prisma.loyaltyTransaction.deleteMany().catch(ignoreMissingTable);
+  await prisma.trackingEvent.deleteMany().catch(ignoreMissingTable);
+  await prisma.ledgerEntry.deleteMany().catch(ignoreMissingTable);
+  await prisma.paymentReconciliation.deleteMany().catch(ignoreMissingTable);
   // Cart reservations
-  await prisma.cartReservationItem.deleteMany().catch(() => {});
-  await prisma.cartReservation.deleteMany().catch(() => {});
+  await prisma.cartReservationItem.deleteMany().catch(ignoreMissingTable);
+  await prisma.cartReservation.deleteMany().catch(ignoreMissingTable);
   // Wallet
-  await prisma.walletTransaction.deleteMany().catch(() => {});
-  await prisma.refundRequest.deleteMany().catch(() => {});
-  await prisma.wallet.deleteMany().catch(() => {});
+  await prisma.walletTransaction.deleteMany().catch(ignoreMissingTable);
+  await prisma.refundRequest.deleteMany().catch(ignoreMissingTable);
+  await prisma.wallet.deleteMany().catch(ignoreMissingTable);
   // Misc user-linked
-  await prisma.abandonedCart.deleteMany().catch(() => {});
-  await prisma.referralCredit.deleteMany().catch(() => {});
-  await prisma.couponUsage.deleteMany().catch(() => {});
+  await prisma.abandonedCart.deleteMany().catch(ignoreMissingTable);
+  await prisma.referralCredit.deleteMany().catch(ignoreMissingTable);
+  await prisma.couponUsage.deleteMany().catch(ignoreMissingTable);
   // Shipments
-  await prisma.shipmentItem.deleteMany().catch(() => {});
-  await prisma.shipment.deleteMany().catch(() => {});
+  await prisma.shipmentItem.deleteMany().catch(ignoreMissingTable);
+  await prisma.shipment.deleteMany().catch(ignoreMissingTable);
   // Fraud
-  await prisma.fraudFlag.deleteMany().catch(() => {});
-  await prisma.userRiskScore.deleteMany().catch(() => {});
-  await prisma.blacklist.deleteMany().catch(() => {});
+  await prisma.fraudFlag.deleteMany().catch(ignoreMissingTable);
+  await prisma.userRiskScore.deleteMany().catch(ignoreMissingTable);
+  await prisma.blacklist.deleteMany().catch(ignoreMissingTable);
   // Flash sales
-  await prisma.flashSaleProduct.deleteMany().catch(() => {});
-  await prisma.flashSale.deleteMany().catch(() => {});
+  await prisma.flashSaleProduct.deleteMany().catch(ignoreMissingTable);
+  await prisma.flashSale.deleteMany().catch(ignoreMissingTable);
   // Orders
   await prisma.orderItem.deleteMany();
   // W6.T-flakes PAY-E02 cleanup: do NOT swallow Invoice / RefundApproval
-  // DELETE failures. The previous `.catch(() => {})` masked rare
+  // DELETE failures. The previous `.catch(ignoreMissingTable)` masked rare
   // failures here and surfaced them downstream as
   // `order.deleteMany()` FK violations (Invoice.orderId references
   // Order.id with NO cascade). Letting the raw delete throw means
@@ -84,20 +108,20 @@ export async function cleanDatabase(): Promise<void> {
   await prisma.cartItem.deleteMany();
   await prisma.cart.deleteMany();
   // Inventory before Variant
-  await prisma.warehouseInventory.deleteMany().catch(() => {});
+  await prisma.warehouseInventory.deleteMany().catch(ignoreMissingTable);
   await prisma.variant.deleteMany();
   await prisma.product.deleteMany();
   await prisma.address.deleteMany();
   await prisma.coupon.deleteMany();
   // Admin audit log FKs to User
-  await prisma.$executeRaw`DELETE FROM "AdminAuditLog"`.catch(() => {});
+  await prisma.$executeRaw`DELETE FROM "AdminAuditLog"`.catch(ignoreMissingTable);
   await prisma.user.deleteMany();
   await prisma.brand.deleteMany();
   await prisma.category.deleteMany();
   // Delivery / invoice infrastructure (no FK to user — can delete anytime)
-  await prisma.pincodeServiceability.deleteMany().catch(() => {});
-  await prisma.deliverySlot.deleteMany().catch(() => {});
-  await prisma.$executeRaw`DELETE FROM "InvoiceSequence"`.catch(() => {});
+  await prisma.pincodeServiceability.deleteMany().catch(ignoreMissingTable);
+  await prisma.deliverySlot.deleteMany().catch(ignoreMissingTable);
+  await prisma.$executeRaw`DELETE FROM "InvoiceSequence"`.catch(ignoreMissingTable);
 }
 
 // ─── Seed helpers ─────────────────────────────────────────────────────────────

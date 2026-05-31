@@ -9,6 +9,9 @@ import { Role, Roles } from '../auth/roles.decorator';
 import type { AuthenticatedRequest } from './types';
 import { PluginRuntimeStateService } from './plugin-runtime-state.service';
 import { PluginLoader, type PluginLoadResult } from './plugin-loader.service';
+import { HookRunner } from './hook-runner.service';
+import { PluginMetricsService } from './plugin-metrics.service';
+import type { CircuitBreakerState } from './circuit-breaker';
 
 /**
  * PluginAdminController — plan §10 E2 admin surface (W1.T20).
@@ -34,12 +37,43 @@ export class PluginAdminController {
   constructor(
     private readonly loader: PluginLoader,
     private readonly runtime: PluginRuntimeStateService,
+    private readonly hookRunner: HookRunner,
+    private readonly metrics: PluginMetricsService,
   ) {}
 
   @Get()
   @ApiOperation({ summary: 'List loaded plugins + runtime status' })
   list(): readonly PluginAdminEntry[] {
     return this.loader.all().map((r) => this.toEntry(r));
+  }
+
+  /**
+   * Task 6 / POST_W6 §4.4 — runtime metrics endpoint.
+   *
+   * Aggregate breaker state + p95 latency per loaded plugin. Backed by
+   * an in-process map (single-tenant v1; no scatter-gather). Empty fields
+   * for plugins that have never fired a hook return null, NOT zero —
+   * the frontend renders these as "—" to distinguish "no data" from
+   * "instant response."
+   *
+   * Route placement note: this MUST come before any `:id` parameterized
+   * route below, otherwise NestJS will route `/admin/plugins/runtime-metrics`
+   * to `status(':id'='runtime-metrics')` and 404.
+   */
+  @Get('runtime-metrics')
+  @ApiOperation({ summary: 'Per-plugin breaker + p95 runtime metrics' })
+  runtimeMetrics(): Record<string, PluginRuntimeMetricsEntry> {
+    const result: Record<string, PluginRuntimeMetricsEntry> = {};
+    for (const r of this.loader.all()) {
+      const stats = this.metrics.getRuntimeStats(r.id);
+      result[r.id] = {
+        breakerState: this.hookRunner.breakerStateFor(r.id),
+        hookP95Ms: stats.hookP95Ms,
+        eventP95Ms: stats.eventP95Ms,
+        lastFailureMs: stats.lastFailureMs,
+      };
+    }
+    return result;
   }
 
   @Get(':id')
@@ -84,4 +118,19 @@ export interface PluginAdminEntry {
   readonly loadStatus: PluginLoadResult['status'];
   readonly operatorDisabled: boolean;
   readonly error?: string;
+}
+
+export interface PluginRuntimeMetricsEntry {
+  /** Worst breaker state across the plugin's registered hooks; null
+   * when the plugin has no hooks. */
+  readonly breakerState: CircuitBreakerState | null;
+  /** p95 hook handler duration (ms) over the last 5 minutes; null
+   * when the plugin has never fired a hook. */
+  readonly hookP95Ms: number | null;
+  /** p95 event consumer duration; null in v1 — EventBus integration
+   * is a follow-on (additive, no API break). */
+  readonly eventP95Ms: number | null;
+  /** Timestamp (ms since epoch) of the most recent failure within the
+   * window; null when no failure in window. */
+  readonly lastFailureMs: number | null;
 }

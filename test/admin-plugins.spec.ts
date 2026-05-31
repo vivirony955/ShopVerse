@@ -164,3 +164,74 @@ it('PLUG-H04: hello-world plugin loaded from manifest (W6.T10 boot smoke)', asyn
   expect(res.body).toBeTruthy();
   expect(res.body.id).toBe('@shopverse/plugin-hello-world');
 });
+
+// ─── PLUG-M01: runtime-metrics endpoint shape (Task 6 / POST_W6 §4.4) ───────
+
+it('PLUG-M01: GET /admin/plugins/runtime-metrics returns an entry per loaded plugin with the expected fields', async () => {
+  const admin = await createAdminUser({ email: 'plug-metrics@test.com', password: 'Test@1234' });
+  const token = await loginAs(app, admin.email, 'Test@1234');
+
+  const res = await request(app.getHttpServer())
+    .get('/admin/plugins/runtime-metrics')
+    .set(bearerHeader(token));
+
+  expect(res.status).toBe(200);
+  expect(typeof res.body).toBe('object');
+  expect(Array.isArray(res.body)).toBe(false);
+
+  // Same plugin set as PLUG-H01 should appear — every loaded plugin
+  // has an entry, even if it has never fired a hook (fields are null
+  // in that case, which is the "no-data" empty state per Task 6 plan).
+  const keys = Object.keys(res.body);
+  expect(keys.length).toBeGreaterThanOrEqual(5);
+  for (const id of keys) {
+    expect(id.startsWith('@shopverse/plugin-')).toBe(true);
+    const entry = res.body[id];
+    // breakerState: 'closed' | 'open' | 'half-open' | null
+    expect(['closed', 'open', 'half-open', null]).toContain(entry.breakerState);
+    // hookP95Ms: number | null — null is "never fired" (most plugins in
+    // fresh test boot). Number must be >= 0 when present.
+    expect(entry.hookP95Ms === null || typeof entry.hookP95Ms === 'number').toBe(true);
+    if (typeof entry.hookP95Ms === 'number') expect(entry.hookP95Ms).toBeGreaterThanOrEqual(0);
+    // eventP95Ms: always null in v1 (additive surface; non-null when
+    // EventBus integration lands).
+    expect(entry.eventP95Ms).toBeNull();
+    // lastFailureMs: number (epoch ms) | null
+    expect(entry.lastFailureMs === null || typeof entry.lastFailureMs === 'number').toBe(true);
+  }
+});
+
+// ─── PLUG-M02: empty state — fresh boot has no hook activity ────────────────
+
+it('PLUG-M02: fresh-boot plugins report hookP95Ms=null (not 0) so the UI distinguishes "no data" from "0 ms"', async () => {
+  const admin = await createAdminUser({ email: 'plug-metrics2@test.com', password: 'Test@1234' });
+  const token = await loginAs(app, admin.email, 'Test@1234');
+
+  const res = await request(app.getHttpServer())
+    .get('/admin/plugins/runtime-metrics')
+    .set(bearerHeader(token));
+
+  expect(res.status).toBe(200);
+  // Pick any plugin and assert null (not 0). hello-world specifically
+  // has registered hooks but in a brand-new test app boot has fired
+  // none of them, so its p95 must be null.
+  const hw = res.body['@shopverse/plugin-hello-world'];
+  expect(hw).toBeTruthy();
+  // hookP95Ms === null means "buffer empty" — not "every hook ran in 0 ms".
+  // A `0` here would be a regression: it would tell the operator the
+  // plugin runs instantly when actually no measurement exists.
+  expect(hw.hookP95Ms).toBeNull();
+  expect(hw.lastFailureMs).toBeNull();
+});
+
+// ─── PLUG-M03: auth gate — USER role gets 403 ───────────────────────────────
+
+it('PLUG-M03: GET /admin/plugins/runtime-metrics with USER role returns 403', async () => {
+  const user = await createUser({ email: 'plug-metrics-regular@test.com', password: 'Test@1234' });
+  const token = await loginAs(app, user.email, 'Test@1234');
+
+  const res = await request(app.getHttpServer())
+    .get('/admin/plugins/runtime-metrics')
+    .set(bearerHeader(token));
+  expect(res.status).toBe(403);
+});

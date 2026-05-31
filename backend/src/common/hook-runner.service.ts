@@ -1,11 +1,12 @@
 // Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
 // See LICENSE in the project root for license information.
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import type { HookName, HookHandlerMap, RejectReason } from '@shopverse/sdk';
 import { HOOK_BUDGETS_MS } from '@shopverse/sdk';
-import { CircuitBreaker } from './circuit-breaker';
+import { CircuitBreaker, type CircuitBreakerState } from './circuit-breaker';
 import { runInPluginContext } from './plugin-context';
+import { PluginMetricsService } from './plugin-metrics.service';
 
 /**
  * HookRunner — plan §4 (hooks) + §5 (perf governance) + §6 (failure model).
@@ -73,6 +74,12 @@ export class HookRunner {
   // separate sync service that updates this set on TTL.
   private readonly disabledPlugins = new Set<string>();
 
+  // Optional metrics sink — wired in production by CommonModule. Unit
+  // tests that construct HookRunner directly don't have to provide it.
+  // Outcome push is best-effort: a throwing metrics service must not
+  // poison the hot path, so we wrap pushes in try/catch downstream.
+  constructor(@Optional() private readonly metrics?: PluginMetricsService) {}
+
   /**
    * Register a hook handler. Called by the kernel during plugin
    * bootstrap. Idempotent on (pluginId, hookName) pairs — re-registration
@@ -127,6 +134,26 @@ export class HookRunner {
 
   handlerCount(name: HookName): number {
     return this.registry.get(name)?.length ?? 0;
+  }
+
+  /**
+   * Worst breaker state across all hooks a given plugin has registered.
+   * Returns null when the plugin has registered zero hooks. Used by the
+   * runtime-metrics endpoint to surface a single state per plugin.
+   *
+   * Ordering: open > half-open > closed (worst is most-alarming).
+   */
+  breakerStateFor(pluginId: string): CircuitBreakerState | null {
+    const order = { closed: 0, 'half-open': 1, open: 2 };
+    let worst: CircuitBreakerState | null = null;
+    for (const list of this.registry.values()) {
+      for (const reg of list) {
+        if (reg.pluginId !== pluginId) continue;
+        const s = reg.breaker.state;
+        if (!worst || order[s] > order[worst]) worst = s;
+      }
+    }
+    return worst;
   }
 
   /**
@@ -223,12 +250,28 @@ export class HookRunner {
       }
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
-      outcomes.push({
+      const outcome: HookOutcome = {
         pluginId: reg.pluginId,
         status,
         durationMs,
         ...(errMsg ? { error: errMsg } : {}),
-      });
+      };
+      outcomes.push(outcome);
+
+      // Best-effort push to metrics. Catching here is intentional —
+      // a thrown error in the metrics sink must NOT impact the hot
+      // path. Hot path stays correct even when observability breaks.
+      if (this.metrics) {
+        try {
+          this.metrics.recordHookOutcome(reg.pluginId, outcome);
+        } catch (e) {
+          this.logger.error(
+            `PluginMetricsService.recordHookOutcome threw — observability degraded: ${
+              e instanceof Error ? e.message : String(e)
+            }`,
+          );
+        }
+      }
 
       if (status === 'failed' || status === 'timeout') {
         this.logger.warn(

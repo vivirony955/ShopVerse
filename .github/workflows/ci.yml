@@ -58,9 +58,27 @@ jobs:
         run: npx prisma generate --schema prisma/schema
       - name: Apply migrations
         run: cd backend && npx prisma migrate deploy --schema=../prisma/schema
-      - name: Run integration tests
-        run: cd test && npx jest --runInBand --forceExit --passWithNoTests
+      - name: Run integration tests (with coverage gate)
+        # Task 11 / POST_W6 §5.3 — --coverage activates the
+        # `coverageThreshold` block in test/jest.config.ts. Numbers there
+        # are conservative; a drop > 5 percentage points blocks the
+        # build. lcov uploaded below for inspection / future Codecov
+        # wiring. GitLab already gates on the same threshold (see
+        # `integration` job in .gitlab-ci.yml) — this brings GitHub to
+        # parity.
+        run: cd test && npx jest --runInBand --forceExit --passWithNoTests --coverage
         timeout-minutes: 15
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: |
+            test/coverage/lcov.info
+            test/coverage/coverage-summary.json
+          retention-days: 30
+          if-no-files-found: warn
 
   schema:
     name: Prisma Schema Validation
