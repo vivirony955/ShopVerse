@@ -68,7 +68,7 @@ export default function AdminAuditPage() {
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : (logs as any[]).length === 0 ? (
+        ) : logs.length === 0 ? (
           <div className="py-20 text-center text-slate-400 text-sm">No audit entries found</div>
         ) : (
           <div className="overflow-x-auto">
@@ -85,7 +85,7 @@ export default function AdminAuditPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {(logs as any[]).map((log) => (
+                {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-4 py-3 text-slate-500 whitespace-nowrap text-xs">
                       {formatDate(log.createdAt)}
@@ -97,7 +97,7 @@ export default function AdminAuditPage() {
                       <p className="text-xs text-slate-400 truncate max-w-[120px]">{log.admin?.email}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${METHOD_COLOR[log.method] ?? "bg-slate-100 text-slate-600"}`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${(log.method && METHOD_COLOR[log.method]) ?? "bg-slate-100 text-slate-600"}`}>
                         {log.method}
                       </span>
                     </td>

@@ -54,7 +54,7 @@ export default function BlogPostPage() {
       {/* Render content as HTML safely */}
       <article
         className="prose prose-slate max-w-none text-slate-700 leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: post.content }}
+        dangerouslySetInnerHTML={{ __html: post.content ?? "" }}
       />
     </div>
   );

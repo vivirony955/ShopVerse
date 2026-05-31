@@ -5,31 +5,9 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import axios from "axios";
 
-// Augment NextAuth's User / Session / JWT shapes with the fields the
-// backend hands us. Without these augmentations every read of
-// access_token / refresh_token / role through the NextAuth callbacks
-// would have to widen via `as any`. Declare-once-here keeps the casts
-// out of the callback bodies and gives autocomplete to anyone reading
-// `session.role` etc. later in the codebase.
-declare module "next-auth" {
-  interface User {
-    access_token?: string;
-    refresh_token?: string;
-    role?: string;
-  }
-  interface Session {
-    accessToken?: string;
-    refreshToken?: string;
-    role?: string;
-  }
-}
-declare module "next-auth/jwt" {
-  interface JWT {
-    accessToken?: string;
-    refreshToken?: string;
-    role?: string;
-  }
-}
+// Custom field augmentations on User / Session / JWT live in
+// src/types/next-auth.d.ts so they're visible to every callsite, not
+// only this file.
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -100,6 +78,12 @@ const handler = NextAuth({
       session.accessToken  = token.accessToken;
       session.refreshToken = token.refreshToken;
       session.role         = token.role;
+      // Also surface role + id on session.user so server-side checks
+      // like `session.user.role === "ADMIN"` keep working.
+      if (session.user) {
+        session.user.role = token.role;
+        if (typeof token.sub === "string") session.user.id = token.sub;
+      }
       return session;
     },
   },

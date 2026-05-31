@@ -243,7 +243,7 @@ export default function Navbar() {
                       {!notifications || notifications.length === 0 ? (
                         <p className="text-center text-slate-400 text-sm py-8">No notifications</p>
                       ) : (
-                        notifications.map((n: any) => (
+                        notifications.map((n) => (
                           <div key={n.id} className={`px-4 py-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${!n.isRead ? "bg-violet-50/40" : ""}`}
                             onClick={() => { notificationsApi.markRead(n.id); if (n.link) router.push(n.link); setNotifOpen(false); }}>
                             <p className="text-sm font-medium text-slate-800">{n.title}</p>

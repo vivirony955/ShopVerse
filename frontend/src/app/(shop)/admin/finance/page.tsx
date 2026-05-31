@@ -109,7 +109,7 @@ export default function AdminFinancePage() {
       </div>
 
       {/* Recent orders table from finance dash */}
-      {data?.recentOrders && (data.recentOrders as any[]).length > 0 && (
+      {data?.recentOrders && data.recentOrders.length > 0 && (
         <div className="mt-8">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">Recent Transactions</h2>
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
@@ -122,7 +122,7 @@ export default function AdminFinancePage() {
                 </tr>
               </thead>
               <tbody>
-                {(data.recentOrders as any[]).slice(0, 20).map((o: any) => (
+                {data.recentOrders.slice(0, 20).map((o) => (
                   <tr key={o.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-slate-800">#{o.id}</td>
                     <td className="px-4 py-3 font-semibold text-slate-900">{formatPrice(o.total)}</td>

@@ -8,6 +8,14 @@ import { Toaster } from "react-hot-toast";
 import { useState, useEffect } from "react";
 import CartSidebar from "@/components/cart/CartSidebar";
 
+// PostHog is loaded dynamically and not in lib.dom — describe the
+// minimal surface we put on `window` so the rest of the codebase
+// (e.g. lib/api.ts's analytics tracker) gets autocomplete.
+interface WindowWithPostHog {
+  posthog?: { capture?: (event: string, props?: Record<string, unknown>) => void };
+  __posthog_init?: boolean;
+}
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
@@ -15,14 +23,15 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     import("posthog-js")
       .then((mod) => {
         const posthog = mod.default;
-        if (!(window as any).__posthog_init) {
+        const w = window as unknown as WindowWithPostHog;
+        if (!w.__posthog_init) {
           posthog.init(key, {
             api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://app.posthog.com",
             capture_pageview: true,
             persistence: "localStorage",
           });
-          (window as any).posthog = posthog;
-          (window as any).__posthog_init = true;
+          w.posthog = posthog;
+          w.__posthog_init = true;
         }
       })
       .catch(() => {}); // posthog-js not installed yet — silent no-op

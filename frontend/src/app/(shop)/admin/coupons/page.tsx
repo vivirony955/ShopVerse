@@ -61,7 +61,7 @@ function CreateCouponModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Type *</label>
               <select className="mt-1 block w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"
-                value={form.discountType} onChange={e => setForm(f => ({ ...f, discountType: e.target.value as any }))}>
+                value={form.discountType} onChange={e => setForm(f => ({ ...f, discountType: e.target.value as "PERCENTAGE" | "FIXED" }))}>
                 <option value="PERCENTAGE">Percentage (%)</option>
                 <option value="FIXED">Fixed (₹)</option>
               </select>

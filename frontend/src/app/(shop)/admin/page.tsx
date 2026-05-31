@@ -94,14 +94,14 @@ export default function AdminPage() {
 
   // Role extraction: try session.role, session.user.role, then decode from accessToken JWT
   const role = (() => {
-    if ((session as any)?.role) return (session as any).role;
-    if ((session as any)?.user?.role) return (session as any).user.role;
-    const token = (session as any)?.accessToken as string | undefined;
+    if (session?.role) return session.role;
+    if (session?.user?.role) return session.user.role;
+    const token = session?.accessToken;
     if (!token) return undefined;
     try {
       // JWT uses base64url — convert to base64 before decoding
       const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      const payload = JSON.parse(atob(b64));
+      const payload = JSON.parse(atob(b64)) as { role?: string };
       return payload.role;
     } catch { return undefined; }
   })();

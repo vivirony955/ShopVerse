@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi, categoriesApi, brandsApi } from "@/lib/api";
 import { apiErrorMessage } from "@/lib/utils";
+import type { Product, ProductsResponse, Variant as ProductVariant } from "@/types";
 import toast from "react-hot-toast";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
@@ -27,10 +28,11 @@ export default function EditProductPage() {
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["admin-product", productId],
-    queryFn: () => adminApi.getProducts({ id: productId }).then((d: any) => {
-      const items = d?.items ?? d ?? [];
-      return Array.isArray(items) ? items.find((p: any) => p.id === productId) : d;
-    }),
+    queryFn: () =>
+      adminApi.getProducts({ id: productId }).then((d: ProductsResponse | Product[]) => {
+        const items: Product[] = Array.isArray(d) ? d : d.items ?? [];
+        return items.find((p) => p.id === productId) ?? null;
+      }),
   });
 
   const { data: categories = [] } = useQuery({ queryKey: ["categories"], queryFn: categoriesApi.getAll });
@@ -47,7 +49,7 @@ export default function EditProductPage() {
         brandId: String(product.brandId ?? ""),
         images: (product.images ?? []).join("\n"),
       });
-      setVariants((product.variants ?? []).map((v: any) => ({
+      setVariants((product.variants ?? []).map((v: ProductVariant) => ({
         id: v.id,
         size: v.size ?? "",
         color: v.color ?? "",
@@ -211,7 +213,7 @@ export default function EditProductPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-violet-400 bg-white"
                 >
                   <option value="">Select category</option>
-                  {(categories as any[]).map((c: any) => (
+                  {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -224,7 +226,7 @@ export default function EditProductPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-violet-400 bg-white"
                 >
                   <option value="">No brand</option>
-                  {(brands as any[]).map((b: any) => (
+                  {brands.map((b) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>

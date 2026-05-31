@@ -65,13 +65,13 @@ export default function OrdersPage() {
       </div>
 
       {/* Buy Again */}
-      {(recentlyPurchased as any[])?.length > 0 && (
+      {recentlyPurchased && recentlyPurchased.length > 0 && (
         <div className="mb-8">
           <h2 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
             <RefreshCw className="h-4 w-4 text-violet-600" /> Buy Again
           </h2>
           <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-            {(recentlyPurchased as any[]).slice(0, 8).map((p: any) => (
+            {recentlyPurchased.slice(0, 8).map((p) => (
               <div key={p.id} className="flex-shrink-0 w-36 bg-white rounded-2xl border border-slate-100 overflow-hidden">
                 <Link href={`/products/${p.id}`}>
                   <div className="relative h-40 bg-slate-50">

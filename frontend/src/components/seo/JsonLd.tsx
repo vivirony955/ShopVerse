@@ -19,13 +19,13 @@ export function ProductJsonLd({
   // Fall back to inline reviews array for backwards compat.
   const ratingValue =
     avgRatingProp ??
-    (product as any).avgRating ??
+    product.avgRating ??
     (product.reviews && product.reviews.length > 0
       ? product.reviews.reduce((s, r) => s + r.rating, 0) / product.reviews.length
       : null);
   const totalReviews =
     reviewCount ??
-    (product as any).reviewCount ??
+    product.reviewCount ??
     product.reviews?.length ??
     0;
 

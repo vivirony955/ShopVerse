@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi, http } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import type { FraudFlag } from "@/types";
 import toast from "react-hot-toast";
 import { ShieldAlert, CheckCircle2, AlertTriangle } from "lucide-react";
 
@@ -27,8 +28,8 @@ export default function AdminFraudPage() {
     onError: () => toast.error("Failed to resolve flag"),
   });
 
-  const openFlags = (flags as any[]).filter((f) => !f.resolved);
-  const resolvedFlags = (flags as any[]).filter((f) => f.resolved);
+  const openFlags = flags.filter((f) => !f.resolved);
+  const resolvedFlags = flags.filter((f) => f.resolved);
 
   return (
     <div>
@@ -60,7 +61,7 @@ export default function AdminFraudPage() {
                 <AlertTriangle className="h-4 w-4 text-rose-500" /> Open Flags
               </h2>
               <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
-                {openFlags.map((flag: any) => (
+                {openFlags.map((flag) => (
                   <FlagRow key={flag.id} flag={flag} onResolve={() => resolveMutation.mutate(flag.id)} resolving={resolveMutation.isPending} />
                 ))}
               </div>
@@ -74,7 +75,7 @@ export default function AdminFraudPage() {
                 <CheckCircle2 className="h-4 w-4 text-green-500" /> Recently Resolved
               </h2>
               <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50 opacity-70">
-                {resolvedFlags.slice(0, 10).map((flag: any) => (
+                {resolvedFlags.slice(0, 10).map((flag) => (
                   <FlagRow key={flag.id} flag={flag} resolved />
                 ))}
               </div>
@@ -87,7 +88,7 @@ export default function AdminFraudPage() {
 }
 
 function FlagRow({ flag, onResolve, resolving, resolved }: {
-  flag: any;
+  flag: FraudFlag;
   onResolve?: () => void;
   resolving?: boolean;
   resolved?: boolean;

@@ -44,7 +44,7 @@ export default function AdminProductsPage() {
     onError: () => toast.error("Failed to delete product"),
   });
 
-  const products: Product[] = data?.items ?? data ?? [];
+  const products: Product[] = Array.isArray(data) ? data : data?.items ?? [];
   const filtered = search
     ? products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
     : products;

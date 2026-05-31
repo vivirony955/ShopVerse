@@ -44,7 +44,7 @@ export default function ProductFilters({ filters, onChange, onClose }: Props) {
   const { data: categories } = useQuery({ queryKey: ["categories"], queryFn: categoriesApi.getAll, staleTime: 5 * 60 * 1000 });
   const { data: brands } = useQuery({ queryKey: ["brands"], queryFn: brandsApi.getAll, staleTime: 5 * 60 * 1000 });
 
-  const set = (key: keyof ProductFilters, value: any) =>
+  const set = <K extends keyof ProductFilters>(key: K, value: ProductFilters[K]) =>
     onChange({ ...filters, [key]: value, page: 1 });
 
   const clearAll = () => onChange({ page: 1 });

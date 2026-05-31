@@ -233,9 +233,9 @@ export default function OrderDetailPage() {
       {deliveryRating && (
         <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 mb-6 text-sm">
           <div className="flex items-center gap-1 mb-1">
-            {[1,2,3,4,5].map(n => <Star key={n} className={`h-4 w-4 ${(deliveryRating as any).rating >= n ? "text-yellow-400 fill-yellow-400" : "text-slate-200"}`} />)}
+            {[1,2,3,4,5].map(n => <Star key={n} className={`h-4 w-4 ${deliveryRating.rating >= n ? "text-yellow-400 fill-yellow-400" : "text-slate-200"}`} />)}
           </div>
-          <p className="text-slate-600">{(deliveryRating as any).comment || "No comment"}</p>
+          <p className="text-slate-600">{deliveryRating.comment || "No comment"}</p>
         </div>
       )}
 
@@ -252,7 +252,7 @@ export default function OrderDetailPage() {
                 className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-300"
               >
                 <option value="">Choose item...</option>
-                {order.items.map((item: any) => (
+                {order.items.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.variant?.product?.name} — {item.variant?.size} / {item.variant?.color}
                   </option>
@@ -319,9 +319,9 @@ export default function OrderDetailPage() {
           <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
             <Navigation className="h-4 w-4 text-violet-600" /> Shipment Tracking
           </h2>
-          {(order.shipments ?? []).length > 0 && (order.shipments ?? []).some((s: any) => s.trackingCode) && (
+          {(order.shipments ?? []).length > 0 && (order.shipments ?? []).some((s) => s.trackingCode) && (
             <div className="mb-4 flex flex-wrap gap-2">
-              {(order.shipments ?? []).filter((s: any) => s.trackingCode).map((s: any) => (
+              {(order.shipments ?? []).filter((s) => s.trackingCode).map((s) => (
                 <span key={s.id} className="text-xs bg-violet-50 text-violet-700 border border-violet-200 rounded-full px-3 py-1 font-medium">
                   Tracking: {s.trackingCode}
                 </span>
@@ -331,7 +331,7 @@ export default function OrderDetailPage() {
           <div className="relative pl-6">
             <div className="absolute left-2 top-0 bottom-0 w-px bg-slate-100" />
             <div className="space-y-5">
-              {[...order.trackingEvents].reverse().map((event: any, i: number) => (
+              {[...order.trackingEvents].reverse().map((event, i: number) => (
                 <motion.div
                   key={event.id}
                   initial={{ opacity: 0, x: -10 }}

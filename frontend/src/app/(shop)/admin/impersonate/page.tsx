@@ -28,13 +28,13 @@ export default function AdminImpersonatePage() {
 
   // Role check
   const role = (() => {
-    if ((session as any)?.role) return (session as any).role;
-    if ((session as any)?.user?.role) return (session as any).user.role;
-    const token = (session as any)?.accessToken as string | undefined;
+    if (session?.role) return session.role;
+    if (session?.user?.role) return session.user.role;
+    const token = session?.accessToken;
     if (!token) return undefined;
     try {
       const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      return JSON.parse(atob(b64)).role;
+      return (JSON.parse(atob(b64)) as { role?: string }).role;
     } catch { return undefined; }
   })();
 

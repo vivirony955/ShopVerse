@@ -271,13 +271,13 @@ export default function CartSidebar() {
             </div>
 
             {/* Saved for Later */}
-            {session && (savedItems as any[]).length > 0 && (
+            {session && savedItems.length > 0 && (
               <div className="pt-4 border-t border-slate-100">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Bookmark className="h-3.5 w-3.5" /> Saved for Later ({(savedItems as any[]).length})
+                  <Bookmark className="h-3.5 w-3.5" /> Saved for Later ({savedItems.length})
                 </p>
                 <div className="space-y-3">
-                  {(savedItems as any[]).map((s: any) => {
+                  {savedItems.map((s) => {
                     const product = s.variant?.product;
                     if (!product) return null;
                     const price = calcDiscountedPrice(product.basePrice, product.discountPct);

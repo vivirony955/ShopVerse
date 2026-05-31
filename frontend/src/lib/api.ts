@@ -5,10 +5,11 @@ import axios from "axios";
 import { getSession } from "next-auth/react";
 import type {
   Product, ProductsResponse, ProductFilters,
-  Cart, WishlistItem, Address, Order,
+  Cart, CartItem, WishlistItem, Address, Order,
   Review, CouponValidation, Category, Brand, AuthUser,
   FlashSale, Wallet, DeliverySlot, SupportTicket, AdminStats,
   LoyaltyTransaction, Invoice, RefundApproval,
+  AdminAuditLog, AdminErrorLog, FraudFlag, FinanceDashboard,
 } from "@/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
@@ -177,14 +178,17 @@ export const supportApi = {
 
 // ─── Experience ────────────────────────────────────────────────────────────────
 export const experienceApi = {
-  getSavedForLater: () => http.get("/experience/saved").then((r) => r.data),
+  // Saved-for-later items share the CartItem shape — same variant +
+  // product nesting — minus the in-cart quantity.
+  getSavedForLater: (): Promise<CartItem[]> =>
+    http.get("/experience/saved").then((r) => r.data),
   saveForLater: (variantId: number) =>
     http.post("/experience/saved", { variantId }).then((r) => r.data),
   removeSavedForLater: (variantId: number) =>
     http.delete(`/experience/saved/${variantId}`).then((r) => r.data),
   moveToCart: (variantId: number) =>
     http.post(`/experience/saved/${variantId}/move-to-cart`).then((r) => r.data),
-  recentlyPurchased: () =>
+  recentlyPurchased: (): Promise<Product[]> =>
     http.get("/experience/recently-purchased").then((r) => r.data),
   addGiftOption: (data: { orderId: number; message?: string; wrapStyle?: string }) =>
     http.post("/experience/gift", data).then((r) => r.data),
@@ -227,9 +231,12 @@ export const adminCategoriesApi = {
 };
 
 // ─── Admin Warehouses & Inventory ──────────────────────────────────────────
+import type { WarehouseDetail, WarehouseSummary } from "@/types";
 export const adminWarehouseApi = {
-  list: () => http.get("/warehouse").then((r) => r.data),
-  get: (id: number) => http.get(`/warehouse/${id}`).then((r) => r.data),
+  list: (): Promise<WarehouseSummary[]> =>
+    http.get("/warehouse").then((r) => r.data),
+  get: (id: number): Promise<WarehouseDetail> =>
+    http.get(`/warehouse/${id}`).then((r) => r.data),
   create: (data: { name: string; city: string; pincode: string; address?: string }) =>
     http.post("/warehouse", data).then((r) => r.data),
   updateInventory: (data: { warehouseId: number; variantId: number; stock: number; reorderPoint?: number }) =>
@@ -240,11 +247,11 @@ export const adminWarehouseApi = {
 export const adminApi = {
   getStats: (): Promise<AdminStats> => http.get("/admin/dashboard").then((r) => r.data),
   // Products — uses the products controller (Role.ADMIN guarded)
-  getProducts: (params?: Record<string, unknown>) =>
+  getProducts: (params?: Record<string, unknown>): Promise<ProductsResponse | Product[]> =>
     http.get("/products", { params }).then((r) => r.data),
-  createProduct: (data: Record<string, unknown>) =>
+  createProduct: (data: Record<string, unknown>): Promise<Product> =>
     http.post("/products", data).then((r) => r.data),
-  updateProduct: (id: number, data: Record<string, unknown>) =>
+  updateProduct: (id: number, data: Record<string, unknown>): Promise<Product> =>
     http.patch(`/products/${id}`, data).then((r) => r.data),
   deleteProduct: (id: number) =>
     http.delete(`/products/${id}`).then((r) => r.data),
@@ -257,18 +264,23 @@ export const adminApi = {
   getUsers: (params?: Record<string, unknown>) =>
     http.get("/admin/users", { params }).then((r) => r.data),
   // Dashboards
-  getFinanceDashboard: () => http.get("/admin/finance-dashboard").then((r) => r.data),
-  getOpsDashboard: () => http.get("/admin/ops-dashboard").then((r) => r.data),
-  getLiveMetrics: () => http.get("/admin/live-metrics").then((r) => r.data),
-  getCustomerAnalytics: () => http.get("/admin/customer-analytics").then((r) => r.data),
+  getFinanceDashboard: (): Promise<FinanceDashboard> =>
+    http.get("/admin/finance-dashboard").then((r) => r.data),
+  getOpsDashboard: (): Promise<Record<string, unknown>> =>
+    http.get("/admin/ops-dashboard").then((r) => r.data),
+  getLiveMetrics: (): Promise<Record<string, unknown>> =>
+    http.get("/admin/live-metrics").then((r) => r.data),
+  getCustomerAnalytics: (): Promise<Record<string, unknown>> =>
+    http.get("/admin/customer-analytics").then((r) => r.data),
   // Errors & audit
-  getErrors: (limit = 100, level?: string) =>
+  getErrors: (limit = 100, level?: string): Promise<AdminErrorLog[]> =>
     http.get("/admin/errors", { params: { limit, level } }).then((r) => r.data),
-  getAuditLogs: (params?: Record<string, unknown>) =>
+  getAuditLogs: (params?: Record<string, unknown>): Promise<AdminAuditLog[]> =>
     http.get("/admin/audit-logs", { params }).then((r) => r.data),
-  getFunnelAnalytics: (days = 7) =>
+  getFunnelAnalytics: (days = 7): Promise<Record<string, unknown>> =>
     http.get("/admin/funnel", { params: { days } }).then((r) => r.data),
-  getFraudFlags: () => http.get("/fraud/flags").then((r) => r.data),
+  getFraudFlags: (): Promise<FraudFlag[]> =>
+    http.get("/fraud/flags").then((r) => r.data),
   // Inventory
   getLowStock: (threshold = 10) =>
     http.get("/admin/low-stock", { params: { threshold } }).then((r) => r.data),
@@ -310,11 +322,18 @@ export const referralApi = {
 };
 
 // ─── Analytics (PostHog proxy) ─────────────────────────────────────────────────
+// PostHog instance is attached to window by src/providers/Providers.tsx
+// after dynamic import. The shape declared here mirrors that wiring;
+// keeping it local avoids a hard dep on posthog-js types since the
+// package is optional at build time.
+interface WindowWithPostHog {
+  posthog?: { capture?: (event: string, props?: Record<string, unknown>) => void };
+}
 export const analyticsApi = {
   track: (event: string, properties?: Record<string, unknown>) => {
-    if (typeof window !== "undefined" && (window as any).posthog) {
-      (window as any).posthog.capture(event, properties);
-    }
+    if (typeof window === "undefined") return;
+    const ph = (window as unknown as WindowWithPostHog).posthog;
+    ph?.capture?.(event, properties);
   },
 };
 
@@ -358,8 +377,9 @@ export const invoicesApi = {
 };
 
 // ─── F2-06: Notifications ─────────────────────────────────────────────────────
+import type { Notification } from "@/types";
 export const notificationsApi = {
-  getAll: () => http.get("/notifications").then((r) => r.data),
+  getAll: (): Promise<Notification[]> => http.get("/notifications").then((r) => r.data),
   getUnreadCount: (): Promise<{ count: number }> => http.get("/notifications/unread-count").then((r) => r.data),
   markRead: (id: number) => http.patch(`/notifications/${id}/read`).then((r) => r.data),
   markAllRead: () => http.patch("/notifications/read-all").then((r) => r.data),
@@ -385,15 +405,19 @@ export const exchangeApi = {
 };
 
 // ─── F2-13: Delivery Rating ───────────────────────────────────────────────────
+import type { DeliveryRating } from "@/types";
 export const deliveryRatingApi = {
-  rate: (orderId: number, rating: number, comment?: string) =>
+  rate: (orderId: number, rating: number, comment?: string): Promise<DeliveryRating> =>
     http.post(`/experience/delivery-rating/${orderId}`, { rating, comment }).then((r) => r.data),
-  get: (orderId: number) => http.get(`/experience/delivery-rating/${orderId}`).then((r) => r.data),
+  get: (orderId: number): Promise<DeliveryRating | null> =>
+    http.get(`/experience/delivery-rating/${orderId}`).then((r) => r.data),
 };
 
 // ─── F2-14: Q&A ───────────────────────────────────────────────────────────────
+import type { QaQuestion, VolumeDiscount, PriceHistoryEntry } from "@/types";
 export const qaApi = {
-  getForProduct: (productId: number) => http.get(`/qa/products/${productId}`).then((r) => r.data),
+  getForProduct: (productId: number): Promise<QaQuestion[]> =>
+    http.get(`/qa/products/${productId}`).then((r) => r.data),
   ask: (productId: number, question: string) =>
     http.post(`/qa/products/${productId}`, { question }).then((r) => r.data),
 };
@@ -414,9 +438,10 @@ export const loyaltyTiersApi = {
 };
 
 // ─── F3-10: Blog ─────────────────────────────────────────────────────────────
+import type { BlogPost } from "@/types";
 export const blogApi = {
-  getAll: () => http.get("/blog").then((r) => r.data),
-  getBySlug: (slug: string) => http.get(`/blog/${slug}`).then((r) => r.data),
+  getAll: (): Promise<BlogPost[]> => http.get("/blog").then((r) => r.data),
+  getBySlug: (slug: string): Promise<BlogPost> => http.get(`/blog/${slug}`).then((r) => r.data),
 };
 
 // ─── W6.T3: Admin Plugins (plan §6 admin surface) ───────────────────────────
@@ -448,11 +473,12 @@ export const adminPluginsApi = {
 
 // ─── F3-12: Price History ────────────────────────────────────────────────────
 export const priceHistoryApi = {
-  get: (productId: number, days?: number) =>
-    http.get(`/price-history/${productId}${days ? `?days=${days}` : ""}`).then((r) => r.data) as Promise<{ price: number; discountPct: number; recordedAt: string }[]>,
+  get: (productId: number, days?: number): Promise<PriceHistoryEntry[]> =>
+    http.get(`/price-history/${productId}${days ? `?days=${days}` : ""}`).then((r) => r.data),
 };
 
 // ─── F4-08: Volume Discounts ─────────────────────────────────────────────────
 export const volumeDiscountsApi = {
-  getForProduct: (productId: number) => http.get(`/volume-discounts/product/${productId}`).then((r) => r.data),
+  getForProduct: (productId: number): Promise<VolumeDiscount[]> =>
+    http.get(`/volume-discounts/product/${productId}`).then((r) => r.data),
 };

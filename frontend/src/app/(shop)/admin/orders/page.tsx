@@ -55,7 +55,7 @@ export default function AdminOrdersPage() {
     ? orders.filter(
         (o) =>
           String(o.id).includes(search) ||
-          (o as any).user?.email?.toLowerCase().includes(search.toLowerCase())
+          o.user?.email?.toLowerCase().includes(search.toLowerCase())
       )
     : orders;
 
@@ -130,7 +130,7 @@ export default function AdminOrdersPage() {
                 <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 text-sm font-semibold text-slate-800">#{order.id}</td>
                   <td className="px-4 py-3 text-sm text-slate-600">
-                    {(order as any).user?.email ?? order.guestEmail ?? "Guest"}
+                    {order.user?.email ?? order.guestEmail ?? "Guest"}
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-slate-800">
                     ₹{order.total.toFixed(2)}

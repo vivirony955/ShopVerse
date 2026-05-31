@@ -180,7 +180,7 @@ export default function NewProductPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-violet-400 bg-white"
                 >
                   <option value="">Select category</option>
-                  {(categories as any[]).map((c: any) => (
+                  {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -193,7 +193,7 @@ export default function NewProductPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-violet-400 bg-white"
                 >
                   <option value="">No brand</option>
-                  {(brands as any[]).map((b: any) => (
+                  {brands.map((b) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>

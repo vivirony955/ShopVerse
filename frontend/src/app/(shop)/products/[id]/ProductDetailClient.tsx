@@ -525,7 +525,7 @@ export default function ProductDetailPage() {
             <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-sm">
               <p className="font-semibold text-green-800 mb-1">Bulk Discounts</p>
               <ul className="space-y-1">
-                {volumeDiscounts.map((d: any) => (
+                {volumeDiscounts.map((d) => (
                   <li key={d.id} className="text-green-700">Buy {d.minQty}+ → <strong>{d.discountPct}% off</strong></li>
                 ))}
               </ul>
@@ -638,9 +638,9 @@ export default function ProductDetailPage() {
           <h2 className="text-xl font-bold text-slate-900 mb-4">Price History (30 days)</h2>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 overflow-x-auto">
             <div className="flex items-end gap-1 h-24 min-w-0">
-              {priceHistory.map((h: any, i: number) => {
-                const max = Math.max(...priceHistory.map((x: any) => x.price));
-                const min = Math.min(...priceHistory.map((x: any) => x.price));
+              {priceHistory.map((h, i: number) => {
+                const max = Math.max(...priceHistory.map((x) => x.price));
+                const min = Math.min(...priceHistory.map((x) => x.price));
                 const range = max - min || 1;
                 const heightPct = ((h.price - min) / range) * 100;
                 const barH = Math.max(8, (heightPct / 100) * 80);
@@ -668,7 +668,7 @@ export default function ProductDetailPage() {
         </h2>
         {qaItems && qaItems.length > 0 && (
           <div className="space-y-4 mb-6">
-            {qaItems.map((q: any) => (
+            {qaItems.map((q) => (
               <div key={q.id} className="bg-slate-50 rounded-xl p-4">
                 <p className="text-sm font-semibold text-slate-800">Q: {q.question}</p>
                 {q.answer && (
@@ -804,7 +804,7 @@ export default function ProductDetailPage() {
               {review.title && <p className="text-sm font-medium text-slate-800 mb-1">{review.title}</p>}
               {review.body && <p className="text-sm text-slate-600 leading-relaxed">{review.body}</p>}
               {/* F1-09: Helpful voting */}
-              {session && session.user && (review as any).userId !== (session.user as any).id && (
+              {session && session.user && String(review.userId) !== session.user.id && (
                 <div className="flex items-center gap-3 mt-2">
                   <span className="text-xs text-slate-400">Helpful?</span>
                   <button
@@ -977,8 +977,8 @@ export default function ProductDetailPage() {
     {/* F1-13: Structured data */}
     <ProductJsonLd
       product={product}
-      avgRating={(product as any).avgRating}
-      reviewCount={(product as any).reviewCount}
+      avgRating={product.avgRating}
+      reviewCount={product.reviewCount}
     />
     {product.category && (
       <BreadcrumbJsonLd

@@ -79,7 +79,6 @@ export function Slot({ name, minHeight, ...rest }: SlotProps) {
     if (elapsed > SLOT_BUDGET_MS) {
       const plugins =
         registrations.map((r) => r.pluginId).join(', ') || '<none>';
-      // eslint-disable-next-line no-console
       console.warn(
         `[ShopVerse slot] '${name}' wrapper took ${elapsed.toFixed(1)}ms ` +
           `(budget: ${SLOT_BUDGET_MS}ms). Plugins: ${plugins}.`,

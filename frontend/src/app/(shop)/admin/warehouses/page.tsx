@@ -150,7 +150,7 @@ function WarehouseCard({ wh }: { wh: WarehouseItem }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {detail.inventory.slice(0, 10).map((inv: any) => (
+                  {detail.inventory.slice(0, 10).map((inv) => (
                     <tr key={inv.id} className="border-b border-slate-50">
                       <td className="py-2 font-mono text-xs text-slate-600">{inv.variant?.sku ?? "—"}</td>
                       <td className="py-2 text-slate-700 truncate max-w-[160px]">{inv.variant?.product?.name ?? "—"}</td>

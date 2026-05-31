@@ -63,6 +63,10 @@ export interface Product {
   specifications?: Record<string, string> | null;
   // F1-10: product video URLs
   videos?: string[];
+  // PDP-only aggregates — populated by GET /products/:id, optional
+  // on list responses.
+  avgRating?: number;
+  reviewCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -223,6 +227,166 @@ export interface Review {
   helpfulCount: number;
   createdAt: string;
   user: { id: number; firstName?: string; lastName?: string };
+}
+
+// PDP-level aggregate fields. Server adds these on the
+// `GET /products/:id` endpoint but they don't make sense in every
+// list response, so they live as a separate interface that pages can
+// intersect with Product as needed.
+export interface ProductAggregateFields {
+  avgRating?: number;
+  reviewCount?: number;
+}
+
+// ─── F2-13: Delivery rating ──────────────────────────────────────────────────
+export interface DeliveryRating {
+  id: number;
+  orderId: number;
+  rating: number;
+  comment?: string | null;
+  createdAt: string;
+}
+
+// ─── Admin-side records (audit / errors / fraud) ─────────────────────────────
+// Minimal shapes — fields are what the admin UI reads. Server rows
+// may have more; nothing else needs to be typed yet.
+export interface AdminAuditLog {
+  id: number;
+  action: string;
+  actorEmail?: string;
+  targetType?: string;
+  targetId?: string | number;
+  // Optional fields the audit UI renders when the server populated them.
+  admin?: { email?: string; firstName?: string; lastName?: string } | null;
+  method?: string;
+  entity?: string;
+  entityId?: string | number;
+  ip?: string;
+  createdAt: string;
+}
+
+export interface AdminErrorLog {
+  id: number;
+  level: string;
+  message: string;
+  context?: string | null;
+  // Optional request/runtime metadata the server may attach.
+  method?: string;
+  url?: string;
+  stack?: string | null;
+  resolved?: boolean;
+  statusCode?: number;
+  createdAt: string;
+}
+
+// ─── Admin Warehouse / Inventory ─────────────────────────────────────────────
+// Row shape returned by GET /warehouse (list view).
+export interface WarehouseSummary {
+  id: number;
+  name: string;
+  city: string;
+  pincode: string;
+  address: string | null;
+  isActive: boolean;
+  _count?: { inventory: number };
+}
+
+export interface WarehouseInventoryRow {
+  id: number;
+  stock: number;
+  reserved: number;
+  variant?: {
+    sku?: string;
+    product?: { name?: string };
+  };
+}
+
+export interface WarehouseDetail {
+  id: number;
+  name: string;
+  inventory: WarehouseInventoryRow[];
+}
+
+// ─── F3-10: Blog ─────────────────────────────────────────────────────────────
+export interface BlogPost {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  body?: string;
+  content?: string;
+  coverImage?: string;
+  tags: string[];
+  publishedAt?: string | null;
+  author?: { firstName?: string; lastName?: string };
+}
+
+// ─── F2-06: Notification ─────────────────────────────────────────────────────
+export interface Notification {
+  id: number;
+  title: string;
+  body: string;
+  link?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface FraudFlag {
+  id: number;
+  userId?: number;
+  orderId?: number;
+  reason: string;
+  riskScore?: number;
+  resolved: boolean;
+  // Optional flag-classification metadata.
+  flagType?: string;
+  type?: string;
+  description?: string;
+  ip?: string;
+  createdAt: string;
+}
+
+// Recent-orders snippet rendered by /admin/finance.
+export interface AdminRecentOrder {
+  id: number;
+  total: number;
+  status: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  createdAt: string;
+  user?: { email?: string; firstName?: string };
+}
+
+export interface FinanceDashboard {
+  totalRevenue?: number;
+  totalOrders?: number;
+  recentOrders?: AdminRecentOrder[];
+}
+
+// ─── F4-08: Volume discount ──────────────────────────────────────────────────
+export interface VolumeDiscount {
+  id: number;
+  productId: number;
+  minQty: number;
+  discountPct: number;
+}
+
+// ─── F3-12: Price history (already inline-typed in api.ts) ───────────────────
+export interface PriceHistoryEntry {
+  price: number;
+  discountPct: number;
+  recordedAt: string;
+}
+
+// ─── F2-14: Q&A ──────────────────────────────────────────────────────────────
+export interface QaQuestion {
+  id: number;
+  productId: number;
+  userId: number;
+  question: string;
+  answer?: string | null;
+  answeredAt?: string | null;
+  createdAt: string;
+  user?: { id: number; firstName?: string; lastName?: string };
 }
 
 // ─── Coupon ───────────────────────────────────────────────────────────────────

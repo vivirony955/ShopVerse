@@ -659,7 +659,7 @@ export default function CheckoutPage() {
                     <span className="text-xs font-normal text-slate-400">(optional)</span>
                   </h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {deliverySlots.filter((s: any) => s.bookedCount < s.maxOrders).slice(0, 6).map((slot: any) => {
+                    {deliverySlots.filter((s) => s.bookedCount < s.maxOrders).slice(0, 6).map((slot) => {
                       const dateObj = new Date(slot.date);
                       const dayStr = dateObj.toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" });
                       const spotsLeft = slot.maxOrders - slot.bookedCount;

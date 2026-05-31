@@ -59,14 +59,14 @@ export default function AdminErrorsPage() {
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : (errors as any[]).length === 0 ? (
+        ) : errors.length === 0 ? (
           <div className="py-20 text-center text-slate-400 flex flex-col items-center gap-3">
             <CheckCircle2 className="h-8 w-8 text-green-400" />
             <p className="text-sm">No errors to show</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-50">
-            {(errors as any[]).map((e) => (
+            {errors.map((e) => (
               <div key={e.id} className="px-5 py-4 hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
