@@ -33,16 +33,73 @@ k6 run 01-products-list.js
 
 ## What's tested
 
-| # | Script | Endpoint | Auth | Expected p95 (local, M2 Mac, postgres in docker) |
-|---|---|---|---|---|
-| 01 | `01-products-list.js` | `GET /api/products` | none | < 80 ms |
-| 02 | `02-cart-add.js` | `POST /api/cart/items` | JWT | < 150 ms |
-| 03 | `03-orders-place.js` | `POST /api/orders` | JWT | < 250 ms |
-| 04 | `04-wallet-credit.js` | `POST /api/wallet/credit` | JWT (admin) | < 100 ms |
-| 05 | `05-orders-detail.js` | `GET /api/orders/:id` | JWT | < 80 ms |
+| # | Script | Endpoint | Auth | VU peak | Expected p95 |
+|---|---|---|---|---|---|
+| 01 | `01-products-list.js` | `GET /api/products` | none | 100 | < 80 ms |
+| 02 | `02-cart-add.js` | `POST /api/cart/items` | JWT | 100 | < 150 ms |
+| 03 | `03-orders-place.js` | `POST /api/orders` | JWT | 50 | < 250 ms |
+| 04 | `04-wallet-credit.js` | `POST /api/wallet/credit` | JWT (admin) | 100 | < 100 ms |
+| 05 | `05-orders-detail.js` | `GET /api/orders/:id` | JWT | 100 | < 80 ms |
+| 06 | `06-scale-10k.js` | `GET /api/products` | none | **10 000** | < 500 ms |
 
-These numbers are reference points from a local dev box. On production-grade
-hardware with a tuned Postgres, all five should comfortably halve.
+Reference numbers are from a local dev box (M2 Mac, postgres in docker).
+On production-grade hardware with a tuned Postgres, scenarios 01–05 should
+comfortably halve their p95. Scenario 06 is a stress test — see below.
+
+### Scenario 06 — 10k-VU stress test
+
+Scenarios 01–05 verify "is the steady-state fast?" Scenario 06 verifies
+"does it stay UP at burst scale?" — homepage spike during a flash sale,
+SEO crawl pile-up, or coordinated marketing campaign.
+
+The thresholds are deliberately looser than the steady-state ones:
+
+| Metric | 01–05 cap | 06 cap | Rationale |
+|---|---|---|---|
+| `http_req_failed` | < 1 % | < 2 % | Rate-limiter + circuit-breaker fire on purpose at saturation |
+| `http_req_duration` p(95) | per script | < 500 ms | Tail latency rises naturally with queue depth |
+| `http_req_duration` p(99) | — | < 2000 ms | Hard cap — anything slower = saturation collapse, not gracefully degraded |
+
+**Generator infrastructure (where k6 runs):**
+
+| VU count | k6 host minimum | Notes |
+|---|---|---|
+| 100 | 1 core / 1 GB | The 01–05 default. Local dev box is fine. |
+| 1 000 | 2 cores / 2 GB | Still single-machine, still local-dev viable. |
+| 10 000 | 4 cores / 8 GB | macOS / Linux only; Windows ulimit issues above ~5k. |
+| > 10 000 | k6 Cloud or distributed | A single k6 process tops out ≈ 30k VUs per 8-core host. |
+
+**Target infrastructure (the backend being tested):**
+
+A 10k-VU run with `sleep(0.5–1.5)` produces ~5k–10k req/s sustained. To
+absorb that:
+
+- Postgres: ≥ 4 cores, `max_connections ≥ 300`, `connection_limit ≥ 200`
+  in the backend DATABASE_URL. The pool size is the most common
+  bottleneck at this VU level.
+- Redis: warmed PLP cache (≥ 80 % hit rate expected). Cold Redis at
+  10k VUs cascades into a Postgres DDoS within ~30 s.
+- Backend: either horizontally scaled (≥ 4 replicas behind a load
+  balancer) OR vertically sized (≥ 8 cores). Single-process Node will
+  saturate event-loop lag past ~3k req/s.
+- Rate limiter + WAF: known source-IP allow-listed for the duration,
+  or thresholds raised temporarily.
+
+**Running 10k against staging or prod:**
+
+```bash
+K6_VUS=10000 K6_DURATION=5m BASE_URL=https://staging.shopverse.in \
+  k6 run 06-scale-10k.js
+```
+
+⚠️ Never run this against production without:
+1. Operator approval in advance
+2. Source IP allow-listed at the WAF
+3. Real-time monitoring dashboard open (Grafana / Prometheus)
+4. Pre-agreed abort criteria (e.g. error rate > 5% sustained 30 s)
+
+A 5-min steady at 10k VUs is ~3 million requests. To anyone outside the
+test plan, this looks like an attack.
 
 ## Workload shape
 
