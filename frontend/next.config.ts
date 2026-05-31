@@ -25,6 +25,17 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
+  // The plugin SDK is consumed via `file:../packages/sdk-frontend` in
+  // frontend/package.json — npm creates a symlink at
+  // frontend/node_modules/@shopverse/sdk-frontend. Webpack follows
+  // that symlink fine, but Turbopack (`next dev --turbopack`) refuses
+  // to resolve dist/* of a symlinked workspace dep unless the package
+  // is declared in transpilePackages. Without this, every PDP that
+  // loads HelloWidget.tsx → @shopverse/sdk-frontend gives
+  // "Module not found", and that error cascades through every page
+  // sharing the slot registry — surfaced as 49/218 Playwright fails
+  // on the first local run.
+  transpilePackages: ["@shopverse/sdk-frontend", "@shopverse/sdk"],
 };
 
 export default nextConfig;
