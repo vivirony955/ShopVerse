@@ -72,10 +72,18 @@ async function main() {
   await seedCategories();
 
   // Upsert category + brand
+  // Display name avoids the substring "Category" because the navbar's
+  // "All Categories" dropdown renders every category as a hidden link
+  // with .first()-match ambiguity for the ACAT-02 test
+  // (getByText(/category/i).first() picks a hidden navbar entry
+  // instead of the visible page heading). The slug stays
+  // 'e2e-category' for backwards compatibility with anything that
+  // looks it up by slug. update: clause is non-empty so a re-run
+  // resets older 'E2E Category' rows to the new name.
   const cat = await prisma.category.upsert({
     where: { slug: 'e2e-category' },
-    update: {},
-    create: { name: 'E2E Category', slug: 'e2e-category' },
+    update: { name: 'E2E Default' },
+    create: { name: 'E2E Default', slug: 'e2e-category' },
   });
 
   const brand = await prisma.brand.upsert({
