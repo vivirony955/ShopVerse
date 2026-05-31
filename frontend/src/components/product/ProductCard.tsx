@@ -59,7 +59,8 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     mutationFn: () =>
       inWishlist ? wishlistApi.remove(product.id) : wishlistApi.add(product.id),
     onMutate: () => {
-      inWishlist ? removeId(product.id) : addId(product.id);
+      if (inWishlist) removeId(product.id);
+      else addId(product.id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["wishlist"] });
@@ -67,7 +68,8 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     },
     onError: () => {
       // revert optimistic
-      inWishlist ? addId(product.id) : removeId(product.id);
+      if (inWishlist) addId(product.id);
+      else removeId(product.id);
       if (!session) toast.error("Please login to save items");
     },
   });
@@ -148,7 +150,8 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
         <button
           onClick={(e) => {
             e.preventDefault();
-            comparing ? removeCompare(product.id) : addCompare(product);
+            if (comparing) removeCompare(product.id);
+            else addCompare(product);
           }}
           title={comparing ? "Remove from compare" : "Add to compare"}
           className={`w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-sm hover:scale-110 transition-transform duration-200 ${

@@ -192,10 +192,12 @@ export default function ProductDetailPage() {
     mutationFn: () =>
       has(productId) ? wishlistApi.remove(productId) : wishlistApi.add(productId),
     onMutate: () => {
-      has(productId) ? removeId(productId) : addId(productId);
+      if (has(productId)) removeId(productId);
+      else addId(productId);
     },
     onError: () => {
-      has(productId) ? addId(productId) : removeId(productId);
+      if (has(productId)) addId(productId);
+      else removeId(productId);
       toast.error("Something went wrong");
     },
     onSuccess: () => {
