@@ -52,3 +52,35 @@ export const PLACEHOLDER_IMAGE =
 export function getProductImage(images: string[]): string {
   return images?.[0] || PLACEHOLDER_IMAGE;
 }
+
+// ─── API error helpers ──────────────────────────────────────────────────────
+// Axios attaches its parsed response to err.response (and the body to
+// err.response.data). React Query's onError callback widens that to
+// `Error`, which doesn't model those fields, so previously the codebase
+// caught with `(err: any)` everywhere. Here we describe the shape we
+// actually care about and centralise the narrowing.
+
+export interface ApiErrorShape {
+  response?: {
+    data?: {
+      message?: string | string[];
+      [k: string]: unknown;
+    };
+    status?: number;
+  };
+  message?: string;
+}
+
+/**
+ * Extracts a human-readable error message from an unknown error value.
+ * Tries `err.response.data.message` (axios + server JSON envelope),
+ * then `err.message` (plain Error), then the fallback. Arrays from the
+ * NestJS validation pipe are joined with commas.
+ */
+export function apiErrorMessage(err: unknown, fallback = "Something went wrong"): string {
+  const e = err as ApiErrorShape | null | undefined;
+  const raw = e?.response?.data?.message ?? e?.message;
+  if (Array.isArray(raw)) return raw.join(", ") || fallback;
+  if (typeof raw === "string" && raw.length > 0) return raw;
+  return fallback;
+}

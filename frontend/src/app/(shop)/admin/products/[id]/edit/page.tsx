@@ -7,6 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi, categoriesApi, brandsApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
@@ -77,7 +78,7 @@ export default function EditProductPage() {
       toast.success("Product updated");
       router.push("/admin/products");
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || "Failed to update product"),
+    onError: (err: unknown) => toast.error(apiErrorMessage(err, "Failed to update product")),
   });
 
   const field = (key: keyof typeof form, label: string, type = "text", required = false) => (

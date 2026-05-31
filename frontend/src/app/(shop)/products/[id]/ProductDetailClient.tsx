@@ -17,7 +17,7 @@ import toast from "react-hot-toast";
 import { productsApi, cartApi, wishlistApi, reviewsApi, faqsApi, deliverySlotsApi, qaApi, priceHistoryApi, volumeDiscountsApi } from "@/lib/api";
 import { Slot } from "@/components/Slot";
 import { useWishlistStore, useRecentlyViewedStore } from "@/lib/store";
-import { calcDiscountedPrice, formatPrice, formatDate, getProductImage } from "@/lib/utils";
+import { calcDiscountedPrice, formatPrice, formatDate, getProductImage, apiErrorMessage } from "@/lib/utils";
 import Rating from "@/components/ui/Rating";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import ProductCard from "@/components/product/ProductCard";
@@ -179,11 +179,12 @@ export default function ProductDetailPage() {
       qc.invalidateQueries({ queryKey: ["cart"] });
       toast.success("Added to bag!");
     },
-    onError: (err: any) => {
-      if (err.message === "select") {
+    onError: (err: unknown) => {
+      const message = (err as { message?: string })?.message;
+      if (message === "select") {
         toast.error("Please select a size / variant");
       } else {
-        toast.error(err?.response?.data?.message || "Failed to add");
+        toast.error(apiErrorMessage(err, "Failed to add"));
       }
     },
   });
@@ -213,8 +214,8 @@ export default function ProductDetailPage() {
       setReviewForm({ rating: 5, title: "", body: "" });
       toast.success("Review submitted!");
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to submit review");
+    onError: (err: unknown) => {
+      toast.error(apiErrorMessage(err, "Failed to submit review"));
     },
   });
 

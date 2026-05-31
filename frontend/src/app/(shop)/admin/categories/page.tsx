@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Layers, Plus, Pencil, Trash2, X, Check } from "lucide-react";
 import { adminCategoriesApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface Category {
@@ -68,7 +69,7 @@ function CategoryModal({ cat, onClose }: { cat?: Category; onClose: () => void }
       ? adminCategoriesApi.update(cat.id, form)
       : adminCategoriesApi.create({ ...form, description: form.description || undefined, imageUrl: form.imageUrl || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin", "categories"] }); onClose(); },
-    onError: (e: any) => setError(e?.response?.data?.message ?? "Failed to save category"),
+    onError: (e: unknown) => setError(apiErrorMessage(e, "Failed to save category")),
   });
 
   return (

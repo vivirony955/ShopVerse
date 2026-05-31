@@ -6,6 +6,7 @@ import { useState, useRef } from "react";
 import { Upload, FileText, CheckCircle, XCircle, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import { adminApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/utils";
 
 const TEMPLATE_CSV = `name,slug,description,brandId,categoryId,basePrice,discountPct,images,tags
 "Example T-Shirt","example-tshirt","A comfortable cotton t-shirt",1,2,599,10,"https://cdn.example.com/img1.jpg","cotton|tshirt|casual"
@@ -28,8 +29,8 @@ export default function BulkUploadPage() {
       const res = await adminApi.bulkUploadProducts(formData);
       setResult(res);
       toast.success(`Done: ${res.created} created, ${res.updated} updated`);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Upload failed");
+    } catch (err: unknown) {
+      toast.error(apiErrorMessage(err, "Upload failed"));
     } finally {
       setUploading(false);
     }

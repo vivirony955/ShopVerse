@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { ordersApi, paymentsApi, invoicesApi, deliveryRatingApi, exchangeApi } from "@/lib/api";
-import { formatPrice, formatDate, ORDER_STATUS_LABEL, getProductImage } from "@/lib/utils";
+import { formatPrice, formatDate, ORDER_STATUS_LABEL, getProductImage, apiErrorMessage } from "@/lib/utils";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 
 const ORDER_TIMELINE: { status: string; icon: typeof Check }[] = [
@@ -45,7 +45,7 @@ export default function OrderDetailPage() {
       qc.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Order cancelled");
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || "Cannot cancel order"),
+    onError: (err: unknown) => toast.error(apiErrorMessage(err, "Cannot cancel order")),
   });
 
   const returnMutation = useMutation({
@@ -55,7 +55,7 @@ export default function OrderDetailPage() {
       qc.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Return request submitted");
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || "Cannot request return"),
+    onError: (err: unknown) => toast.error(apiErrorMessage(err, "Cannot request return")),
   });
 
   const refundMutation = useMutation({
@@ -64,7 +64,7 @@ export default function OrderDetailPage() {
       qc.invalidateQueries({ queryKey: ["order", orderId] });
       toast.success("Refund initiated — will appear in 5–7 business days");
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || "Refund failed"),
+    onError: (err: unknown) => toast.error(apiErrorMessage(err, "Refund failed")),
   });
 
   // Hooks below MUST run on every render — they used to live after the
@@ -123,7 +123,7 @@ export default function OrderDetailPage() {
       await exchangeApi.request({ orderId, orderItemId: exchangeItemId, requestedVariantId: exchangeVariantId, reason: exchangeReason });
       setShowExchangeForm(false);
       toast.success("Exchange request submitted!");
-    } catch (e: any) { toast.error(e?.response?.data?.message ?? "Exchange request failed"); }
+    } catch (e: unknown) { toast.error(apiErrorMessage(e, "Exchange request failed")); }
   }
 
   return (

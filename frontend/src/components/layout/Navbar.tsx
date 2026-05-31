@@ -47,14 +47,30 @@ export default function Navbar() {
     enabled: notifOpen && !!session,
   });
 
-  // F4-03: Voice search
+  // F4-03: Voice search.
+  // SpeechRecognition isn't in lib.dom yet so we describe the minimal
+  // surface we touch instead of reaching for `any`.
   function startVoiceSearch() {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-    const recognition = new SpeechRecognition();
+    interface SRResult { readonly transcript: string }
+    interface SREvent { readonly results: ReadonlyArray<ReadonlyArray<SRResult>> }
+    interface SRInstance {
+      lang: string;
+      onstart: () => void;
+      onresult: (e: SREvent) => void;
+      onend: () => void;
+      start(): void;
+    }
+    interface WindowWithSR {
+      SpeechRecognition?: new () => SRInstance;
+      webkitSpeechRecognition?: new () => SRInstance;
+    }
+    const w = window as unknown as WindowWithSR;
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!Ctor) return;
+    const recognition = new Ctor();
     recognition.lang = "en-IN";
     recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (e: any) => {
+    recognition.onresult = (e) => {
       const transcript = e.results[0][0].transcript;
       setSearchQuery(transcript);
       router.push(`/products?search=${encodeURIComponent(transcript)}`);

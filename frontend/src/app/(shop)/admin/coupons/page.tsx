@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tag, Plus, Trash2, ToggleLeft, ToggleRight, X } from "lucide-react";
 import { adminCouponsApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { formatDate } from "@/lib/utils";
+import { formatDate, apiErrorMessage } from "@/lib/utils";
 
 interface Coupon {
   id: number;
@@ -40,7 +40,7 @@ function CreateCouponModal({ onClose }: { onClose: () => void }) {
       expiresAt: form.expiresAt || undefined,
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin", "coupons"] }); onClose(); },
-    onError: (e: any) => setError(e?.response?.data?.message ?? "Failed to create coupon"),
+    onError: (e: unknown) => setError(apiErrorMessage(e, "Failed to create coupon")),
   });
 
   return (

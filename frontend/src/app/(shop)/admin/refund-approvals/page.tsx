@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, XCircle, Clock, RefreshCw, AlertCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { adminApi } from "@/lib/api";
-import { formatPrice, formatDate } from "@/lib/utils";
+import { formatPrice, formatDate, apiErrorMessage } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RefundApproval } from "@/types";
 
@@ -84,7 +84,7 @@ export default function RefundApprovalsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "refund-approvals"] });
       toast.success("Refund approved");
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message || "Approval failed"),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Approval failed")),
   });
 
   const rejectMutation = useMutation({
@@ -95,7 +95,7 @@ export default function RefundApprovalsPage() {
       setRejectTarget(null);
       toast.success("Refund rejected");
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message || "Rejection failed"),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Rejection failed")),
   });
 
   const approvals = data ?? [];

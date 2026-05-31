@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Zap, Plus, Trash2, X, Package } from "lucide-react";
 import { adminFlashSalesApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { formatDate } from "@/lib/utils";
+import { formatDate, apiErrorMessage } from "@/lib/utils";
 
 interface FlashSaleItem {
   id: number;
@@ -31,7 +31,7 @@ function CreateFlashSaleModal({ onClose }: { onClose: () => void }) {
       discountPct: Number(form.discountPct),
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin", "flash-sales"] }); onClose(); },
-    onError: (e: any) => setError(e?.response?.data?.message ?? "Failed to create flash sale"),
+    onError: (e: unknown) => setError(apiErrorMessage(e, "Failed to create flash sale")),
   });
 
   const autoSlug = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");

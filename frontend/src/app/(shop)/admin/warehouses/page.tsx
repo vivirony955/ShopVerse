@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Warehouse, Plus, X, Check, ChevronDown, ChevronUp, Package } from "lucide-react";
 import { adminWarehouseApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface WarehouseItem {
@@ -35,7 +36,7 @@ function CreateWarehouseModal({ onClose }: { onClose: () => void }) {
       qc.invalidateQueries({ queryKey: ["admin", "warehouses"] });
       onClose();
     },
-    onError: (e: any) => setError(e?.response?.data?.message ?? "Failed to create warehouse"),
+    onError: (e: unknown) => setError(apiErrorMessage(e, "Failed to create warehouse")),
   });
 
   return (

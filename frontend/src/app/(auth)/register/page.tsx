@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
 import { authApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/utils";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -39,9 +40,12 @@ export default function RegisterPage() {
         router.push("/");
         router.refresh();
       }
-    } catch (err: any) {
-      const msg = err?.response?.data?.message;
-      toast.error(Array.isArray(msg) ? msg[0] : msg || "Registration failed");
+    } catch (err: unknown) {
+      // apiErrorMessage already joins NestJS-validation-pipe arrays;
+      // upstream behaviour was to surface only the first message, which
+      // matched what users actually saw (one line of feedback). Keep
+      // that by splitting on the helper's comma-joined output.
+      toast.error(apiErrorMessage(err, "Registration failed").split(",")[0]);
     } finally {
       setLoading(false);
     }

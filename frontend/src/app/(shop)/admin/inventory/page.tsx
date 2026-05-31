@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Package, AlertTriangle, X, Check, Search } from "lucide-react";
 import { adminApi, adminWarehouseApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface LowStockItem {
@@ -46,7 +47,7 @@ function AdjustInventoryModal({ item, warehouses, onClose }: AdjustModalProps) {
       qc.invalidateQueries({ queryKey: ["admin", "out-of-stock"] });
       onClose();
     },
-    onError: (e: any) => setError(e?.response?.data?.message ?? "Failed to update inventory"),
+    onError: (e: unknown) => setError(apiErrorMessage(e, "Failed to update inventory")),
   });
 
   return (

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Users, Copy, Check, Gift, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { referralApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
 
@@ -25,8 +26,8 @@ export default function ReferralPage() {
       toast.success(res.message ?? "Referral applied! You earned bonus points.");
       setInputCode("");
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.message ?? "Failed to apply referral code"),
+    onError: (err: unknown) =>
+      toast.error(apiErrorMessage(err, "Failed to apply referral code")),
   });
 
   const copyCode = () => {

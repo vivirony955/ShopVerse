@@ -18,7 +18,7 @@ import { cartApi, usersApi, couponsApi, ordersApi, paymentsApi, experienceApi, d
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useCartStore } from "@/lib/store";
-import { calcDiscountedPrice, formatPrice, getProductImage } from "@/lib/utils";
+import { calcDiscountedPrice, formatPrice, getProductImage, apiErrorMessage } from "@/lib/utils";
 import type { Address, CouponValidation } from "@/types";
 
 type Step = "address" | "review";
@@ -147,8 +147,8 @@ function GuestCheckout() {
       });
       toast.success("Order placed! Check your email for confirmation.");
       router.push(`/orders/confirmation?id=${order.id}`);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to place order");
+    } catch (err: unknown) {
+      toast.error(apiErrorMessage(err, "Failed to place order"));
     } finally {
       setPlacing(false);
     }
@@ -401,11 +401,12 @@ export default function CheckoutPage() {
         router.push(`/orders/confirmation?id=${order.id}`);
       }
     },
-    onError: (err: any) => {
-      if (err.message === "no-address") {
+    onError: (err: unknown) => {
+      const message = (err as { message?: string })?.message;
+      if (message === "no-address") {
         toast.error("Please select a delivery address");
       } else {
-        toast.error(err?.response?.data?.message || "Failed to place order");
+        toast.error(apiErrorMessage(err, "Failed to place order"));
       }
     },
   });

@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { UserCheck, Search, Shield, AlertTriangle } from "lucide-react";
 import { adminApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface User {
@@ -51,8 +52,8 @@ export default function AdminImpersonatePage() {
     try {
       const data = await adminApi.impersonateUser(userId);
       setResult({ token: data.accessToken, userId: data.userId });
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Failed to impersonate user");
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, "Failed to impersonate user"));
     } finally {
       setLoading(null);
     }

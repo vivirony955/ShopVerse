@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Star, TrendingUp, ArrowUpRight, ArrowDownLeft, Gift, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import { loyaltyApi, loyaltyTiersApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/utils";
 import type { LoyaltyTransaction } from "@/types";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
@@ -41,8 +42,8 @@ export default function LoyaltyPage() {
       qc.invalidateQueries({ queryKey: ["loyalty"] });
       setRedeemPoints("");
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.message ?? "Redemption failed"),
+    onError: (err: unknown) =>
+      toast.error(apiErrorMessage(err, "Redemption failed")),
   });
 
   const { data: tiers } = useQuery({ queryKey: ["loyalty-tiers"], queryFn: loyaltyTiersApi.getAll });
