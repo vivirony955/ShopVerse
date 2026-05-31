@@ -425,6 +425,11 @@ frontend:typecheck:
   before_script:
     - cd packages/sdk-frontend && npm ci --prefer-offline --silent && npx tsc && cd ../..
     - cd frontend && npm ci --prefer-offline --silent && cd ..
+    # jest + jest-axe + @testing-library/react + @types/jest live in the
+    # repo-root package.json (W5.T5 dual-React workaround). Without this
+    # root install, `tsc --noEmit` sees jest.setup.ts + __tests__/ and
+    # fails to resolve them.
+    - npm install --no-audit --no-fund --silent
   script:
     - cd frontend && npx tsc --noEmit
   rules:
@@ -450,6 +455,8 @@ frontend:lint:
   before_script:
     - cd packages/sdk-frontend && npm ci --prefer-offline --silent && npx tsc && cd ../..
     - cd frontend && npm ci --prefer-offline --silent && cd ..
+    # Same root install — `next lint` walks the same include set as tsc.
+    - npm install --no-audit --no-fund --silent
   script:
     - cd frontend && npm run lint -- --max-warnings=0
   rules:

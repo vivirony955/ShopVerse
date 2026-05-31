@@ -29,6 +29,12 @@ jobs:
         run: cd packages/sdk-frontend && npm ci && npx tsc
       - name: Install frontend deps
         run: cd frontend && npm ci
+      # jest + jest-axe + @testing-library/react + @types/jest live in
+      # the repo-root package.json (W5.T5 dual-React workaround). Without
+      # this root install, `tsc --noEmit` sees jest.setup.ts + the
+      # __tests__/ files in the include glob and fails resolving them.
+      - name: Install root deps (jest + RTL hoisted)
+        run: npm install --no-audit --no-fund
       - name: TypeScript check
         run: cd frontend && npx tsc --noEmit
 
@@ -46,6 +52,10 @@ jobs:
         run: cd packages/sdk-frontend && npm ci && npx tsc
       - name: Install frontend deps
         run: cd frontend && npm ci
+      # Root install for the same hoisted deps `next lint` walks into
+      # when it scans test files alongside src/.
+      - name: Install root deps (jest + RTL hoisted)
+        run: npm install --no-audit --no-fund
       - name: next lint
         run: cd frontend && npm run lint -- --max-warnings=0
 
