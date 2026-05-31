@@ -8,9 +8,6 @@ import { formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { ShieldAlert, CheckCircle2, AlertTriangle } from "lucide-react";
 
-const RISK_COLOR = (score: number) =>
-  score >= 70 ? "text-rose-600 bg-rose-50" : score >= 40 ? "text-amber-600 bg-amber-50" : "text-green-600 bg-green-50";
-
 export default function AdminFraudPage() {
   const qc = useQueryClient();
 

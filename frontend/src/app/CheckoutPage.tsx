@@ -11,7 +11,7 @@ const CheckoutPage: React.FC = () => {
   const handleCheckout = async () => {
     try {
       const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const response = await axiosInstance.post('/orders', {
+      await axiosInstance.post('/orders', {
         userId: 'currentUserId', // Replace with actual user ID
         products: cart,
         total,

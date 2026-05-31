@@ -10,7 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag, Heart, Search, User, Menu, X,
-  ChevronDown, LogOut, Package, MapPin, Wallet, Zap, GitCompareArrows, MessageCircle, Star, Users, Bell, Mic, Moon, Sun,
+  ChevronDown, LogOut, Package, MapPin, Wallet, GitCompareArrows, MessageCircle, Star, Users, Bell, Mic, Moon, Sun,
 } from "lucide-react";
 import { useCartStore, useWishlistStore, useUIStore } from "@/lib/store";
 import { useQuery } from "@tanstack/react-query";

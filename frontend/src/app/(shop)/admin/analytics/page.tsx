@@ -4,7 +4,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { BarChart3, Users, TrendingUp, Funnel, RefreshCw } from "lucide-react";
+import { BarChart3, Users, TrendingUp, RefreshCw } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/Skeleton";
 

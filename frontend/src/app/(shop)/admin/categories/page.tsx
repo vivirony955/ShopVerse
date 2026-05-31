@@ -3,6 +3,7 @@
 
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Layers, Plus, Pencil, Trash2, X, Check } from "lucide-react";
 import { adminCategoriesApi } from "@/lib/api";
@@ -22,7 +23,13 @@ function CategoryRow({ cat, onEdit, onDelete }: { cat: Category; onEdit: (c: Cat
     <tr className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
       <td className="px-6 py-4 flex items-center gap-3">
         {cat.imageUrl ? (
-          <img src={cat.imageUrl} alt={cat.name} className="w-8 h-8 rounded-lg object-cover border border-slate-100" />
+          <Image
+            src={cat.imageUrl}
+            alt={cat.name}
+            width={32}
+            height={32}
+            className="w-8 h-8 rounded-lg object-cover border border-slate-100"
+          />
         ) : (
           <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-bold">
             {cat.name[0]}

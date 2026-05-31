@@ -16,7 +16,7 @@ import { usersApi } from "@/lib/api";
 import type { Address } from "@/types";
 
 export default function ProfilePage() {
-  const { data: session, update } = useSession();
+  const { data: session } = useSession();
   const qc = useQueryClient();
 
   const [editingProfile, setEditingProfile] = useState(false);

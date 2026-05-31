@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi, http } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
-import { CheckCircle2, AlertTriangle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 const LEVELS = ["ALL", "error", "warn", "fatal"];
 

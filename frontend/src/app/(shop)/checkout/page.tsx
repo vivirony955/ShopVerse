@@ -58,9 +58,11 @@ function usePincodeAutofill(
   return loading;
 }
 
-// Stripe payment form rendered inside Elements provider
-function StripePayForm({ clientSecret, orderId, onSuccess }: {
-  clientSecret: string;
+// Stripe payment form rendered inside Elements provider. The Elements
+// wrapper (configured with options.clientSecret) supplies the secret
+// to all child PaymentElement / confirmPayment calls via context, so
+// the form itself doesn't need the secret as a prop.
+function StripePayForm({ orderId, onSuccess }: {
   orderId: number;
   onSuccess: () => void;
 }) {
@@ -798,7 +800,6 @@ export default function CheckoutPage() {
                       </p>
                       <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
                         <StripePayForm
-                          clientSecret={stripeClientSecret}
                           orderId={placedOrderId}
                           onSuccess={() => { setItems([]); }}
                         />

@@ -13,7 +13,6 @@ import { wishlistApi, cartApi } from "@/lib/api";
 import { useWishlistStore, useCartStore } from "@/lib/store";
 import { calcDiscountedPrice, formatPrice, getProductImage } from "@/lib/utils";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
-import Rating from "@/components/ui/Rating";
 
 export default function WishlistPage() {
   const { data: session } = useSession();

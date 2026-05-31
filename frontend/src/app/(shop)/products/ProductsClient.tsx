@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { SlidersHorizontal, X, ChevronLeft, ChevronRight, LayoutList, ArrowDown } from "lucide-react";
+import { SlidersHorizontal, ChevronLeft, ChevronRight, LayoutList, ArrowDown } from "lucide-react";
 import { productsApi } from "@/lib/api";
 import ProductCard from "@/components/product/ProductCard";
 import ProductFilters from "@/components/product/ProductFilters";
@@ -118,9 +118,6 @@ export default function ProductsPage() {
   }, [infiniteMode, filters.page, data?.totalPages, isLoading]);
 
   const totalPages = data?.totalPages ?? 1;
-  const currentSort = SORT_OPTIONS.find(
-    (o) => o.sort === filters.sort && o.order === filters.order
-  ) || SORT_OPTIONS[0];
 
   const title = filters.search
     ? `Results for "${filters.search}"`
