@@ -86,6 +86,7 @@ export default defineConfig({
       testMatch: [
         /admin\.spec\.ts/,
         /admin-extended\.spec\.ts/,
+        /admin-plugins\.spec\.ts/,
       ],
       use: {
         ...devices["Desktop Chrome"],

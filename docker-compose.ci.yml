@@ -1,0 +1,107 @@
+# Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+# See LICENSE in the project root for license information.
+#
+# ShopVerse — Ephemeral CI Stack
+#
+# Boots postgres + redis + backend + frontend on the CI runner so the
+# Playwright suite, Lighthouse, and k6 perf checks have a real target.
+# Used by .github/workflows/e2e-stack.yml and .gitlab-ci.yml's e2e:stack
+# job. NOT for production — see docker-compose.yml for that.
+#
+# Differences from production compose:
+#   - No restart policy (CI fails fast)
+#   - Aggressive healthcheck intervals (5s vs 30s — runners are impatient)
+#   - Postgres trust auth + ephemeral data (no volume)
+#   - All env values are dummies inlined here; no .env required
+#   - PORT explicitly set for backend (production compose has a 3001/4000
+#     port-mismatch bug — fixed here)
+#   - connection_limit=10 matches what Lighthouse/k6 will exercise
+#
+# Smoke usage (locally):
+#   docker compose -f docker-compose.ci.yml up -d
+#   docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/seed.js
+#   docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/e2e-seed.js
+#   curl -fsS http://localhost:3001/health
+#   curl -fsS http://localhost:3000
+#   docker compose -f docker-compose.ci.yml down -v
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shopverse_ci
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shopverse_ci"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 2s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/shopverse_ci?connection_limit=10
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ci-jwt-secret-32-chars-minimum-ok
+      JWT_REFRESH_SECRET: ci-refresh-secret-32-chars-min-ok
+      STRIPE_SECRET_KEY: sk_test_dummy_ci_value_not_used
+      STRIPE_WEBHOOK_SECRET: whsec_dummy_ci_value_not_used
+      SMTP_HOST: localhost
+      SMTP_PORT: "25"
+      SMTP_USER: ci@shopverse.dev
+      SMTP_PASS: ci-pass
+      SMTP_FROM: ci@shopverse.dev
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BACKEND_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ci-jwt-secret-32-chars-minimum-ok
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
