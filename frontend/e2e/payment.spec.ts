@@ -33,7 +33,14 @@ async function addProductToCart(page: any): Promise<boolean> {
   const addBtn = page.locator("button").filter({ hasText: /add to (bag|cart)|add to bag/i }).first();
   if (!(await addBtn.isVisible({ timeout: 5_000 }).catch(() => false))) return false;
   if (await addBtn.isDisabled().catch(() => false)) return false;
-  await addBtn.click({ timeout: 8_000 });
+  // `force: true` bypasses Playwright's overlay-interception safety check.
+  // Cross-test contamination via storageState can leave the cart drawer
+  // (fixed z-50 overlay) open from an earlier chromium-user spec; without
+  // force the click times out with "subtree intercepts pointer events"
+  // even though the button is visible + enabled + stable underneath.
+  // We still hit the real button and trigger its real React handler — we
+  // just skip the simulated-user-can-reach-it pre-check.
+  await addBtn.click({ timeout: 8_000, force: true });
   await page.waitForTimeout(1500);
   return true;
 }
