@@ -96,6 +96,21 @@ export class PluginLoader {
     return [...this.results.values()];
   }
 
+  /**
+   * Seed a result entry directly without invoking `onRegister`. Used by
+   * `PluginBootstrapService` to populate the registry from the manifest
+   * at boot — the plugin modules themselves are already wired into
+   * NestJS DI by `resolvePluginModules()` (see app.module.ts), so the
+   * loader's `loadAll()` path (which is for SDK-style ShopVersePlugin
+   * objects) doesn't run on first-party NestJS-module plugins. Without
+   * this seed, `/admin/plugins` returns [] in production — the bug
+   * surfaced by the local Playwright run + the W6.T3 integration test
+   * skips.
+   */
+  seedManifestResult(id: string, status: PluginLoadResult['status']): void {
+    this.results.set(id, { id, status });
+  }
+
   private async loadOne(
     entry: PluginManifestEntry,
     currentKernelVersion: string,

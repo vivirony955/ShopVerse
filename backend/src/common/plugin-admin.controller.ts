@@ -106,16 +106,38 @@ export class PluginAdminController {
   private toEntry(r: PluginLoadResult): PluginAdminEntry {
     return {
       id: r.id,
-      loadStatus: r.status,
+      // Map the loader's 5 statuses to the 4 the frontend's
+      // PluginAdminEntry type understands. The loader records what
+      // HAPPENED ('registered' = onRegister ran, 'invalid' = couldn't
+      // resolve, 'register-failed' = threw); the admin UI cares
+      // whether the plugin is up + healthy ('loaded') or broken
+      // ('failed'). 'disabled' and 'version-mismatch' pass through.
+      loadStatus: mapLoadStatus(r.status),
       operatorDisabled: this.runtime.isDisabled(r.id),
       error: r.error,
     };
   }
 }
 
+function mapLoadStatus(
+  status: PluginLoadResult['status'],
+): 'loaded' | 'disabled' | 'version-mismatch' | 'failed' {
+  switch (status) {
+    case 'registered':
+      return 'loaded';
+    case 'disabled':
+      return 'disabled';
+    case 'version-mismatch':
+      return 'version-mismatch';
+    case 'register-failed':
+    case 'invalid':
+      return 'failed';
+  }
+}
+
 export interface PluginAdminEntry {
   readonly id: string;
-  readonly loadStatus: PluginLoadResult['status'];
+  readonly loadStatus: 'loaded' | 'disabled' | 'version-mismatch' | 'failed';
   readonly operatorDisabled: boolean;
   readonly error?: string;
 }

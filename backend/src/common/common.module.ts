@@ -18,6 +18,7 @@ import { PluginStrategyRegistry } from './plugin-strategy.registry';
 import { PluginPaymentWebhookController } from './plugin-payment-webhook.controller';
 import { PluginConfigService } from './plugin-config.service';
 import { PluginMetricsService } from './plugin-metrics.service';
+import { PluginBootstrapService } from './plugin-bootstrap.service';
 
 @Global()
 @Module({
@@ -37,6 +38,7 @@ import { PluginMetricsService } from './plugin-metrics.service';
     PluginStrategyRegistry,
     PluginConfigService,
     PluginMetricsService,
+    PluginBootstrapService,
   ],
   exports: [
     ErrorTrackingService,

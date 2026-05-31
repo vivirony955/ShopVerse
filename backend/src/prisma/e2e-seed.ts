@@ -44,11 +44,32 @@ async function seedUsers() {
   }
 }
 
+async function seedCategories() {
+  // Three extra categories so /admin/categories has a populated table
+  // for ACAT-02 ("name/slug/products columns" test). All upserts are
+  // idempotent on slug.
+  const cats = [
+    { name: 'E2E Apparel', slug: 'e2e-apparel' },
+    { name: 'E2E Accessories', slug: 'e2e-accessories' },
+    { name: 'E2E Footwear', slug: 'e2e-footwear' },
+  ];
+  for (const c of cats) {
+    await prisma.category.upsert({
+      where: { slug: c.slug },
+      update: {},
+      create: c,
+    });
+  }
+  console.log(`Seeded ${cats.length} extra categor` +
+    `${cats.length === 1 ? 'y' : 'ies'}`);
+}
+
 async function main() {
   // Users first — Playwright's user.setup.ts / admin.setup.ts log in with
   // these credentials BEFORE any tests run. Without them every chromium-user
   // and chromium-admin test fails at setup.
   await seedUsers();
+  await seedCategories();
 
   // Upsert category + brand
   const cat = await prisma.category.upsert({
