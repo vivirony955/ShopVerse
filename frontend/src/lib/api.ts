@@ -407,8 +407,10 @@ export const priceAlertsApi = {
 };
 
 // ─── F2-19: Loyalty Tiers ────────────────────────────────────────────────────
+import type { LoyaltyTier } from "@/types";
 export const loyaltyTiersApi = {
-  getAll: () => http.get("/products/loyalty-tiers").then((r) => r.data),
+  getAll: (): Promise<LoyaltyTier[]> =>
+    http.get("/products/loyalty-tiers").then((r) => r.data),
 };
 
 // ─── F3-10: Blog ─────────────────────────────────────────────────────────────

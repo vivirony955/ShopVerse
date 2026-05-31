@@ -291,6 +291,14 @@ export interface LoyaltyTransaction {
   createdAt: string;
 }
 
+export interface LoyaltyTier {
+  id: number;
+  name: string;             // BRONZE / SILVER / GOLD / PLATINUM (server-side enum)
+  minPoints: number;        // ≥ this many lifetime points qualifies
+  earnMultiplier: number;   // earn-rate multiplier (e.g. 1.5 = 1.5× points)
+  perks?: string[];         // human-readable benefit list
+}
+
 // ─── Delivery Slot ────────────────────────────────────────────────────────────
 export interface DeliverySlot {
   id: number;

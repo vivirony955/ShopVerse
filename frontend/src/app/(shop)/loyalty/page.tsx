@@ -8,7 +8,7 @@ import { Star, TrendingUp, ArrowUpRight, ArrowDownLeft, Gift, RefreshCw } from "
 import toast from "react-hot-toast";
 import { loyaltyApi, loyaltyTiersApi } from "@/lib/api";
 import { apiErrorMessage } from "@/lib/utils";
-import type { LoyaltyTransaction } from "@/types";
+import type { LoyaltyTransaction, LoyaltyTier } from "@/types";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
 
@@ -51,8 +51,10 @@ export default function LoyaltyPage() {
   const pts = balance?.points ?? 0;
   const rupees = (pts * POINT_VALUE).toFixed(2);
 
-  const currentTier = tiers?.slice().sort((a: any, b: any) => b.minPoints - a.minPoints).find((t: any) => pts >= t.minPoints) ?? null;
-  const nextTier = tiers?.slice().sort((a: any, b: any) => a.minPoints - b.minPoints).find((t: any) => pts < t.minPoints) ?? null;
+  const currentTier =
+    tiers?.slice().sort((a: LoyaltyTier, b: LoyaltyTier) => b.minPoints - a.minPoints).find((t) => pts >= t.minPoints) ?? null;
+  const nextTier =
+    tiers?.slice().sort((a: LoyaltyTier, b: LoyaltyTier) => a.minPoints - b.minPoints).find((t) => pts < t.minPoints) ?? null;
 
   const TIER_COLORS: Record<string, string> = {
     BRONZE: "bg-amber-100 text-amber-700",
@@ -83,11 +85,11 @@ export default function LoyaltyPage() {
           )}
         </div>
       )}
-      {currentTier && Array.isArray((currentTier as any).perks) && (currentTier as any).perks.length > 0 && (
+      {currentTier && currentTier.perks && currentTier.perks.length > 0 && (
         <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 mb-4 text-sm">
           <p className="font-semibold text-violet-800 mb-1">{currentTier.name} Perks</p>
           <ul className="list-disc list-inside text-violet-700 space-y-0.5">
-            {((currentTier as any).perks as string[]).map((p: string, i: number) => <li key={i}>{p}</li>)}
+            {currentTier.perks.map((p, i) => <li key={i}>{p}</li>)}
           </ul>
         </div>
       )}
