@@ -15,7 +15,7 @@ jobs:
     # CI uses the official k6 install action. The gate becomes a hard
     # fail when staging URL provisioning lands operator-side.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: '20'

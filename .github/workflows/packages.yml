@@ -20,7 +20,7 @@ jobs:
     name: '@shopverse/sdk (66 tests)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -35,7 +35,7 @@ jobs:
     name: '@shopverse/cli (25 tests)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -57,7 +57,7 @@ jobs:
     name: '@shopverse/eslint-plugin-shopverse (32 tests)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -72,7 +72,7 @@ jobs:
     name: 'create-shopverse-plugin (9 tests)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
