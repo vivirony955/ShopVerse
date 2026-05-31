@@ -1,0 +1,23 @@
+name: 'Setup SDK + Backend'
+description: >
+  Caches npm, builds @shopverse/sdk (file:../packages/sdk needs dist/
+  before backend's symlink-style install resolves), and installs backend
+  deps. Used by ci.yml's typecheck / lint / test jobs to dedupe the
+  4-step preamble each previously inlined.
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: |
+          backend/package-lock.json
+          packages/sdk/package-lock.json
+    - name: Build SDK (file:../packages/sdk needs dist/ before backend install)
+      shell: bash
+      run: cd packages/sdk && npm ci && npx tsc
+    - name: Install backend deps
+      shell: bash
+      run: cd backend && npm ci

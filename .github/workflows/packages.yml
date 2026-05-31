@@ -1,0 +1,84 @@
+name: Packages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Runs the four package Jest suites (132 tests total) that were
+# previously local-only. Mirrors GitLab's `unit` job coverage so the
+# two pipelines stay in sync.
+#
+# Each job is independent: failure in one does not block the others,
+# and a single package regression points straight at the broken
+# package. The cli job builds @shopverse/sdk first because cli has a
+# file:../sdk dependency — its tests resolve the SDK at runtime.
+
+jobs:
+  sdk:
+    name: '@shopverse/sdk (66 tests)'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: packages/sdk/package-lock.json
+      - name: Install + build SDK
+        run: cd packages/sdk && npm ci && npx tsc
+      - name: Run Jest
+        run: cd packages/sdk && npm test -- --ci
+
+  cli:
+    name: '@shopverse/cli (25 tests)'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            packages/sdk/package-lock.json
+            packages/cli/package-lock.json
+      # cli depends on @shopverse/sdk via file:../sdk. The symlink
+      # npm creates points at packages/sdk/, so dist/ must exist
+      # before cli's tests run or imports of @shopverse/sdk fail.
+      - name: Build SDK (cli has a file dep on it)
+        run: cd packages/sdk && npm ci && npx tsc
+      - name: Install + build cli
+        run: cd packages/cli && npm ci && npx tsc
+      - name: Run Jest
+        run: cd packages/cli && npm test -- --ci
+
+  eslint-plugin:
+    name: '@shopverse/eslint-plugin-shopverse (32 tests)'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: packages/eslint-plugin-shopverse/package-lock.json
+      - name: Install + build
+        run: cd packages/eslint-plugin-shopverse && npm ci && npx tsc
+      - name: Run Jest (RuleTester fixtures)
+        run: cd packages/eslint-plugin-shopverse && npm test -- --ci
+
+  create-plugin:
+    name: 'create-shopverse-plugin (9 tests)'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: packages/create-shopverse-plugin/package-lock.json
+      - name: Install + build
+        run: cd packages/create-shopverse-plugin && npm ci && npx tsc
+      - name: Run Jest
+        run: cd packages/create-shopverse-plugin && npm test -- --ci

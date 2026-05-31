@@ -94,6 +94,20 @@ variables:
   # Dummy value — prisma validate resolves env vars but never opens a connection
   DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci_dummy"
 
+# ─── SHARED INSTALL ──────────────────────────────────────────────────────────
+# Hidden job whose `before_script` is the SDK-build-then-backend-install
+# pair every backend job needs. Referenced via `!reference` so jobs that
+# need ONLY this pair use it as their whole before_script; jobs that need
+# additional setup (apk add, prisma generate, more package installs) splice
+# it in alongside their own commands.
+.shared_install:
+  before_script:
+    # Build packages/sdk first — backend's `file:../packages/sdk` install
+    # symlinks into the source directory; dist/ has to exist before any
+    # backend code (TS, Jest, lint) reads through the symlink.
+    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
+    - cd backend && npm ci --prefer-offline --silent && cd ..
+
 # ─── VALIDATE STAGE ──────────────────────────────────────────────────────────
 # All three jobs run in parallel. Stage completes in ~60s (fastest job wins).
 
@@ -113,12 +127,7 @@ typecheck:
         - packages/sdk/node_modules/
       policy: pull-push
   before_script:
-    # Build packages/sdk first so backend's `file:../packages/sdk` install
-    # resolves to a directory with compiled .d.ts + .js (the symlink npm
-    # creates points at packages/sdk/, dist/ has to exist before the
-    # typecheck or lint reads through it).
-    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
-    - cd backend && npm ci --prefer-offline --silent && cd ..
+    - !reference [.shared_install, before_script]
   script:
     - cd backend && npx tsc --noEmit
   rules:
@@ -142,10 +151,7 @@ lint:
         - packages/sdk/node_modules/
       policy: pull
   before_script:
-    # Same build-SDK-first reason as `typecheck` — without dist/ in place,
-    # typescript-eslint reports every SDK import as an `error` type.
-    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
-    - cd backend && npm ci --prefer-offline --silent && cd ..
+    - !reference [.shared_install, before_script]
   script:
     - cd backend && npm run lint -- --max-warnings=0
   rules:
@@ -175,10 +181,21 @@ schema:validate:
 
 # Fast in-process unit tests for code that doesn't need PostgreSQL: backend
 # Nest providers (HookRunner, CircuitBreaker, plugin registries, PluginConfig
-# with mocked Prisma), the SDK runtime helpers, the ESLint rule plugin, and
-# the CLI migration runner. Run in parallel with `integration` — they share
-# no resources so the wall-clock cost is just the longest of the four
-# package suites (backend ~25s).
+# with mocked Prisma), the SDK runtime helpers, the ESLint rule plugin, the
+# CLI tooling, and the plugin scaffolder. Run in parallel with `integration`
+# — they share no resources so the wall-clock cost is just the longest of
+# the five package suites.
+#
+# Test counts (verified 2026-05-30, total 132 package-suite tests):
+#   - @shopverse/sdk                        : 66
+#   - @shopverse/cli                        : 25
+#   - @shopverse/eslint-plugin-shopverse    : 32
+#   - create-shopverse-plugin               : 9
+# Earlier comments here said cli=6 and eslint=14 — those numbers were
+# stale; the suites grew across W6 (audit/uninstall/seed in cli;
+# no-runtime-dynamic-import + slot-no-data-fetch + no-kernel-import in
+# eslint-plugin) without these comments being updated. Re-run the suites
+# locally (npm test in each package dir) before editing this comment.
 unit:
   stage: test
   cache:
@@ -206,28 +223,39 @@ unit:
       paths:
         - packages/eslint-plugin-shopverse/node_modules/
       policy: pull-push
+    - key:
+        files:
+          - packages/create-shopverse-plugin/package-lock.json
+      paths:
+        - packages/create-shopverse-plugin/node_modules/
+      policy: pull-push
   before_script:
-    # Backend deps + Prisma client (some unit specs reach the typed client
-    # through a mock that needs the generated types to exist).
-    - cd backend && npm ci --prefer-offline --silent && cd ..
+    # Shared: build packages/sdk + install backend deps.
+    - !reference [.shared_install, before_script]
+    # Prisma client (some unit specs reach the typed client through a
+    # mock that needs the generated types to exist).
     - cd backend && npx prisma generate --schema=../prisma/schema && cd ..
-    # SDK first — CLI depends on its built dist.
-    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
+    # CLI depends on @shopverse/sdk via file:../sdk — sdk dist/ already
+    # built above by the shared install.
     - cd packages/cli && npm ci --prefer-offline --silent && cd ../..
     - cd packages/eslint-plugin-shopverse && npm ci --prefer-offline --silent && cd ../..
+    # Scaffolder is standalone (no SDK dependency).
+    - cd packages/create-shopverse-plugin && npm ci --prefer-offline --silent && cd ../..
   script:
     # Backend Nest providers (CircuitBreaker, HookRunner, PluginContext,
     # PluginLoader, plugin registries, PluginConfigService, plugin admin
-    # controllers, PrismaService middleware, etc.) — 42 spec files.
+    # controllers, PrismaService middleware, etc.).
     - cd backend && npx jest --runInBand --forceExit --ci && cd ..
     # @shopverse/sdk runtime helpers — 66 tests (semver, manifest validator,
     # semaphore, custom events, strategy registry, scope checker).
     - cd packages/sdk && npx jest --runInBand --forceExit --ci && cd ../..
-    # @shopverse/eslint-plugin-shopverse — 14 RuleTester fixtures for the
-    # three plugin-contract rules.
+    # @shopverse/eslint-plugin-shopverse — 32 RuleTester fixtures for the
+    # six plugin-contract rules.
     - cd packages/eslint-plugin-shopverse && npx jest --runInBand --forceExit --ci && cd ../..
-    # @shopverse/cli — 6 tests for the migration ordering runner.
+    # @shopverse/cli — 25 tests covering migrate / audit / uninstall / seed.
     - cd packages/cli && npx jest --runInBand --forceExit --ci && cd ../..
+    # create-shopverse-plugin — 9 tests for the npx-invoked scaffolder.
+    - cd packages/create-shopverse-plugin && npx jest --runInBand --forceExit --ci && cd ../..
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
@@ -277,14 +305,13 @@ integration:
   before_script:
     # Install pg client for the readiness check
     - apk add --no-cache postgresql-client
-    # Build packages/sdk first — backend's `file:../packages/sdk` symlinks
-    # into the source directory and ts-jest compiles backend code at test
-    # time, so the SDK's dist/ has to exist before any backend compile.
-    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
-    # Install backend deps (test suite resolves @nestjs/* and @prisma/client from here)
-    - cd backend && npm ci --prefer-offline --silent && cd ..
-    # Install test suite deps — includes next-auth and axios declared in test/package.json,
-    # so frontend-api.spec.ts has no dependency on frontend/node_modules
+    # Shared: build packages/sdk + install backend deps. ts-jest compiles
+    # backend code at test time, so the SDK's dist/ has to exist before
+    # any backend compile — that's why the shared anchor builds SDK first.
+    - !reference [.shared_install, before_script]
+    # Install test suite deps — includes next-auth and axios declared in
+    # test/package.json, so frontend-api.spec.ts has no dependency on
+    # frontend/node_modules.
     - cd test && npm ci --prefer-offline --silent && cd ..
     # Generate Prisma client against the test DB schema
     - cd backend && npx prisma generate --schema=../prisma/schema && cd ..
@@ -347,8 +374,7 @@ e2e:
         - packages/sdk/node_modules/
       policy: pull
   before_script:
-    - cd packages/sdk && npm ci --prefer-offline --silent && npx tsc && cd ../..
-    - cd backend && npm ci --prefer-offline --silent && cd ..
+    - !reference [.shared_install, before_script]
   script:
     - cd backend && npm run test:e2e -- --forceExit --ci --reporters=default
   artifacts:
@@ -368,7 +394,142 @@ e2e:
 # Now Jest's `coverageThreshold` in test/jest.config.ts gates the same
 # integration run, so regressions block the build instead of being silent.
 
-# ─── BUILD STAGE ─────────────────────────────────────────────────────────────
+# ─── FRONTEND JOBS ──────────────────────────────────────────────────────────
+# Mirrors what `.github/workflows/frontend.yml` runs on GitHub: tsc, lint,
+# Jest (jest-axe + future units), bundle/hydration/plugin-memory budgets.
+# Lighthouse + Playwright are deferred to POST_W6 §4.1 (staging URL) — once
+# that URL exists, port the GitHub `lighthouse` self-skip pattern here.
+#
+# All four jobs share an install pattern: build sdk-frontend (file:../
+# packages/sdk-frontend needs dist/ before frontend's symlinked install
+# resolves), then install frontend deps. The `frontend:unit` job has an
+# extra repo-root `npm install` step — that's the W5.T5 dual-React
+# workaround (jest + RTL hoisted to repo root, react/react-dom pinned to
+# frontend/node_modules via frontend/jest.config.js moduleNameMapper).
+
+frontend:typecheck:
+  stage: validate
+  cache:
+    - key:
+        files:
+          - frontend/package-lock.json
+      paths:
+        - frontend/node_modules/
+      policy: pull-push
+    - key:
+        files:
+          - packages/sdk-frontend/package-lock.json
+      paths:
+        - packages/sdk-frontend/node_modules/
+      policy: pull-push
+  before_script:
+    - cd packages/sdk-frontend && npm ci --prefer-offline --silent && npx tsc && cd ../..
+    - cd frontend && npm ci --prefer-offline --silent && cd ..
+  script:
+    - cd frontend && npx tsc --noEmit
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+frontend:lint:
+  stage: validate
+  cache:
+    - key:
+        files:
+          - frontend/package-lock.json
+      paths:
+        - frontend/node_modules/
+      policy: pull
+    - key:
+        files:
+          - packages/sdk-frontend/package-lock.json
+      paths:
+        - packages/sdk-frontend/node_modules/
+      policy: pull
+  before_script:
+    - cd packages/sdk-frontend && npm ci --prefer-offline --silent && npx tsc && cd ../..
+    - cd frontend && npm ci --prefer-offline --silent && cd ..
+  script:
+    - cd frontend && npm run lint -- --max-warnings=0
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+frontend:unit:
+  stage: test
+  cache:
+    - key:
+        files:
+          - frontend/package-lock.json
+      paths:
+        - frontend/node_modules/
+      policy: pull
+    - key:
+        files:
+          - packages/sdk-frontend/package-lock.json
+      paths:
+        - packages/sdk-frontend/node_modules/
+      policy: pull
+    # Repo-root cache for the hoisted jest + jest-axe + RTL.
+    - key:
+        files:
+          - package-lock.json
+      paths:
+        - node_modules/
+      policy: pull-push
+  before_script:
+    - cd packages/sdk-frontend && npm ci --prefer-offline --silent && npx tsc && cd ../..
+    - cd frontend && npm ci --prefer-offline --silent && cd ..
+    # Root install for hoisted jest + jest-axe + RTL — W5.T5 dual-React
+    # workaround. Without this, jest cannot find @testing-library/react.
+    - npm install --no-audit --no-fund --silent
+  script:
+    - cd frontend && npx jest --runInBand --forceExit --ci
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+frontend:bundle:
+  stage: test
+  cache:
+    - key:
+        files:
+          - frontend/package-lock.json
+      paths:
+        - frontend/node_modules/
+        # Next.js build cache — substantial speedup for back-to-back
+        # bundle:check runs that both shell out to `next build`.
+        - frontend/.next/cache/
+      policy: pull-push
+    - key:
+        files:
+          - packages/sdk-frontend/package-lock.json
+      paths:
+        - packages/sdk-frontend/node_modules/
+      policy: pull
+  before_script:
+    - cd packages/sdk-frontend && npm ci --prefer-offline --silent && npx tsc && cd ../..
+    - cd frontend && npm ci --prefer-offline --silent && cd ..
+  script:
+    # bundle:check runs `next build` internally — heaviest of the three.
+    - cd frontend && npm run bundle:check
+    - cd frontend && npm run hydration:check
+    - cd frontend && npm run plugin-memory:check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+# TODO (POST_W6 §4.1): frontend:lighthouse + frontend:e2e (Playwright)
+# land here once a staging URL is provisioned. Both jobs follow the
+# self-skip pattern in .github/workflows/frontend.yml + bench-regression
+# .yml — check the LIGHTHOUSE_BASE_URL / PLAYWRIGHT_BASE_URL CI/CD
+# variables; exit 0 when unset.
+
+# ─── BUILD STAGE ──────────────────────────────────────────────────────────────
 # Build multi-stage Docker images and push to GitLab Container Registry.
 # Runs on: pushes to main, and all version tags.
 
