@@ -1,9 +1,17 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Required for the multi-stage Docker build: produces .next/standalone
   // which contains a self-contained server.js with only runtime deps.
   output: "standalone",
+  // The Docker build context is the repo root, so two lockfiles sit in the
+  // tree (frontend/ + packages/sdk-frontend/). Without an explicit root,
+  // Next would infer /app as a monorepo root and emit
+  // .next/standalone/frontend/server.js. Pin it to this dir so the output
+  // stays flat (server.js at the standalone root) — what the runner stage
+  // of frontend/Dockerfile copies.
+  outputFileTracingRoot: path.join(__dirname),
   // Exclude plain .ts files from the Pages Router scanner.
   // This prevents src/pages/api/auth/[...nextauth].ts from conflicting
   // with the App Router version at src/app/api/auth/[...nextauth]/route.ts.

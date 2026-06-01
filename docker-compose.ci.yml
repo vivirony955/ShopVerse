@@ -86,8 +86,10 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      # Context is the repo root so the file:../packages/sdk-frontend dep is
+      # inside the build context (frontend/Dockerfile builds its dist first).
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         NEXT_PUBLIC_BACKEND_URL: http://localhost:3001
     ports:
