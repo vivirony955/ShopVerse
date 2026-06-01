@@ -2,7 +2,6 @@
 // See LICENSE in the project root for license information.
 
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import type { PluginManifest } from '@shopverse/sdk';
 import pluginsConfig from '../../plugins.config';
 import { PluginLoader } from './plugin-loader.service';
 
@@ -60,7 +59,7 @@ export class PluginBootstrapService implements OnApplicationBootstrap {
   onApplicationBootstrap(): void {
     // Pull from the same manifest the resolver uses, so the loader's
     // view stays perfectly aligned with what NestJS actually loaded.
-    const manifest = pluginsConfig as PluginManifest;
+    const manifest = pluginsConfig;
 
     for (const entry of manifest.plugins) {
       this.loader.seedManifestResult(
