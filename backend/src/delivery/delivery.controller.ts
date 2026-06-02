@@ -15,8 +15,8 @@ export class DeliveryController {
   constructor(private readonly deliveryService: DeliveryService) {}
 
   @Get('check')
-  check(@Query('pincode') pincode: string) {
-    return this.deliveryService.check(pincode);
+  check(@Query('pincode') pincode: string, @Query('country') country?: string) {
+    return this.deliveryService.check(pincode, country);
   }
 
   @Get('pincodes')

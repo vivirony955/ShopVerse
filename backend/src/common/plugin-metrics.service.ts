@@ -106,8 +106,7 @@ export class PluginMetricsService {
       stats = new RollingStats();
       this.hookStats.set(pluginId, stats);
     }
-    const failed =
-      outcome.status === 'failed' || outcome.status === 'timeout';
+    const failed = outcome.status === 'failed' || outcome.status === 'timeout';
     stats.record(outcome.durationMs, failed);
   }
 

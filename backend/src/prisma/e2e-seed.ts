@@ -20,9 +20,24 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function seedUsers() {
-  const users: Array<{ email: string; password: string; firstName: string; role: 'USER' | 'ADMIN' }> = [
-    { email: 'e2e_test@shopverse.local',  password: 'Test@1234',  firstName: 'E2E',      role: 'USER' },
-    { email: 'e2e_admin@shopverse.local', password: 'Admin@1234', firstName: 'E2EAdmin', role: 'ADMIN' },
+  const users: Array<{
+    email: string;
+    password: string;
+    firstName: string;
+    role: 'USER' | 'ADMIN';
+  }> = [
+    {
+      email: 'e2e_test@shopverse.local',
+      password: 'Test@1234',
+      firstName: 'E2E',
+      role: 'USER',
+    },
+    {
+      email: 'e2e_admin@shopverse.local',
+      password: 'Admin@1234',
+      firstName: 'E2EAdmin',
+      role: 'ADMIN',
+    },
   ];
 
   for (const u of users) {
@@ -60,8 +75,10 @@ async function seedCategories() {
       create: c,
     });
   }
-  console.log(`Seeded ${cats.length} extra categor` +
-    `${cats.length === 1 ? 'y' : 'ies'}`);
+  console.log(
+    `Seeded ${cats.length} extra categor` +
+      `${cats.length === 1 ? 'y' : 'ies'}`,
+  );
 }
 
 async function main() {

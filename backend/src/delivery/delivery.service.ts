@@ -9,9 +9,16 @@ import { UpsertPincodeDto } from './dto/delivery.dto';
 export class DeliveryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async check(pincode: string) {
+  /** Resolve the store's configured country (StoreSettings singleton; defaults to US). */
+  private async storeCountry(): Promise<string> {
+    const s = await this.prisma.storeSettings.findUnique({ where: { id: 1 } });
+    return s?.country ?? 'US';
+  }
+
+  async check(pincode: string, country?: string) {
+    const ctry = country ?? (await this.storeCountry());
     const record = await this.prisma.pincodeServiceability.findUnique({
-      where: { pincode },
+      where: { country_pincode: { country: ctry, pincode } },
     });
 
     if (record) {
@@ -36,15 +43,17 @@ export class DeliveryService {
     };
   }
 
-  upsert(dto: UpsertPincodeDto) {
+  async upsert(dto: UpsertPincodeDto) {
+    const country = dto.country ?? (await this.storeCountry());
     return this.prisma.pincodeServiceability.upsert({
-      where: { pincode: dto.pincode },
+      where: { country_pincode: { country, pincode: dto.pincode } },
       update: {
         isServiceable: dto.isServiceable ?? true,
         estimateDays: dto.estimateDays ?? 5,
         courier: dto.courier,
       },
       create: {
+        country,
         pincode: dto.pincode,
         isServiceable: dto.isServiceable ?? true,
         estimateDays: dto.estimateDays ?? 5,

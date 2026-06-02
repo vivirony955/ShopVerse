@@ -12,14 +12,23 @@ import {
 
 export class CheckDeliveryDto {
   @IsString()
-  @Length(6, 6, { message: 'Pincode must be exactly 6 digits' })
+  @Length(2, 12, { message: 'Postal code must be 2–12 characters' })
   pincode: string;
+
+  // ISO 3166-1 alpha-2; defaults to the store's configured country when omitted.
+  @IsOptional()
+  @IsString()
+  country?: string;
 }
 
 export class UpsertPincodeDto {
   @IsString()
-  @Length(6, 6)
+  @Length(2, 12)
   pincode: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
 
   @IsOptional()
   @IsBoolean()

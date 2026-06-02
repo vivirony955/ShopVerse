@@ -91,6 +91,7 @@ model User {
   firstName           String?
   lastName            String?
   phone               String?
+  locale              String?              // BCP 47 preferred locale (e.g. "en-US"); null = store default
   role                Role                 @default(USER)
   loyaltyPoints       Int                  @default(0)
   referralCode        String?              @unique
@@ -141,8 +142,23 @@ model Address {
   line2     String?
   city      String
   state     String
+  country   String  @default("US")   // ISO 3166-1 alpha-2 (globalization Phase 1; was India-only)
   pincode   String
   isDefault Boolean @default(false)
+}
+
+// ─── Store Settings (global config — single-currency-per-store v1) ─────────────
+// Singleton (id = 1). Holds the store's default currency / country / locale and
+// the active region pack. The app reads this for checkout + new orders; each
+// Order snapshots its own currency for historical integrity.
+model StoreSettings {
+  id        Int      @id @default(1)
+  currency  String   @default("USD")   // ISO 4217
+  country   String   @default("US")    // ISO 3166-1 alpha-2
+  locale    String   @default("en-US") // BCP 47
+  region    String   @default("us")    // active region pack id: "us" | "india" | "eu" | ...
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ─── Catalog ──────────────────────────────────────────────────────────────────
@@ -312,6 +328,7 @@ model Order {
   // F1-15: split payment — wallet portion used to partially pay this order
   walletAmountUsed    Float           @default(0)
   total               Float
+  currency            String          @default("USD")   // ISO 4217 snapshot at order time
   couponCode          String?
   status              OrderStatus     @default(PENDING)
   paymentMethod       PaymentMethod   @default(STRIPE)
@@ -487,10 +504,13 @@ model ProductFaq {
 
 model PincodeServiceability {
   id            Int     @id @default(autoincrement())
-  pincode       String  @unique
+  country       String  @default("US")   // ISO 3166-1 alpha-2 (globalization Phase 1)
+  pincode       String
   isServiceable Boolean @default(true)
   estimateDays  Int     @default(5)
   courier       String?
+
+  @@unique([country, pincode])
 }
 
 // ─── Flash Sales ─────────────────────────────────────────────────────────────
@@ -568,6 +588,7 @@ model Warehouse {
   code        String               @unique
   city        String
   state       String
+  country     String               @default("US")   // ISO 3166-1 alpha-2 (globalization Phase 1)
   pincode     String
   lat         Float?
   lng         Float?
