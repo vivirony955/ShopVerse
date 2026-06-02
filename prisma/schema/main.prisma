@@ -152,13 +152,19 @@ model Address {
 // the active region pack. The app reads this for checkout + new orders; each
 // Order snapshots its own currency for historical integrity.
 model StoreSettings {
-  id        Int      @id @default(1)
-  currency  String   @default("USD")   // ISO 4217
-  country   String   @default("US")    // ISO 3166-1 alpha-2
-  locale    String   @default("en-US") // BCP 47
-  region    String   @default("us")    // active region pack id: "us" | "india" | "eu" | ...
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    Int      @id @default(1)
+  currency              String   @default("USD")   // ISO 4217
+  country               String   @default("US")    // ISO 3166-1 alpha-2
+  locale                String   @default("en-US") // BCP 47
+  region                String   @default("us")    // active region pack id: "us" | "india" | "eu" | ...
+  // Server-authoritative business rates. Global defaults are zero — no India
+  // values baked into the kernel. Dev/seed store + region packs (Phase 2) set
+  // concrete values; a `TaxStrategy` plugin may override taxRate in Phase 2.
+  taxRate               Float    @default(0)        // tax fraction, e.g. 0.18 = 18%
+  freeShippingThreshold Float    @default(0)        // subtotal-after-discount for free shipping
+  shippingFee           Float    @default(0)        // flat fee below the threshold
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 // ─── Catalog ──────────────────────────────────────────────────────────────────

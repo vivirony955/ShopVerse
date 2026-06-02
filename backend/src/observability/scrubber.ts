@@ -26,7 +26,11 @@ const PII_KEY_RX =
   /^(email|phone|firstName|lastName|fullName|name|line1|line2|address|addressSnapshot|city|state|pincode|guestEmail|amount|password|token|secret|cardNumber|cvv|authorization|cookie|set-cookie|refreshToken|accessToken|otp|jwt)$/i;
 
 const EMAIL_RX = /[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi;
-const INDIA_PHONE_RX = /\b[6-9]\d{9}\b/g;
+// Best-effort international phone pattern for the free-text fallback (the
+// `phone` FIELD is already redacted by PII_KEY_RX). Optional country code +
+// 8–15 digits with common separators. Runs AFTER CARD_RX so card numbers are
+// redacted first and not mistaken for a phone run.
+const PHONE_RX = /\+?\d[\d\s().-]{7,13}\d/g;
 // Defence in depth: card numbers should never reach the backend (Stripe-hosted)
 // but if they ever do (e.g. via a misconfigured form), redact in transit.
 // Pattern: 13–19 digits with optional space/dash separators, anchored on a
@@ -40,7 +44,7 @@ export function scrubString(s: string): string {
   return s
     .replace(EMAIL_RX, '[email]')
     .replace(CARD_RX, '[card]')
-    .replace(INDIA_PHONE_RX, '[phone]');
+    .replace(PHONE_RX, '[phone]');
 }
 
 export function scrub<T>(value: T, seen: WeakSet<object> = new WeakSet()): T {

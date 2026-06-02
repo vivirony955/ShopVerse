@@ -25,6 +25,9 @@ async function main() {
       country: 'IN',
       locale: 'en-IN',
       region: 'india',
+      taxRate: 0.18,
+      freeShippingThreshold: 500,
+      shippingFee: 49,
     },
   });
 

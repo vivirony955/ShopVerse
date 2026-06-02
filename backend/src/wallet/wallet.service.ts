@@ -20,8 +20,9 @@ import {
   ReconcilePaymentDto,
 } from './dto/wallet.dto';
 
-// V-09 FIX: maximum allowed wallet balance (₹1,00,000). Prevents unlimited accumulation
-// via repeated refund-to-wallet cycles. Admin credits are also subject to this cap.
+// V-09 FIX: maximum allowed wallet balance (100,000 in the store's currency).
+// Prevents unlimited accumulation via repeated refund-to-wallet cycles. Admin
+// credits are also subject to this cap. TODO(global): make store-configurable.
 const MAX_WALLET_BALANCE = 100_000;
 
 @Injectable()
@@ -56,7 +57,7 @@ export class WalletService {
         // credits can't both pass the pre-check and exceed the limit together.
         if (wallet.balance > MAX_WALLET_BALANCE) {
           throw new BadRequestException(
-            `Wallet balance would exceed the maximum allowed limit of ₹${MAX_WALLET_BALANCE.toLocaleString('en-IN')}`,
+            `Wallet balance would exceed the maximum allowed limit of ${MAX_WALLET_BALANCE.toLocaleString('en-US')}`,
           );
         }
         const txRecord = await tx.walletTransaction.create({

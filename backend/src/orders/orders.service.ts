@@ -74,16 +74,26 @@ export class OrdersService {
     };
   }
 
-  /** Store default currency (StoreSettings singleton; defaults to USD for fresh installs). */
-  private async getStoreCurrency(): Promise<string> {
+  /**
+   * Store config (StoreSettings singleton). Currency / tax / shipping are
+   * server-authoritative and store-configurable — no India values are baked
+   * into the kernel. Fresh installs default to USD + zero tax/shipping; the
+   * dev/seed store and region packs (Phase 2) set concrete values.
+   */
+  private async getStoreConfig(): Promise<{
+    currency: string;
+    taxRate: number;
+    freeShippingThreshold: number;
+    shippingFee: number;
+  }> {
     const s = await this.prisma.storeSettings.findUnique({ where: { id: 1 } });
-    return s?.currency ?? 'USD';
+    return {
+      currency: s?.currency ?? 'USD',
+      taxRate: s?.taxRate ?? 0,
+      freeShippingThreshold: s?.freeShippingThreshold ?? 0,
+      shippingFee: s?.shippingFee ?? 0,
+    };
   }
-
-  // ─── Business-rate constants (server-authoritative — never from client) ────
-  private static readonly FREE_SHIPPING_THRESHOLD = 500; // INR
-  private static readonly SHIPPING_FEE = 49; // INR flat rate below threshold
-  private static readonly GST_RATE = 0.18; // 18% GST
 
   async placeOrder(
     userId: number,
@@ -168,13 +178,11 @@ export class OrdersService {
       );
     }
     // T-P01 FIX: shipping and tax computed server-side — never trusted from client
+    const store = await this.getStoreConfig();
     const taxableAmount = subtotal - discountAmount;
     const shippingFee =
-      taxableAmount >= OrdersService.FREE_SHIPPING_THRESHOLD
-        ? 0
-        : OrdersService.SHIPPING_FEE;
-    const taxAmount =
-      Math.round(taxableAmount * OrdersService.GST_RATE * 100) / 100;
+      taxableAmount >= store.freeShippingThreshold ? 0 : store.shippingFee;
+    const taxAmount = Math.round(taxableAmount * store.taxRate * 100) / 100;
     const total = taxableAmount + shippingFee + taxAmount;
 
     // F1-15: Validate and clamp wallet deduction
@@ -239,7 +247,6 @@ export class OrdersService {
     // clearing and tracking event are moved out — they're idempotent enough that a
     // post-commit failure is a minor UX glitch (stale cart), not a data integrity bug.
     // This cuts connection hold time ~30% on the hottest endpoint.
-    const currency = await this.getStoreCurrency();
     const order = await this.prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
@@ -250,7 +257,7 @@ export class OrdersService {
           shippingFee,
           taxAmount,
           total,
-          currency,
+          currency: store.currency,
           walletAmountUsed,
           couponCode: dto.couponCode,
           items: { create: orderItems },
@@ -634,13 +641,11 @@ export class OrdersService {
       );
     }
     // T-O03 FIX: shipping and tax server-authoritative for guest orders too
+    const store = await this.getStoreConfig();
     const taxableAmount = subtotal - discountAmount;
     const shippingFee =
-      taxableAmount >= OrdersService.FREE_SHIPPING_THRESHOLD
-        ? 0
-        : OrdersService.SHIPPING_FEE;
-    const taxAmount =
-      Math.round(taxableAmount * OrdersService.GST_RATE * 100) / 100;
+      taxableAmount >= store.freeShippingThreshold ? 0 : store.shippingFee;
+    const taxAmount = Math.round(taxableAmount * store.taxRate * 100) / 100;
     const total = taxableAmount + shippingFee + taxAmount;
 
     const order = await this.prisma.$transaction(async (tx) => {
@@ -657,6 +662,7 @@ export class OrdersService {
           shippingFee,
           taxAmount,
           total,
+          currency: store.currency,
           couponCode: dto.couponCode,
           items: { create: orderItems },
         },
