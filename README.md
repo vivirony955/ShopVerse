@@ -1,10 +1,10 @@
 # ShopVerse
 
-**Production-grade ecommerce infrastructure for India — warehouse-driven, financially invariant, battle-tested.**
+**The open commerce platform where money and inventory can't corrupt — by design.**
 
 [![Pipeline](https://gitlab.com/aiexperts/ecommWeb/badges/main/pipeline.svg)](https://gitlab.com/aiexperts/ecommWeb/-/pipelines)
 [![Coverage](https://gitlab.com/aiexperts/ecommWeb/badges/main/coverage.svg?job=test%3Acoverage)](https://gitlab.com/aiexperts/ecommWeb/-/jobs)
-![Tests](https://img.shields.io/badge/tests-638%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1180%2B%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-BUSL--1.1-blue)
 ![NestJS](https://img.shields.io/badge/NestJS-11-red)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
@@ -12,17 +12,19 @@
 
 NestJS 11 · Next.js 15 · PostgreSQL 16 · Prisma 6 · React 19 · Stripe · Tailwind CSS
 
-> **Not a Shopify clone. Not a demo.** ShopVerse is the operational infrastructure layer for warehouse-driven ecommerce — the difference between a storefront and an order management system.
+> **Not a Shopify clone. Not a demo.** ShopVerse is production-grade, source-available commerce *infrastructure* — 38 backend modules, a double-entry wallet ledger, race-safe multi-warehouse inventory, and a typed plugin kernel with swappable region packs. Batteries included; deploy in minutes.
+>
+> The difference vs. every other open-source store: **correctness is enforced, not hoped for.** 13 database-level invariants make overselling and double-refunds impossible *by construction* — backed by 1,180+ tests against a real database.
 
-> Source available under [Business Source License 1.1](LICENSE). Free for non-commercial use. Commercial use requires a [paid license](COMMERCIAL_USAGE.md).
+> Source-available under the [Business Source License 1.1](LICENSE) — **free for production use under $100k/yr GMV**, and each version converts to Apache 2.0 over time. A [commercial license](COMMERCIAL_USAGE.md) applies above the threshold.
 
 ---
 
 ## What Is ShopVerse?
 
-ShopVerse is a full-stack, multi-warehouse direct-to-consumer ecommerce platform built for the Indian market. It covers the complete commerce lifecycle — from catalog browsing and flash sales through multi-warehouse fulfillment, payment reconciliation, returns, refunds, and loyalty — with a production-quality backend hardened against the security and correctness issues that plague most open-source ecommerce projects.
+ShopVerse is a full-stack, multi-warehouse direct-to-consumer commerce platform for **any market** — currency, tax, payment, and locale are store-configured and extended per region via plugins. It covers the complete commerce lifecycle — catalog, flash sales, multi-warehouse fulfillment, payment reconciliation, returns, refunds, and loyalty — with a backend hardened against the security and correctness issues that plague most open-source ecommerce projects.
 
-It is not a toy. The backend has 38 modules, 54+ database models, and 687 integration tests that run against a real PostgreSQL database.
+It is not a toy. The backend has 38 modules, 54+ database models, and **1,180+ tests** (456 unit + 724 integration) running against a real PostgreSQL database — including invariant tests that prove money and inventory stay consistent.
 
 ---
 
@@ -51,7 +53,7 @@ A full set of 28 screenshots covering customer flows and admin panels lives in [
 | Order lifecycle (PLACED → DELIVERED) | ✅ | Full state machine, all transitions guarded |
 | Stripe payments | ✅ | Intent, confirm, webhook, reconciliation |
 | COD (Cash on Delivery) | ✅ | |
-| Wallet (internal balance) | ✅ | Double-entry ledger, ₹1L lifetime cap |
+| Wallet (internal balance) | ✅ | Double-entry ledger, configurable balance cap |
 | Split payment (Wallet + Card) | ✅ | Deduct wallet first, charge remainder |
 | Multi-warehouse inventory routing | ✅ | Single WH or auto-split across warehouses |
 | Fulfillment (pick lists, tracking, delivery) | ✅ | Warehouse-level, with tracking code |
@@ -152,7 +154,7 @@ A full set of 28 screenshots covering customer flows and admin panels lives in [
 | Skeleton loading on all pages | ✅ |
 | Infinite scroll on PLP | ✅ |
 | Delivery slot picker in checkout | ✅ |
-| Pincode autocomplete (India Post) | ✅ |
+| Postal-code serviceability check (per country) | ✅ |
 | Blog / content CMS | ✅ |
 | Dark mode | ✅ |
 
@@ -160,43 +162,41 @@ A full set of 28 screenshots covering customer flows and admin panels lives in [
 
 ## Why ShopVerse?
 
-### Compared to Other Open-Source Ecommerce Platforms
+### Compared to other open-source commerce platforms
+
+Medusa, Saleor, Vendure, and WooCommerce are all capable. ShopVerse's wedge is **enforced correctness** + **batteries-included operations** + a **region-pluggable kernel**.
 
 | Capability | ShopVerse | Medusa.js | WooCommerce | Magento | Saleor |
 |---|---|---|---|---|---|
-| **India payments (UPI/Razorpay)** | Phase 2 | Plugin | Plugin | Plugin | Custom |
+| **DB-enforced financial invariants** | 13, tested | No | No | No | No |
+| **Double-entry wallet ledger** | Built-in | No | Plugin | No | No |
+| **Race-safe inventory (conditional `UPDATE`)** | Built-in | Partial | No | No | Partial |
 | **Multi-warehouse routing** | Built-in | Plugin | No | Built-in | Built-in |
-| **Inventory reservation (cart TTL)** | Built-in | No | No | No | Built-in |
-| **Fraud detection** | Built-in | No | Plugin | Plugin | No |
-| **Wallet / internal ledger** | Built-in | No | Plugin | No | No |
-| **Maker-checker approvals** | Built-in | No | No | No | No |
-| **Flash sales (per-user cap)** | Built-in | No | Plugin | Plugin | No |
-| **Exchange flow** | Built-in | Partial | Plugin | Plugin | No |
-| **Loyalty + clawback on refund** | Built-in | No | Plugin | No | No |
-| **Test coverage** | 638 tests (real DB) | Unit only | Manual | Manual | 500+ |
-| **Security hardening** | 30 controls (H1+H2) | Basic | WordPress risks | Complex | Good |
-| **TypeScript throughout** | ✅ | ✅ | No | No | ✅ |
-| **India-first design** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Region packs (tax/payment/locale)** | Built-in | No | No | No | No |
+| **Pluggable tax + gateway per region** | Built-in | Plugin | Plugin | Plugin | Custom |
+| **Fraud scoring + maker-checker refunds** | Built-in | No | No | No | No |
+| **Plugin kernel w/ circuit-breaker isolation** | Built-in | Modules | `$hooks` | Modules | Apps |
+| **Tests against a real DB** | 1,180+ | Unit only | Manual | Manual | 500+ |
+| **TypeScript end-to-end** | ✅ | ✅ | No | No | ✅ |
 
-### Why It's More Scalable
+### Correctness you can't get by accident
 
-- **No check-then-act inventory bugs**: All inventory mutations use conditional `UPDATE ... WHERE (stock - reserved) >= qty`. Race-safe by construction.
-- **Double-entry wallet ledger**: `∑(WalletTransaction.signedAmount) == Wallet.balance` is enforced at the DB level. No phantom credits.
-- **Reservation TTL enforcement**: Cart reservations have an expiry cron — stock doesn't leak from abandoned checkouts.
-- **Idempotent webhooks**: `PaymentReconciliation.gatewayRef` unique constraint — Stripe webhooks can fire twice, result is identical.
-- **State machine guards**: Every order/payment/shipment/refund transition is explicitly guarded — no status can jump directly to DELIVERED from PLACED.
-- **13 invariants**: Documented, tested, enforced. See `ARCHITECTURE.md §2`.
-- **Connection pool sized correctly**: `?connection_limit=30` prevents the Prisma default (CPU×2+1) from starving under load.
+This is the moat. For high-AOV and complex-fulfillment stores, one oversold item or one double-refund is real money:
 
-### India Market Focus
+- **Overselling is impossible by construction.** Every inventory mutation is a conditional `UPDATE ... WHERE (stock - reserved) >= qty` — the WooCommerce race-condition bug class can't happen.
+- **Money can't vanish.** A double-entry wallet ledger enforces `∑(WalletTransaction.signedAmount) == Wallet.balance` at the DB level. No phantom credits.
+- **No double-charges or double-refunds.** Idempotent payments/refunds via unique gateway-ref constraints + refund-request-before-credit.
+- **State machines are guarded.** No order jumps PLACED → DELIVERED; every transition is explicit.
+- **13 invariants — documented, tested, and enforced.** See [SYSTEM_DESIGN_FINAL.md](SYSTEM_DESIGN_FINAL.md) §2.
 
-- **COD + Wallet + Stripe** — the three payment methods that cover ~95% of Indian ecommerce
-- **Pincode serviceability check** at cart and checkout
-- **Delivery slot booking** with warehouse-level availability
-- **Flash sales** with per-user quantity caps (common in India — Big Billion Day, etc.)
-- **₹-denominated** amounts throughout (extensible to multi-currency)
-- **GST-aware** invoice generation
-- **Razorpay (UPI/net banking/cards)** — Phase 2, the highest-priority next item
+### Global by design
+
+ShopVerse runs anywhere — configured per store, extended per region:
+
+- **Single-currency-per-store** with correct minor-unit handling (JPY/KWD as well as USD/EUR/INR) and `Intl`-based display.
+- **Region packs** swap regional tax, payment, address, and locale behavior as plugins: `shopverse-india` (flat GST) and `shopverse-us` (per-state sales tax) ship today; with none enabled the kernel uses store-configured defaults.
+- **Pluggable payment gateways** — Stripe by default; regional gateways (Razorpay, Mercado Pago, …) register via the `PaymentGatewayStrategy` contract.
+- **No hardcoded geography** — currency, country, locale, tax rate, and shipping are all store config, not kernel constants.
 
 ---
 
@@ -341,7 +341,7 @@ for the local Jaeger one-liner and the full config matrix.
 ## Testing
 
 ```bash
-# All 687 backend integration tests (requires PostgreSQL)
+# All 724 backend integration tests (requires PostgreSQL)
 cd test && npx jest --runInBand --forceExit
 
 # Single test file
@@ -493,10 +493,12 @@ Quick start: fork → branch → code → `cd backend && npx tsc --noEmit` → P
 
 ShopVerse is a modular monolith with a plugin contract — kernel
 (non-removable) + core-extended strategies + fully pluggable
-extensions. Five first-party plugins ship in this repo:
-`price-alerts`, `blog`, `price-history`, `volume-discounts`,
-`notifications`. The kernel loads them through
-[`backend/plugins.config.ts`](backend/plugins.config.ts) at boot.
+extensions. First-party plugins ship in this repo: feature plugins
+(`price-alerts`, `blog`, `price-history`, `volume-discounts`,
+`notifications`) and **region packs** (`shopverse-india` — flat GST;
+`shopverse-us` — per-state sales tax) that swap regional tax/payment/
+locale behavior via the strategy contracts. The kernel loads them
+through [`backend/plugins.config.ts`](backend/plugins.config.ts) at boot.
 
 | You want to... | Read |
 |---|---|
@@ -539,14 +541,15 @@ evolution programme that delivered the plugin model is captured in
 
 ShopVerse is **source available** under the [Business Source License 1.1 (BSL)](LICENSE).
 
-| Use | License Required |
+| Use | License |
 |---|---|
-| Learning, studying, personal projects | ✅ Free under BSL |
-| Non-commercial self-hosting | ✅ Free under BSL |
-| Open source contributions | ✅ Free under BSL |
-| Revenue-generating store | 💳 [Commercial license](COMMERCIAL_USAGE.md) |
-| Agency / client deployments | 💳 [Commercial license](COMMERCIAL_USAGE.md) |
-| SaaS / managed hosting for others | 💳 [Commercial license](COMMERCIAL_USAGE.md) |
+| Learning, dev, evaluation, non-commercial, contributions | ✅ Free under BSL |
+| **Production store under $100k/yr GMV** | ✅ **Free** — keep the "Powered by ShopVerse" badge |
+| Production store at/above $100k/yr GMV | 💳 [Commercial](COMMERCIAL_USAGE.md) |
+| Removing the badge (white-label) | 💳 [Commercial](COMMERCIAL_USAGE.md) |
+| SaaS / managed hosting of ShopVerse for others | 💳 [Commercial](COMMERCIAL_USAGE.md) |
+
+Each released version also converts to **Apache 2.0** three years after publication.
 
 Commercial licensing: **vivironycrazy@gmail.com** · See [COMMERCIAL_USAGE.md](COMMERCIAL_USAGE.md) for pricing.
 
