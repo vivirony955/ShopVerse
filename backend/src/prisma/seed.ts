@@ -14,6 +14,20 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
+  // Store config (single-currency-per-store). The dev/demo store is INR to
+  // match the seeded catalog prices; a fresh production install defaults to USD.
+  await prisma.storeSettings.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      currency: 'INR',
+      country: 'IN',
+      locale: 'en-IN',
+      region: 'india',
+    },
+  });
+
   const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@store.com';
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@123456';
 

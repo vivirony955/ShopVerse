@@ -86,6 +86,7 @@ export type MockPrisma = {
   savedForLater: MockDelegate;
   deliverySlot: MockDelegate;
   giftOption: MockDelegate;
+  storeSettings: MockDelegate;
   $transaction: jest.Mock;
   $executeRaw: jest.Mock;
   $executeRawUnsafe: jest.Mock;
@@ -149,6 +150,7 @@ export const createPrismaMock = (): MockPrisma => {
     savedForLater: delegate(),
     deliverySlot: delegate(),
     giftOption: delegate(),
+    storeSettings: delegate(),
     /** Runs the callback immediately with the same mock so transactions are transparent */
     $transaction: jest.fn((cb: unknown) =>
       typeof cb === 'function'

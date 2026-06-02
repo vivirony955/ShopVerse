@@ -74,6 +74,12 @@ export class OrdersService {
     };
   }
 
+  /** Store default currency (StoreSettings singleton; defaults to USD for fresh installs). */
+  private async getStoreCurrency(): Promise<string> {
+    const s = await this.prisma.storeSettings.findUnique({ where: { id: 1 } });
+    return s?.currency ?? 'USD';
+  }
+
   // ─── Business-rate constants (server-authoritative — never from client) ────
   private static readonly FREE_SHIPPING_THRESHOLD = 500; // INR
   private static readonly SHIPPING_FEE = 49; // INR flat rate below threshold
@@ -210,10 +216,7 @@ export class OrdersService {
         city: address.city,
         state: address.state,
         pincode: address.pincode,
-        // India-only platform (CLAUDE.md §A); Address model has no
-        // `country` column. Hardcode here keeps the SDK contract stable
-        // when multi-country lands without a migration.
-        country: 'IN',
+        country: address.country,
       };
       const warehouseContext = await this.getDefaultWarehouseContext();
       const preResult = await this.hookRunner.runSync('order.preValidate', {
@@ -236,6 +239,7 @@ export class OrdersService {
     // clearing and tracking event are moved out — they're idempotent enough that a
     // post-commit failure is a minor UX glitch (stale cart), not a data integrity bug.
     // This cuts connection hold time ~30% on the hottest endpoint.
+    const currency = await this.getStoreCurrency();
     const order = await this.prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
@@ -246,6 +250,7 @@ export class OrdersService {
           shippingFee,
           taxAmount,
           total,
+          currency,
           walletAmountUsed,
           couponCode: dto.couponCode,
           items: { create: orderItems },

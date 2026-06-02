@@ -52,7 +52,54 @@ export class PaymentsService {
     });
   }
 
-  async createPaymentIntent(userId: number, orderId: number, currency = 'inr') {
+  // ISO 4217 minor-unit handling. Most currencies use 2 decimals (× 100);
+  // these need different multipliers or Stripe rejects the amount.
+  private static readonly ZERO_DECIMAL_CURRENCIES = new Set([
+    'bif',
+    'clp',
+    'djf',
+    'gnf',
+    'jpy',
+    'kmf',
+    'krw',
+    'mga',
+    'pyg',
+    'rwf',
+    'ugx',
+    'vnd',
+    'vuv',
+    'xaf',
+    'xof',
+    'xpf',
+  ]);
+  private static readonly THREE_DECIMAL_CURRENCIES = new Set([
+    'bhd',
+    'jod',
+    'kwd',
+    'omr',
+    'tnd',
+  ]);
+
+  /**
+   * Convert a major-unit amount to Stripe minor units, honoring zero-decimal
+   * (JPY, KRW, …) and three-decimal (KWD, BHD, …) currencies. The naive `* 100`
+   * is correct only for 2-decimal currencies and mischarges the rest.
+   */
+  private static toMinorUnits(amount: number, currencyLower: string): number {
+    if (PaymentsService.ZERO_DECIMAL_CURRENCIES.has(currencyLower)) {
+      return Math.round(amount);
+    }
+    if (PaymentsService.THREE_DECIMAL_CURRENCIES.has(currencyLower)) {
+      return Math.round(amount * 1000);
+    }
+    return Math.round(amount * 100);
+  }
+
+  async createPaymentIntent(
+    userId: number,
+    orderId: number,
+    currency?: string,
+  ) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
     });
@@ -60,11 +107,13 @@ export class PaymentsService {
     if (order.paymentStatus === 'PAID')
       throw new BadRequestException('Order already paid');
 
+    // Currency comes from the order snapshot (set at placement from store config).
+    const cur = (currency ?? order.currency ?? 'usd').toLowerCase();
     // FINAL §6.3: idempotency key prevents duplicate intents on client retry (B-11).
     const paymentIntent = await this.stripe.paymentIntents.create(
       {
-        amount: Math.round(order.total * 100), // Convert to paise
-        currency,
+        amount: PaymentsService.toMinorUnits(order.total, cur),
+        currency: cur,
         metadata: { orderId: orderId.toString(), userId: userId.toString() },
       },
       { idempotencyKey: `order:${orderId}` },
@@ -82,7 +131,7 @@ export class PaymentsService {
    * Retry a failed payment: creates a fresh PaymentIntent for an UNPAID order.
    * Safe to call multiple times — cancels any previous open intent first.
    */
-  async retryPayment(userId: number, orderId: number, currency = 'inr') {
+  async retryPayment(userId: number, orderId: number, currency?: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
     });
@@ -112,11 +161,12 @@ export class PaymentsService {
     // produces a distinct idempotency key. The previous approach split on ':retry:'
     // which Stripe PI IDs never contain, so retryCount was always 1 and every
     // retry hit the same cached PI response.
+    const cur = (currency ?? order.currency ?? 'usd').toLowerCase();
     const retryKey = `order:${orderId}:retry:${Date.now()}`;
     const paymentIntent = await this.stripe.paymentIntents.create(
       {
-        amount: Math.round(order.total * 100),
-        currency,
+        amount: PaymentsService.toMinorUnits(order.total, cur),
+        currency: cur,
         metadata: {
           orderId: orderId.toString(),
           userId: userId.toString(),

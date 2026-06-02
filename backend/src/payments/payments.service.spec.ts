@@ -101,7 +101,13 @@ describe('PaymentsService', () => {
   // ─── createPaymentIntent ──────────────────────────────────────────────────────
 
   describe('createPaymentIntent', () => {
-    const order = { id: 1, userId: 1, total: 1500, paymentStatus: 'UNPAID' };
+    const order = {
+      id: 1,
+      userId: 1,
+      total: 1500,
+      currency: 'INR',
+      paymentStatus: 'UNPAID',
+    };
 
     it('creates a Stripe PaymentIntent and updates the order', async () => {
       prisma.order.findFirst.mockResolvedValue(order);
