@@ -3,7 +3,7 @@
 
 import type { MetadataRoute } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://shopverse.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://shopverse.dev";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 async function fetchJson<T>(path: string): Promise<T | null> {
@@ -26,9 +26,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/register`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
   ];
 
-  // Product pages
+  // Product pages. Limit raised from 500 so larger catalogs aren't truncated
+  // from the index. For very large catalogs (~>45k) split into multiple files
+  // via Next's generateSitemaps — the sitemap spec caps one file at 50k URLs.
   const productsData = await fetchJson<{ items: { id: number; updatedAt: string }[] }>(
-    "/products?limit=500"
+    "/products?limit=5000"
   );
   const productRoutes: MetadataRoute.Sitemap =
     productsData?.items?.map((p) => ({

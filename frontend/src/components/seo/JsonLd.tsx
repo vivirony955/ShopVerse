@@ -129,13 +129,39 @@ export function BreadcrumbJsonLd({
   );
 }
 
+/** CollectionPage schema for category / brand filter pages (helps Google
+ *  understand a facet listing as a collection, not a duplicate of /products). */
+export function CollectionPageJsonLd({
+  name,
+  description,
+  url,
+}: {
+  name: string;
+  description: string;
+  url: string;
+}) {
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name,
+    description,
+    url,
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
 export function OrganizationJsonLd() {
   const schema = {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "ShopVerse",
-    url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://shopverse.com",
-    logo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://shopverse.com"}/logo.png`,
+    url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://shopverse.dev",
+    logo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://shopverse.dev"}/logo.png`,
     sameAs: [],
   };
   return (

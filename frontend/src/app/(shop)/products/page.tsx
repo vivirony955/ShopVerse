@@ -4,8 +4,35 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import ProductsClient from "./ProductsClient";
+import { CollectionPageJsonLd } from "@/components/seo/JsonLd";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://shopverse.dev";
+
+type SP = Record<string, string | string[] | undefined>;
+
+function first(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Derive the facet label + canonical URL from the PLP filter params. */
+function facetOf(sp: SP) {
+  const category = first(sp.category);
+  const brand = first(sp.brand);
+  const query = first(sp.q) ?? first(sp.search);
+  const facet = [brand, category]
+    .filter((s): s is string => Boolean(s))
+    .map(cap)
+    .join(" ");
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (brand) params.set("brand", brand);
+  const qs = params.toString();
+  const canonical = qs ? `${baseUrl}/products?${qs}` : `${baseUrl}/products`;
+  return { facet, query, canonical };
+}
 
 /**
  * Per-facet metadata so category / brand / search pages are individually
@@ -17,33 +44,14 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://shopverse.dev";
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<SP>;
 }): Promise<Metadata> {
-  const sp = await searchParams;
-  const first = (v: string | string[] | undefined): string | undefined =>
-    Array.isArray(v) ? v[0] : v;
-  const category = first(sp.category);
-  const brand = first(sp.brand);
-  const query = first(sp.q) ?? first(sp.search);
-
-  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const facet = [brand, category]
-    .filter((s): s is string => Boolean(s))
-    .map(cap)
-    .join(" ");
+  const { facet, query, canonical } = facetOf(await searchParams);
   const label = query ? `Search: ${query}` : facet || "All Products";
-
   const title = `${label} | ShopVerse`;
   const description = query
     ? `Search results for "${query}" on ShopVerse — filter by price, category, brand, and rating.`
     : `Shop ${facet ? facet.toLowerCase() : "thousands of products"} on ShopVerse — filter by price, category, brand, and rating, with fast fulfillment.`;
-
-  const canonicalParams = new URLSearchParams();
-  if (category) canonicalParams.set("category", category);
-  if (brand) canonicalParams.set("brand", brand);
-  const qs = canonicalParams.toString();
-  const canonical = qs ? `${baseUrl}/products?${qs}` : `${baseUrl}/products`;
-
   return {
     title,
     description,
@@ -53,10 +61,27 @@ export async function generateMetadata({
   };
 }
 
-export default function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SP>;
+}) {
+  const { facet, query, canonical } = facetOf(await searchParams);
+  // Emit Collection JSON-LD only on facet pages (not bare /products or search).
+  const isCollection = Boolean(facet) && !query;
+
   return (
-    <Suspense>
-      <ProductsClient />
-    </Suspense>
+    <>
+      {isCollection && (
+        <CollectionPageJsonLd
+          name={`${facet} | ShopVerse`}
+          description={`Shop ${facet.toLowerCase()} on ShopVerse.`}
+          url={canonical}
+        />
+      )}
+      <Suspense>
+        <ProductsClient />
+      </Suspense>
+    </>
   );
 }
