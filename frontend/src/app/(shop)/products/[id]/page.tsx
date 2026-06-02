@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 import ProductDetailClient from "./ProductDetailClient";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const STORE_CURRENCY = process.env.NEXT_PUBLIC_STORE_CURRENCY ?? "USD";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shopverse.dev";
 
 export async function generateMetadata({
   params,
@@ -19,29 +21,29 @@ export async function generateMetadata({
     if (!res.ok) return { title: "Product | ShopVerse" };
     const product = await res.json();
     const salePrice = product.basePrice * (1 - product.discountPct / 100);
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://shopverse.in';
     const description = product.description?.slice(0, 160) ?? "";
+    // OG/Twitter images come from the dynamic opengraph-image.tsx in this
+    // segment (branded card with name + store-currency price), so they are
+    // intentionally not set here.
     return {
       title: `${product.name} | ShopVerse`,
       description,
       alternates: {
-        canonical: `${baseUrl}/products/${id}`,
+        canonical: `${SITE_URL}/products/${id}`,
       },
       openGraph: {
         title: product.name,
         description,
-        images: product.images?.[0] ? [{ url: product.images[0] }] : [],
         type: "website",
       },
       twitter: {
         card: "summary_large_image",
         title: product.name,
         description,
-        images: product.images?.[0] ? [product.images[0]] : [],
       },
       other: {
         "product:price:amount": salePrice.toFixed(2),
-        "product:price:currency": "INR",
+        "product:price:currency": STORE_CURRENCY,
       },
     };
   } catch {
