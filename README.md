@@ -284,12 +284,21 @@ cd ../frontend && npm install
 
 ### Configure
 
+**Recommended — scaffold env + store config for your market** with
+[`create-shopverse-store`](packages/create-shopverse-store):
+
 ```bash
-cp .env.example .env
-# Edit .env — fill in DATABASE_URL, JWT_SECRET, STRIPE_SECRET_KEY, SMTP_*
+npx create-shopverse-store "Acme Outfitters" --currency=USD --country=US --locale=en-US
+# non-US example:
+# npx create-shopverse-store "Mumbai Mart" --currency=INR --country=IN --locale=en-IN --region=india --render
 ```
 
-Minimum required variables:
+It writes `backend/.env` (a dev-ready `JWT_SECRET` generated, secrets as
+`REPLACE_ME`), `frontend/.env.local` (your currency/locale baked in),
+`store.config.json`, and a `STORE_SETUP.md` checklist — optionally Railway
+/ Render deploy blueprints. Then fill in the `REPLACE_ME` secrets.
+
+Or set the variables by hand. Minimum required:
 
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/shopverse?connection_limit=30"

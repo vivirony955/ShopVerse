@@ -1,0 +1,50 @@
+{
+  "name": "create-shopverse-store",
+  "version": "0.1.0-alpha.1",
+  "description": "Bootstrap a ShopVerse store deployment — env files, store config, and deploy templates for your market. Run via `npx create-shopverse-store <name>`. Source-available under Business Source License 1.1.",
+  "license": "BUSL-1.1",
+  "author": "Vivek Negi <vivironycrazy@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/aiexperts/ecommWeb.git",
+    "directory": "packages/create-shopverse-store"
+  },
+  "homepage": "https://gitlab.com/aiexperts/ecommWeb/-/tree/main/packages/create-shopverse-store",
+  "bugs": {
+    "url": "https://gitlab.com/aiexperts/ecommWeb/-/issues"
+  },
+  "keywords": [
+    "shopverse",
+    "store",
+    "scaffolder",
+    "create",
+    "starter",
+    "ecommerce"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "create-shopverse-store": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.7",
+    "jest": "^29.7.0",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
