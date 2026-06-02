@@ -18,7 +18,7 @@ import { cartApi, usersApi, couponsApi, ordersApi, paymentsApi, experienceApi, d
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useCartStore } from "@/lib/store";
-import { calcDiscountedPrice, formatPrice, getProductImage, apiErrorMessage } from "@/lib/utils";
+import { calcDiscountedPrice, formatPrice, getProductImage, apiErrorMessage, STORE_LOCALE } from "@/lib/utils";
 import type { Address, CouponValidation } from "@/types";
 
 type Step = "address" | "review";
@@ -418,7 +418,7 @@ export default function CheckoutPage() {
       const data = await couponsApi.validate(couponCode, subtotal);
       if (data.valid) {
         setCouponData(data);
-        toast.success(`Coupon applied! ₹${data.discount} off`);
+        toast.success(`Coupon applied! ${formatPrice(data.discount)} off`);
       } else {
         toast.error("Invalid coupon code");
         setCouponData(null);
@@ -661,7 +661,7 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {deliverySlots.filter((s) => s.bookedCount < s.maxOrders).slice(0, 6).map((slot) => {
                       const dateObj = new Date(slot.date);
-                      const dayStr = dateObj.toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" });
+                      const dayStr = dateObj.toLocaleDateString(STORE_LOCALE, { weekday: "short", month: "short", day: "numeric" });
                       const spotsLeft = slot.maxOrders - slot.bookedCount;
                       return (
                         <button
@@ -726,7 +726,7 @@ export default function CheckoutPage() {
                       <p className="text-sm font-semibold text-emerald-800 flex items-center gap-1.5">
                         <Wallet className="h-4 w-4" />
                         Use Wallet Balance
-                        <span className="text-xs font-normal text-emerald-600 ml-1">₹{walletData.balance.toFixed(2)} available</span>
+                        <span className="text-xs font-normal text-emerald-600 ml-1">{formatPrice(walletData.balance)} available</span>
                       </p>
                     </div>
                   </label>
@@ -739,7 +739,7 @@ export default function CheckoutPage() {
                         step={0.01}
                         value={walletAmountInput}
                         onChange={(e) => setWalletAmountInput(e.target.value)}
-                        placeholder={`Max ₹${walletData.balance.toFixed(2)}`}
+                        placeholder={`Max ${formatPrice(walletData.balance)}`}
                         className="flex-1 px-3 py-2 border border-emerald-200 rounded-xl text-sm outline-none focus:border-emerald-400"
                       />
                       <button

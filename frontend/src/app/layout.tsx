@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: "ShopVerse — Premium Fashion & Lifestyle", template: "%s | ShopVerse" },
   description:
-    "Discover the latest in fashion, lifestyle, and accessories. Shop from thousands of brands with free shipping on orders above ₹499.",
-  keywords: ["fashion", "clothing", "shoes", "accessories", "online shopping", "India"],
+    "Discover the latest in fashion, lifestyle, and accessories. Shop from thousands of brands with free shipping on qualifying orders.",
+  keywords: ["fashion", "clothing", "shoes", "accessories", "online shopping"],
   openGraph: {
     type: "website",
     siteName: "ShopVerse",

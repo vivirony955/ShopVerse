@@ -17,7 +17,7 @@ import toast from "react-hot-toast";
 import { productsApi, cartApi, wishlistApi, reviewsApi, faqsApi, deliverySlotsApi, qaApi, priceHistoryApi, volumeDiscountsApi } from "@/lib/api";
 import { Slot } from "@/components/Slot";
 import { useWishlistStore, useRecentlyViewedStore } from "@/lib/store";
-import { calcDiscountedPrice, formatPrice, formatDate, getProductImage, apiErrorMessage } from "@/lib/utils";
+import { calcDiscountedPrice, formatPrice, formatDate, getProductImage, apiErrorMessage, STORE_LOCALE } from "@/lib/utils";
 import Rating from "@/components/ui/Rating";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import ProductCard from "@/components/product/ProductCard";
@@ -546,7 +546,7 @@ export default function ProductDetailPage() {
           {/* Trust badges */}
           <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 rounded-2xl mb-5">
             {[
-              { icon: Truck, text: "Free delivery above ₹499" },
+              { icon: Truck, text: "Free delivery on qualifying orders" },
               { icon: RotateCcw, text: "30-day easy returns" },
               { icon: Shield, text: "100% secure checkout" },
             ].map(({ icon: Icon, text }) => (
@@ -646,7 +646,7 @@ export default function ProductDetailPage() {
                 const barH = Math.max(8, (heightPct / 100) * 80);
                 const effectivePrice = h.price * (1 - h.discountPct / 100);
                 return (
-                  <div key={i} title={`₹${effectivePrice.toFixed(0)} on ${new Date(h.recordedAt).toLocaleDateString("en-IN")}`}
+                  <div key={i} title={`${formatPrice(effectivePrice)} on ${new Date(h.recordedAt).toLocaleDateString(STORE_LOCALE)}`}
                     className="flex-1 bg-violet-200 rounded-t hover:bg-violet-400 transition-colors cursor-pointer"
                     style={{ height: `${barH}px` }}
                   />
@@ -654,8 +654,8 @@ export default function ProductDetailPage() {
               })}
             </div>
             <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>{new Date(priceHistory[0].recordedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
-              <span>{new Date(priceHistory[priceHistory.length - 1].recordedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+              <span>{new Date(priceHistory[0].recordedAt).toLocaleDateString(STORE_LOCALE, { day: "numeric", month: "short" })}</span>
+              <span>{new Date(priceHistory[priceHistory.length - 1].recordedAt).toLocaleDateString(STORE_LOCALE, { day: "numeric", month: "short" })}</span>
             </div>
           </div>
         </section>
@@ -675,7 +675,7 @@ export default function ProductDetailPage() {
                   <p className="text-sm text-slate-600 mt-2 pl-3 border-l-2 border-violet-300">A: {q.answer}</p>
                 )}
                 <p className="text-xs text-slate-400 mt-2">
-                  {q.user?.firstName ? `Asked by ${q.user.firstName}` : "Anonymous"} · {new Date(q.createdAt).toLocaleDateString("en-IN")}
+                  {q.user?.firstName ? `Asked by ${q.user.firstName}` : "Anonymous"} · {new Date(q.createdAt).toLocaleDateString(STORE_LOCALE)}
                 </p>
               </div>
             ))}

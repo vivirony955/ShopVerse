@@ -108,7 +108,7 @@ export default function RefundApprovalsPage() {
           <AlertCircle className="h-7 w-7 text-amber-500" />
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Refund Approvals</h1>
-            <p className="text-sm text-slate-400">High-value refunds (≥ ₹5,000) require FINANCE approval</p>
+            <p className="text-sm text-slate-400">High-value refunds (≥ {formatPrice(5000)}) require FINANCE approval</p>
           </div>
         </div>
         <button

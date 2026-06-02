@@ -6,16 +6,17 @@ import { useQuery } from "@tanstack/react-query";
 import { X, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { categoriesApi, brandsApi } from "@/lib/api";
+import { STORE_CURRENCY_SYMBOL as SYM } from "@/lib/utils";
 import type { ProductFilters } from "@/types";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38", "40", "42"];
 const COLORS = ["Black", "White", "Red", "Blue", "Green", "Yellow", "Pink", "Purple", "Grey", "Brown", "Navy", "Beige"];
 const PRICE_RANGES = [
-  { label: "Under ₹500", min: 0, max: 500 },
-  { label: "₹500 – ₹1,000", min: 500, max: 1000 },
-  { label: "₹1,000 – ₹2,000", min: 1000, max: 2000 },
-  { label: "₹2,000 – ₹5,000", min: 2000, max: 5000 },
-  { label: "Above ₹5,000", min: 5000, max: undefined },
+  { label: `Under ${SYM}500`, min: 0, max: 500 },
+  { label: `${SYM}500 – ${SYM}1,000`, min: 500, max: 1000 },
+  { label: `${SYM}1,000 – ${SYM}2,000`, min: 1000, max: 2000 },
+  { label: `${SYM}2,000 – ${SYM}5,000`, min: 2000, max: 5000 },
+  { label: `Above ${SYM}5,000`, min: 5000, max: undefined },
 ];
 
 interface Props {

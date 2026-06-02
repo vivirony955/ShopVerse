@@ -8,6 +8,7 @@ import { ShoppingCart, Search, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 import { adminApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { formatPrice } from "@/lib/utils";
 import type { Order } from "@/types";
 
 const STATUSES = [
@@ -133,7 +134,7 @@ export default function AdminOrdersPage() {
                     {order.user?.email ?? order.guestEmail ?? "Guest"}
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-slate-800">
-                    ₹{order.total.toFixed(2)}
+                    {formatPrice(order.total)}
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">{order.paymentMethod}</td>
                   <td className="px-4 py-3">

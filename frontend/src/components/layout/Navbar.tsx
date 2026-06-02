@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { cartApi, wishlistApi, categoriesApi, productsApi, notificationsApi } from "@/lib/api";
 import { useDebounce } from "@/lib/useDebounce";
 import { useDarkMode } from "@/lib/useDarkMode";
+import { formatPrice, STORE_LOCALE } from "@/lib/utils";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -68,7 +69,7 @@ export default function Navbar() {
     const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) return;
     const recognition = new Ctor();
-    recognition.lang = "en-IN";
+    recognition.lang = STORE_LOCALE;
     recognition.onstart = () => setIsListening(true);
     recognition.onresult = (e) => {
       const transcript = e.results[0][0].transcript;
@@ -477,7 +478,7 @@ export default function Navbar() {
                               <div className="flex items-center gap-2">
                                 {salePrice != null && (
                                   <span className="text-xs font-semibold text-slate-900">
-                                    {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0 }).format(salePrice)}
+                                    {formatPrice(salePrice)}
                                   </span>
                                 )}
                                 {s.discountPct ? (

@@ -28,6 +28,7 @@ import {
 import { adminApi } from "@/lib/api";
 import type { Order } from "@/types";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { formatPrice, STORE_CURRENCY_SYMBOL } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-700",
@@ -75,7 +76,7 @@ function RecentOrderRow({ order }: { order: Order }) {
         </p>
       </div>
       <div className="text-right">
-        <p className="text-sm font-bold text-slate-900">₹{order.total.toFixed(2)}</p>
+        <p className="text-sm font-bold text-slate-900">{formatPrice(order.total)}</p>
         <span
           className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
             STATUS_COLORS[order.status] ?? "bg-slate-100 text-slate-600"
@@ -161,7 +162,7 @@ function AdminDashboardContent() {
           <StatCard
             icon={TrendingUp}
             label="Total Revenue"
-            value={`₹${((stats?.totalRevenue ?? 0) / 1000).toFixed(1)}K`}
+            value={`${STORE_CURRENCY_SYMBOL}${((stats?.totalRevenue ?? 0) / 1000).toFixed(1)}K`}
             color="bg-green-50 text-green-600"
           />
           <StatCard

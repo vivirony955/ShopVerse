@@ -9,6 +9,7 @@ import Image from "next/image";
 import { ChevronLeft } from "lucide-react";
 import { blogApi } from "@/lib/api";
 import { PageSkeleton } from "@/components/ui/Skeleton";
+import { STORE_LOCALE } from "@/lib/utils";
 
 export default function BlogPostPage() {
   const params = useParams<{ slug: string }>();
@@ -48,7 +49,7 @@ export default function BlogPostPage() {
 
       <p className="text-sm text-slate-400 mb-8">
         By {post.author?.firstName} {post.author?.lastName}
-        {post.publishedAt && ` · ${new Date(post.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}`}
+        {post.publishedAt && ` · ${new Date(post.publishedAt).toLocaleDateString(STORE_LOCALE, { day: "numeric", month: "long", year: "numeric" })}`}
       </p>
 
       {/* Render content as HTML safely */}

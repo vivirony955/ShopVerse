@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tag, Plus, Trash2, ToggleLeft, ToggleRight, X } from "lucide-react";
 import { adminCouponsApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { formatDate, apiErrorMessage } from "@/lib/utils";
+import { formatDate, formatPrice, apiErrorMessage, STORE_CURRENCY_SYMBOL } from "@/lib/utils";
 
 interface Coupon {
   id: number;
@@ -63,7 +63,7 @@ function CreateCouponModal({ onClose }: { onClose: () => void }) {
               <select className="mt-1 block w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"
                 value={form.discountType} onChange={e => setForm(f => ({ ...f, discountType: e.target.value as "PERCENTAGE" | "FIXED" }))}>
                 <option value="PERCENTAGE">Percentage (%)</option>
-                <option value="FIXED">Fixed (₹)</option>
+                <option value="FIXED">Fixed ({STORE_CURRENCY_SYMBOL})</option>
               </select>
             </div>
             <div>
@@ -74,7 +74,7 @@ function CreateCouponModal({ onClose }: { onClose: () => void }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Min Order (₹)</label>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Min Order ({STORE_CURRENCY_SYMBOL})</label>
               <input type="number" min="0" className="mt-1 block w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"
                 value={form.minOrderAmount} onChange={e => setForm(f => ({ ...f, minOrderAmount: e.target.value }))} placeholder="0" />
             </div>
@@ -165,10 +165,10 @@ export default function AdminCouponsPage() {
                     <span className="font-mono font-bold text-slate-800 text-sm bg-slate-100 px-2 py-0.5 rounded">{c.code}</span>
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-700">
-                    {c.discountType === "PERCENTAGE" ? `${c.discountValue}%` : `₹${c.discountValue}`} off
+                    {c.discountType === "PERCENTAGE" ? `${c.discountValue}%` : formatPrice(c.discountValue)} off
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
-                    {c.minOrderAmount ? `₹${c.minOrderAmount}` : "—"}
+                    {c.minOrderAmount ? formatPrice(c.minOrderAmount) : "—"}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {c.usedCount}{c.maxUses ? ` / ${c.maxUses}` : ""}

@@ -45,7 +45,7 @@ const HERO_CATEGORIES = [
 ];
 
 const FEATURES = [
-  { icon: Truck,    title: "Free Shipping",      desc: "On orders above ₹499" },
+  { icon: Truck,    title: "Free Shipping",      desc: "On all qualifying orders" },
   { icon: RotateCcw,title: "Easy Returns",       desc: "30-day hassle-free returns" },
   { icon: Shield,   title: "Secure Payment",     desc: "100% secure transactions" },
   { icon: Sparkles, title: "Authentic Products", desc: "Genuine brand guarantee" },

@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { blogApi } from "@/lib/api";
 import { PageSkeleton } from "@/components/ui/Skeleton";
+import { STORE_LOCALE } from "@/lib/utils";
 
 export default function BlogListPage() {
   const { data: posts, isLoading } = useQuery({
@@ -41,7 +42,7 @@ export default function BlogListPage() {
                 <h2 className="font-bold text-slate-900 group-hover:text-violet-600 transition-colors line-clamp-2">{post.title}</h2>
                 {post.excerpt && <p className="text-sm text-slate-500 mt-1 line-clamp-2">{post.excerpt}</p>}
                 <p className="text-xs text-slate-400 mt-3">
-                  {post.author?.firstName} {post.author?.lastName} · {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                  {post.author?.firstName} {post.author?.lastName} · {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString(STORE_LOCALE, { day: "numeric", month: "short", year: "numeric" }) : ""}
                 </p>
               </div>
             </Link>

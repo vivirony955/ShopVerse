@@ -17,6 +17,25 @@ export function cn(...inputs: ClassValue[]) {
 export const STORE_CURRENCY = process.env.NEXT_PUBLIC_STORE_CURRENCY ?? "USD";
 export const STORE_LOCALE = process.env.NEXT_PUBLIC_STORE_LOCALE ?? "en-US";
 
+/**
+ * The store currency's symbol (e.g. "$", "₹", "€"), derived once from
+ * STORE_CURRENCY/STORE_LOCALE. Use for static labels like "Base Price ($)"
+ * where there is no amount to format; use formatPrice() for actual amounts.
+ */
+export const STORE_CURRENCY_SYMBOL: string = (() => {
+  try {
+    const part = new Intl.NumberFormat(STORE_LOCALE, {
+      style: "currency",
+      currency: STORE_CURRENCY,
+    })
+      .formatToParts(0)
+      .find((p) => p.type === "currency");
+    return part?.value ?? STORE_CURRENCY;
+  } catch {
+    return STORE_CURRENCY;
+  }
+})();
+
 export function formatPrice(amount: number): string {
   return formatCurrency(amount, STORE_CURRENCY, STORE_LOCALE);
 }

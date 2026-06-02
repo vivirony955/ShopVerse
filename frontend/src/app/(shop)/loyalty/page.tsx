@@ -7,12 +7,12 @@ import { useState } from "react";
 import { Star, TrendingUp, ArrowUpRight, ArrowDownLeft, Gift, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import { loyaltyApi, loyaltyTiersApi } from "@/lib/api";
-import { apiErrorMessage } from "@/lib/utils";
+import { apiErrorMessage, formatPrice } from "@/lib/utils";
 import type { LoyaltyTransaction, LoyaltyTier } from "@/types";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
 
-const POINT_VALUE = 0.5; // ₹0.50 per point
+const POINT_VALUE = 0.5; // store-currency value of one loyalty point
 
 const TYPE_META: Record<string, { icon: typeof Star; color: string; label: string }> = {
   EARN: { icon: ArrowDownLeft, color: "text-green-600 bg-green-50", label: "Earned" },
@@ -38,7 +38,7 @@ export default function LoyaltyPage() {
   const redeemMutation = useMutation({
     mutationFn: () => loyaltyApi.redeem(Number(redeemPoints)),
     onSuccess: (res) => {
-      toast.success(`Redeemed! ₹${res.discountAmount?.toFixed(2)} credit applied`);
+      toast.success(`Redeemed! ${formatPrice(res.discountAmount ?? 0)} credit applied`);
       qc.invalidateQueries({ queryKey: ["loyalty"] });
       setRedeemPoints("");
     },
@@ -49,7 +49,7 @@ export default function LoyaltyPage() {
   const { data: tiers } = useQuery({ queryKey: ["loyalty-tiers"], queryFn: loyaltyTiersApi.getAll });
 
   const pts = balance?.points ?? 0;
-  const rupees = (pts * POINT_VALUE).toFixed(2);
+  const redeemValue = pts * POINT_VALUE;
 
   const currentTier =
     tiers?.slice().sort((a: LoyaltyTier, b: LoyaltyTier) => b.minPoints - a.minPoints).find((t) => pts >= t.minPoints) ?? null;
@@ -102,7 +102,7 @@ export default function LoyaltyPage() {
         ) : (
           <>
             <p className="text-4xl font-extrabold">{pts.toLocaleString()} pts</p>
-            <p className="text-sm opacity-80 mt-1">≈ ₹{rupees} discount value</p>
+            <p className="text-sm opacity-80 mt-1">≈ {formatPrice(redeemValue)} discount value</p>
           </>
         )}
       </div>
@@ -114,7 +114,7 @@ export default function LoyaltyPage() {
           <h2 className="font-bold text-slate-800">Redeem Points</h2>
         </div>
         <p className="text-sm text-slate-500 mb-4">
-          Each point = ₹{POINT_VALUE}. Minimum redemption: 100 points.
+          Each point = {formatPrice(POINT_VALUE)}. Minimum redemption: 100 points.
         </p>
         <div className="flex gap-3">
           <input
@@ -135,7 +135,7 @@ export default function LoyaltyPage() {
         </div>
         {redeemPoints && Number(redeemPoints) >= 100 && (
           <p className="text-xs text-green-600 mt-2">
-            → ₹{(Number(redeemPoints) * POINT_VALUE).toFixed(2)} off your next order
+            → {formatPrice(Number(redeemPoints) * POINT_VALUE)} off your next order
           </p>
         )}
       </div>
@@ -144,7 +144,7 @@ export default function LoyaltyPage() {
       <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 mb-6">
         <h3 className="font-bold text-slate-800 mb-3 text-sm">How to earn points</h3>
         <ul className="space-y-2 text-sm text-slate-600">
-          <li className="flex items-center gap-2"><span className="text-amber-500 font-bold">+1pt</span> per ₹10 spent on any order</li>
+          <li className="flex items-center gap-2"><span className="text-amber-500 font-bold">+1pt</span> per {formatPrice(10)} spent on any order</li>
           <li className="flex items-center gap-2"><span className="text-amber-500 font-bold">+200pts</span> when a friend signs up with your referral code</li>
           <li className="flex items-center gap-2"><span className="text-amber-500 font-bold">+100pts</span> for writing a product review</li>
         </ul>

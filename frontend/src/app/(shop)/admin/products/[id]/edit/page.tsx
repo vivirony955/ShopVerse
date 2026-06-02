@@ -7,7 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi, categoriesApi, brandsApi } from "@/lib/api";
-import { apiErrorMessage } from "@/lib/utils";
+import { apiErrorMessage, STORE_CURRENCY_SYMBOL } from "@/lib/utils";
 import type { Product, ProductsResponse, Variant as ProductVariant } from "@/types";
 import toast from "react-hot-toast";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
@@ -148,7 +148,7 @@ export default function EditProductPage() {
             <div className="bg-white rounded-2xl border border-slate-100 p-5">
               <h2 className="font-semibold text-slate-900 mb-4">Pricing</h2>
               <div className="grid grid-cols-2 gap-4">
-                {field("basePrice", "Base Price (₹)", "number", true)}
+                {field("basePrice", `Base Price (${STORE_CURRENCY_SYMBOL})`, "number", true)}
                 {field("discountPct", "Discount %", "number")}
               </div>
             </div>
