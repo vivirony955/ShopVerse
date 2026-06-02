@@ -105,13 +105,14 @@ export class OrdersService {
     taxableAmount: number,
     currency: string,
     fallbackRate: number,
+    shippingAddress: ReadOnlyAddress | null,
   ): Promise<number> {
     const strategy = this.strategies.getSingle('TaxStrategy');
     if (strategy) {
       const { amount } = await strategy.compute({
         taxableAmount,
         currency,
-        shippingAddress: null,
+        shippingAddress,
         userId: null,
       });
       return Math.round(amount * 100) / 100;
@@ -202,6 +203,16 @@ export class OrdersService {
       );
     }
     // T-P01 FIX: shipping and tax computed server-side — never trusted from client
+    const shippingAddress: ReadOnlyAddress = {
+      id: address.id,
+      fullName: address.fullName,
+      line1: address.line1,
+      line2: address.line2 ?? null,
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+      country: address.country,
+    };
     const store = await this.getStoreConfig();
     const taxableAmount = subtotal - discountAmount;
     const shippingFee =
@@ -210,6 +221,7 @@ export class OrdersService {
       taxableAmount,
       store.currency,
       store.taxRate,
+      shippingAddress,
     );
     const total = taxableAmount + shippingFee + taxAmount;
 
@@ -668,7 +680,10 @@ export class OrdersService {
         subtotal,
       );
     }
-    // T-O03 FIX: shipping and tax server-authoritative for guest orders too
+    // T-O03 FIX: shipping and tax server-authoritative for guest orders too.
+    // Guest address is a JSON snapshot; pass null (region tax strategies fall
+    // back to their default rate when the destination isn't structured).
+    const shippingAddress: ReadOnlyAddress | null = null;
     const store = await this.getStoreConfig();
     const taxableAmount = subtotal - discountAmount;
     const shippingFee =
@@ -677,6 +692,7 @@ export class OrdersService {
       taxableAmount,
       store.currency,
       store.taxRate,
+      shippingAddress,
     );
     const total = taxableAmount + shippingFee + taxAmount;
 

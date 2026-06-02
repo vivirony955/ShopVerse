@@ -73,6 +73,16 @@ const pluginsConfig: PluginManifest = {
       workspacePath: './plugins/shopverse-india/src',
       enabled: true,
     },
+    {
+      // US region pack — destination-based (per-state) sales-tax TaxStrategy.
+      // DISABLED by default: TaxStrategy is single-mode, so only one region
+      // pack may be active. A US operator sets enabled:true here and
+      // enabled:false on plugin-india above.
+      id: '@shopverse/plugin-us',
+      source: 'workspace',
+      workspacePath: './plugins/shopverse-us/src',
+      enabled: false,
+    },
   ],
 };
 
