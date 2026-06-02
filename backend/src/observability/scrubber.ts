@@ -26,11 +26,13 @@ const PII_KEY_RX =
   /^(email|phone|firstName|lastName|fullName|name|line1|line2|address|addressSnapshot|city|state|pincode|guestEmail|amount|password|token|secret|cardNumber|cvv|authorization|cookie|set-cookie|refreshToken|accessToken|otp|jwt)$/i;
 
 const EMAIL_RX = /[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi;
-// Best-effort international phone pattern for the free-text fallback (the
-// `phone` FIELD is already redacted by PII_KEY_RX). Optional country code +
-// 8–15 digits with common separators. Runs AFTER CARD_RX so card numbers are
-// redacted first and not mistaken for a phone run.
-const PHONE_RX = /\+?\d[\d\s().-]{7,13}\d/g;
+// Best-effort phone pattern for the free-text fallback (the `phone` FIELD is
+// already redacted by PII_KEY_RX). Matches international (+CC …) and
+// separator-formatted national numbers, but deliberately NOT bare digit runs —
+// globally those are ambiguous IDs (order/tracking/GSTIN) and would
+// false-positive. Runs AFTER CARD_RX so card numbers redact first.
+const PHONE_RX =
+  /\+\d[\d\s().-]{6,14}\d|\b\d{2,5}[\s.-]\d{3,5}(?:[\s.-]\d{2,5})?\b/g;
 // Defence in depth: card numbers should never reach the backend (Stripe-hosted)
 // but if they ever do (e.g. via a misconfigured form), redact in transit.
 // Pattern: 13–19 digits with optional space/dash separators, anchored on a

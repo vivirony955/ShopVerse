@@ -122,6 +122,32 @@ export async function cleanDatabase(): Promise<void> {
   await prisma.pincodeServiceability.deleteMany().catch(ignoreMissingTable);
   await prisma.deliverySlot.deleteMany().catch(ignoreMissingTable);
   await prisma.$executeRaw`DELETE FROM "InvoiceSequence"`.catch(ignoreMissingTable);
+
+  // Globalization: ensure the store is configured for every test. Integration
+  // tests assume the India dev store (INR + 18% GST + 500/49 shipping) so the
+  // legacy amount/tax expectations hold after the de-India refactor.
+  await prisma.storeSettings.upsert({
+    where: { id: 1 },
+    update: {
+      currency: 'INR',
+      country: 'IN',
+      locale: 'en-IN',
+      region: 'india',
+      taxRate: 0.18,
+      freeShippingThreshold: 500,
+      shippingFee: 49,
+    },
+    create: {
+      id: 1,
+      currency: 'INR',
+      country: 'IN',
+      locale: 'en-IN',
+      region: 'india',
+      taxRate: 0.18,
+      freeShippingThreshold: 500,
+      shippingFee: 49,
+    },
+  });
 }
 
 // ─── Seed helpers ─────────────────────────────────────────────────────────────
@@ -256,6 +282,7 @@ export async function createAddress(userId: number) {
       line1: '123 Test Street',
       city: 'Mumbai',
       state: 'Maharashtra',
+      country: 'IN',
       pincode: '400001',
       isDefault: true,
     },

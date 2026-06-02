@@ -45,15 +45,17 @@ describe('Observability — PII scrubber (unit)', () => {
       ).toBe('from [email] to [email]');
     });
 
-    it('redacts an Indian 10-digit mobile starting with 6-9', () => {
-      expect(scrubString('call me at 9876543210 today')).toBe(
+    it('redacts an international / separator-formatted phone number', () => {
+      expect(scrubString('call me at +91 98765 43210 today')).toBe(
         'call me at [phone] today',
       );
     });
 
-    it('does NOT redact 10-digit numbers starting with 0-5', () => {
-      // These are not Indian-mobile-pattern; leave as-is (could be GSTIN,
-      // tracking ID, order number, etc.).
+    it('does NOT redact bare digit runs (order/tracking/GSTIN IDs)', () => {
+      // Global mode: bare digit runs are ambiguous (order numbers, tracking
+      // IDs, GSTIN, etc.) and are NOT auto-redacted from free text. The `phone`
+      // FIELD is always redacted by PII_KEY_RX; formatted/international numbers
+      // are caught by PHONE_RX.
       expect(scrubString('order 1234567890 shipped')).toBe(
         'order 1234567890 shipped',
       );

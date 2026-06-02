@@ -27,7 +27,7 @@ describe('Delivery — Integration', () => {
   describe('GET /api/delivery/check', () => {
     it('DEL-H01: returns correct serviceability for a known pincode', async () => {
       await prisma.pincodeServiceability.create({
-        data: { pincode: '110001', isServiceable: true, estimateDays: 3, courier: 'BlueDart' },
+        data: { country: 'IN', pincode: '110001', isServiceable: true, estimateDays: 3, courier: 'BlueDart' },
       });
 
       const res = await request(app.getHttpServer())
@@ -44,7 +44,7 @@ describe('Delivery — Integration', () => {
 
     it('DEL-H02: returns isServiceable=false for explicitly non-serviceable pincode', async () => {
       await prisma.pincodeServiceability.create({
-        data: { pincode: '999999', isServiceable: false, estimateDays: 5 },
+        data: { country: 'IN', pincode: '999999', isServiceable: false, estimateDays: 5 },
       });
 
       const res = await request(app.getHttpServer())
@@ -82,8 +82,8 @@ describe('Delivery — Integration', () => {
 
       await prisma.pincodeServiceability.createMany({
         data: [
-          { pincode: '110001', isServiceable: true, estimateDays: 3 },
-          { pincode: '400001', isServiceable: true, estimateDays: 2 },
+          { country: 'IN', pincode: '110001', isServiceable: true, estimateDays: 3 },
+          { country: 'IN', pincode: '400001', isServiceable: true, estimateDays: 2 },
         ],
       });
 
@@ -134,7 +134,7 @@ describe('Delivery — Integration', () => {
       const { access_token } = await loginAs(app, admin.email, 'Test@1234');
 
       await prisma.pincodeServiceability.create({
-        data: { pincode: '110001', isServiceable: true, estimateDays: 7 },
+        data: { country: 'IN', pincode: '110001', isServiceable: true, estimateDays: 7 },
       });
 
       await request(app.getHttpServer())
@@ -146,7 +146,7 @@ describe('Delivery — Integration', () => {
       const count = await prisma.pincodeServiceability.count({ where: { pincode: '110001' } });
       expect(count).toBe(1);
 
-      const record = await prisma.pincodeServiceability.findUnique({ where: { pincode: '110001' } });
+      const record = await prisma.pincodeServiceability.findUnique({ where: { country_pincode: { country: 'IN', pincode: '110001' } } });
       expect(record?.isServiceable).toBe(false);
     });
 
