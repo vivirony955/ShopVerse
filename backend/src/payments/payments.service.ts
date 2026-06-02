@@ -16,6 +16,7 @@ import { InvoicesService } from '../invoices/invoices.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { EventBus } from '../common/event-bus.service';
 import { HookRunner } from '../common/hook-runner.service';
+import { PluginStrategyRegistry } from '../common/plugin-strategy.registry';
 import type { ReadOnlyOrder, ReadOnlyPaymentIntent } from '@shopverse/sdk';
 import Stripe from 'stripe';
 
@@ -33,6 +34,7 @@ export class PaymentsService {
     private readonly loyaltyService: LoyaltyService,
     private readonly eventBus: EventBus,
     private readonly hookRunner: HookRunner,
+    private readonly strategies: PluginStrategyRegistry,
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
@@ -95,6 +97,48 @@ export class PaymentsService {
     return Math.round(amount * 100);
   }
 
+  /** Map a kernel Order (+ its items) to the read-only projection plugins see. */
+  private static toReadOnlyOrder(
+    o: {
+      id: number;
+      userId: number | null;
+      guestEmail: string | null;
+      subtotal: number;
+      discountAmount: number;
+      shippingFee: number;
+      taxAmount: number;
+      total: number;
+      status: string;
+      paymentStatus: string;
+    },
+    items: ReadonlyArray<{
+      id: number;
+      variantId: number;
+      quantity: number;
+      price: number;
+    }>,
+  ): ReadOnlyOrder {
+    return {
+      id: o.id,
+      userId: o.userId,
+      guestEmail: o.guestEmail,
+      subtotal: o.subtotal,
+      discountAmount: o.discountAmount,
+      shippingFee: o.shippingFee,
+      taxAmount: o.taxAmount,
+      total: o.total,
+      status: o.status,
+      paymentStatus: o.paymentStatus,
+      items: items.map((i) => ({
+        id: i.id,
+        variantId: i.variantId,
+        quantity: i.quantity,
+        unitPrice: i.price,
+        totalPrice: Math.round(i.price * i.quantity * 100) / 100,
+      })),
+    };
+  }
+
   async createPaymentIntent(
     userId: number,
     orderId: number,
@@ -109,6 +153,29 @@ export class PaymentsService {
 
     // Currency comes from the order snapshot (set at placement from store config).
     const cur = (currency ?? order.currency ?? 'usd').toLowerCase();
+
+    // A registered PaymentGatewayStrategy (regional gateway plugin — e.g.
+    // Razorpay/Mercado Pago) handles the intent; otherwise the kernel's Stripe
+    // path below runs. The webhook router (PluginPaymentWebhookController)
+    // already dispatches that gateway's callbacks.
+    const gateway = this.strategies.getSingle('PaymentGatewayStrategy');
+    if (gateway) {
+      const items = await this.prisma.orderItem.findMany({
+        where: { orderId },
+      });
+      const res = await gateway.createIntent({
+        order: PaymentsService.toReadOnlyOrder(order, items),
+        amount: PaymentsService.toMinorUnits(order.total, cur),
+        currency: cur,
+        metadata: { orderId: orderId.toString(), userId: userId.toString() },
+      });
+      await this.prisma.order.update({
+        where: { id: orderId },
+        data: { paymentId: res.id },
+      });
+      return { clientSecret: res.clientSecret, amount: order.total };
+    }
+
     // FINAL §6.3: idempotency key prevents duplicate intents on client retry (B-11).
     const paymentIntent = await this.stripe.paymentIntents.create(
       {

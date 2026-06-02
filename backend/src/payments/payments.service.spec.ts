@@ -20,6 +20,7 @@ import { InvoicesService } from '../invoices/invoices.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { EventBus } from '../common/event-bus.service';
 import { HookRunner } from '../common/hook-runner.service';
+import { PluginStrategyRegistry } from '../common/plugin-strategy.registry';
 import { createPrismaMock, MockPrisma } from '../test-utils/prisma.mock';
 
 describe('PaymentsService', () => {
@@ -58,6 +59,10 @@ describe('PaymentsService', () => {
       .fn()
       .mockResolvedValue({ rejected: false, rejectReason: null, outcomes: [] }),
   };
+  // No gateway plugin registered → payments take the kernel Stripe path.
+  const mockStrategies = {
+    getSingle: jest.fn().mockReturnValue(null),
+  };
 
   beforeEach(async () => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
@@ -88,6 +93,7 @@ describe('PaymentsService', () => {
         { provide: LoyaltyService, useValue: mockLoyaltyService },
         { provide: EventBus, useValue: mockEventBus },
         { provide: HookRunner, useValue: mockHookRunner },
+        { provide: PluginStrategyRegistry, useValue: mockStrategies },
       ],
     }).compile();
 
