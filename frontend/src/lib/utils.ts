@@ -3,18 +3,22 @@
 
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatCurrency } from "@shopverse/sdk-frontend";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Store currency + locale — single-currency-per-store, baked at build time.
+ * Set NEXT_PUBLIC_STORE_CURRENCY (ISO 4217) and NEXT_PUBLIC_STORE_LOCALE
+ * (BCP 47) per deployment; defaults are global (USD / en-US).
+ */
+export const STORE_CURRENCY = process.env.NEXT_PUBLIC_STORE_CURRENCY ?? "USD";
+export const STORE_LOCALE = process.env.NEXT_PUBLIC_STORE_LOCALE ?? "en-US";
+
 export function formatPrice(amount: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return formatCurrency(amount, STORE_CURRENCY, STORE_LOCALE);
 }
 
 export function calcDiscountedPrice(base: number, discountPct: number): number {
@@ -22,7 +26,7 @@ export function calcDiscountedPrice(base: number, discountPct: number): number {
 }
 
 export function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat("en-IN", {
+  return new Intl.DateTimeFormat(STORE_LOCALE, {
     day: "numeric",
     month: "short",
     year: "numeric",

@@ -2,7 +2,7 @@
 // See LICENSE in the project root for license information.
 
 import type { Product } from "@/types";
-import { calcDiscountedPrice } from "@/lib/utils";
+import { calcDiscountedPrice, STORE_CURRENCY } from "@/lib/utils";
 
 export function ProductJsonLd({
   product,
@@ -48,7 +48,7 @@ export function ProductJsonLd({
       activePrices && activePrices.length > 1
         ? {
             "@type": "AggregateOffer",
-            priceCurrency: "INR",
+            priceCurrency: STORE_CURRENCY,
             lowPrice: Math.min(...activePrices).toFixed(2),
             highPrice: Math.max(...activePrices).toFixed(2),
             offerCount: activePrices.length,
@@ -57,7 +57,7 @@ export function ProductJsonLd({
           }
         : {
             "@type": "Offer",
-            priceCurrency: "INR",
+            priceCurrency: STORE_CURRENCY,
             price: salePrice.toFixed(2),
             priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
             availability: inStock
