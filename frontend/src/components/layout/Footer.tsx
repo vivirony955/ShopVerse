@@ -117,8 +117,24 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-4">
             <span className="text-slate-500 text-xs">🔒 Secure Checkout</span>
-            <span className="text-slate-500 text-xs">🚚 Free Shipping ₹499+</span>
+            <span className="text-slate-500 text-xs">🚚 Free Shipping</span>
             <span className="text-slate-500 text-xs">↩️ Easy Returns</span>
+            {/*
+              "Powered by ShopVerse" attribution — the adoption / k-factor loop.
+              Required on the free tier (BSL); removable only via a commercial
+              white-label license, which sets NEXT_PUBLIC_HIDE_POWERED_BY=true.
+            */}
+            {process.env.NEXT_PUBLIC_HIDE_POWERED_BY !== "true" && (
+              <a
+                href="https://github.com/vivironycrazy/shopverse"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-500 hover:text-violet-400 text-xs font-medium transition-colors"
+                aria-label="Powered by ShopVerse"
+              >
+                ⚡ Powered by ShopVerse
+              </a>
+            )}
           </div>
         </div>
       </div>
