@@ -534,6 +534,8 @@ evolution programme that delivered the plugin model is captured in
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting |
 | [GOVERNANCE.md](GOVERNANCE.md) | Decision-making and maintainers |
 | [COMMERCIAL_USAGE.md](COMMERCIAL_USAGE.md) | What counts as commercial use |
+| [PARTNERS.md](PARTNERS.md) | Agency / consultancy partner program |
+| [BOUNTIES.md](BOUNTIES.md) | Get paid to build region packs, gateways, features |
 
 ---
 
