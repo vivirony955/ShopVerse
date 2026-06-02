@@ -19,6 +19,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { WalletService } from '../wallet/wallet.service';
 import { EventBus } from '../common/event-bus.service';
 import { HookRunner } from '../common/hook-runner.service';
+import { PluginStrategyRegistry } from '../common/plugin-strategy.registry';
 import { createPrismaMock, MockPrisma } from '../test-utils/prisma.mock';
 
 describe('OrdersService', () => {
@@ -67,6 +68,10 @@ describe('OrdersService', () => {
       .fn()
       .mockResolvedValue({ rejected: false, rejectReason: null, outcomes: [] }),
   };
+  // No TaxStrategy registered → orders fall back to the flat StoreSettings.taxRate.
+  const mockStrategies = {
+    getSingle: jest.fn().mockReturnValue(null),
+  };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
@@ -84,6 +89,7 @@ describe('OrdersService', () => {
         { provide: WalletService, useValue: mockWalletService },
         { provide: EventBus, useValue: mockEventBus },
         { provide: HookRunner, useValue: mockHookRunner },
+        { provide: PluginStrategyRegistry, useValue: mockStrategies },
       ],
     }).compile();
 

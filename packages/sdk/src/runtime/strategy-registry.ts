@@ -41,6 +41,7 @@ const EXPECTED_MODE: Readonly<Record<StrategyType, StrategyMode>> = {
   ShippingCarrierStrategy: 'single',
   EarnRuleStrategy: 'composable',
   InvoiceFormatStrategy: 'single',
+  TaxStrategy: 'single',
 };
 
 export class StrategyConflictError extends Error {

@@ -24,6 +24,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { WalletService } from '../wallet/wallet.service';
 import { EventBus } from '../common/event-bus.service';
 import { HookRunner } from '../common/hook-runner.service';
+import { PluginStrategyRegistry } from '../common/plugin-strategy.registry';
 import type {
   ReadOnlyCart,
   ReadOnlyAddress,
@@ -49,6 +50,7 @@ export class OrdersService {
     private readonly walletService: WalletService,
     private readonly eventBus: EventBus,
     private readonly hookRunner: HookRunner,
+    private readonly strategies: PluginStrategyRegistry,
   ) {}
 
   /**
@@ -93,6 +95,28 @@ export class OrdersService {
       freeShippingThreshold: s?.freeShippingThreshold ?? 0,
       shippingFee: s?.shippingFee ?? 0,
     };
+  }
+
+  /**
+   * Compute tax. A registered TaxStrategy (region pack — e.g. shopverse-us via
+   * Stripe Tax) wins; otherwise fall back to the flat StoreSettings.taxRate.
+   */
+  private async computeTax(
+    taxableAmount: number,
+    currency: string,
+    fallbackRate: number,
+  ): Promise<number> {
+    const strategy = this.strategies.getSingle('TaxStrategy');
+    if (strategy) {
+      const { amount } = await strategy.compute({
+        taxableAmount,
+        currency,
+        shippingAddress: null,
+        userId: null,
+      });
+      return Math.round(amount * 100) / 100;
+    }
+    return Math.round(taxableAmount * fallbackRate * 100) / 100;
   }
 
   async placeOrder(
@@ -182,7 +206,11 @@ export class OrdersService {
     const taxableAmount = subtotal - discountAmount;
     const shippingFee =
       taxableAmount >= store.freeShippingThreshold ? 0 : store.shippingFee;
-    const taxAmount = Math.round(taxableAmount * store.taxRate * 100) / 100;
+    const taxAmount = await this.computeTax(
+      taxableAmount,
+      store.currency,
+      store.taxRate,
+    );
     const total = taxableAmount + shippingFee + taxAmount;
 
     // F1-15: Validate and clamp wallet deduction
@@ -645,7 +673,11 @@ export class OrdersService {
     const taxableAmount = subtotal - discountAmount;
     const shippingFee =
       taxableAmount >= store.freeShippingThreshold ? 0 : store.shippingFee;
-    const taxAmount = Math.round(taxableAmount * store.taxRate * 100) / 100;
+    const taxAmount = await this.computeTax(
+      taxableAmount,
+      store.currency,
+      store.taxRate,
+    );
     const total = taxableAmount + shippingFee + taxAmount;
 
     const order = await this.prisma.$transaction(async (tx) => {

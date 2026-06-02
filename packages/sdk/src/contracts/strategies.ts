@@ -163,6 +163,36 @@ export interface InvoiceFormatStrategy {
   render(req: InvoiceRenderRequest): Promise<InvoiceRenderResult>;
 }
 
+// ─── TaxStrategy (single) ───────────────────────────────────────────────────
+
+export interface TaxContext {
+  /** Taxable base — (subtotal − discount) in the store currency. */
+  readonly taxableAmount: number;
+  readonly currency: string;
+  /** Destination address for jurisdiction-based tax (US sales tax, EU VAT). Null at guest-estimate time. */
+  readonly shippingAddress: ReadOnlyAddress | null;
+  readonly userId: number | null;
+}
+
+export interface TaxResult {
+  /** Total tax amount in the store currency. */
+  readonly amount: number;
+  /** Effective fraction, for display/audit (optional). */
+  readonly rate?: number;
+  /** Per-jurisdiction breakdown, e.g. { CGST, SGST } or { 'US-CA': z } (optional). */
+  readonly breakdown?: Readonly<Record<string, number>>;
+}
+
+/**
+ * Computes tax for an order. Region packs implement this — e.g. shopverse-india
+ * (flat GST) or shopverse-us (Stripe Tax per destination). With no TaxStrategy
+ * registered, the kernel falls back to the flat StoreSettings.taxRate.
+ */
+export interface TaxStrategy {
+  readonly meta: StrategyMeta & { mode: 'single' };
+  compute(ctx: TaxContext): Promise<TaxResult>;
+}
+
 // ─── Aggregate registry type for runtime registration ───────────────────────
 
 export type AnyStrategy =
@@ -171,7 +201,8 @@ export type AnyStrategy =
   | DiscountStrategy
   | ShippingCarrierStrategy
   | EarnRuleStrategy
-  | InvoiceFormatStrategy;
+  | InvoiceFormatStrategy
+  | TaxStrategy;
 
 /**
  * Strategy type → concrete type. Used by `kernel.strategies.register<T>(...)`
@@ -184,6 +215,7 @@ export interface StrategyTypeMap {
   ShippingCarrierStrategy: ShippingCarrierStrategy;
   EarnRuleStrategy: EarnRuleStrategy;
   InvoiceFormatStrategy: InvoiceFormatStrategy;
+  TaxStrategy: TaxStrategy;
 }
 
 export type StrategyType = keyof StrategyTypeMap;
