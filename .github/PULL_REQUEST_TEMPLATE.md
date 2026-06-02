@@ -32,6 +32,6 @@
 
 ## DCO Sign-Off
 
-By submitting this PR, I certify that my contribution is my original work and I have the right to submit it under the Elastic License 2.0 (ELv2).
+By submitting this PR, I certify that my contribution is my original work and I have the right to submit it under the Business Source License 1.1 (BSL).
 
 <!-- Sign your commits with: git commit -s -m "your message" -->

@@ -1,6 +1,6 @@
 {{/*
 ShopVerse Helm chart helpers — names, labels, image refs.
-Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+Copyright 2026 Vivek Negi. Licensed under the Business Source License 1.1 (BSL).
 */}}
 
 {{/* Chart base name — overrideable via .Values.nameOverride */}}

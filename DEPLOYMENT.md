@@ -1,6 +1,6 @@
 # ShopVerse — Deployment & Release Plan
 
-Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).  
+Copyright 2026 Vivek Negi. Licensed under the Business Source License 1.1 (BSL).  
 See [LICENSE](LICENSE) for terms.
 
 ---

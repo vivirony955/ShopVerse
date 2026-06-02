@@ -1,4 +1,4 @@
-// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// Copyright 2026 Vivek Negi. Licensed under the Business Source License 1.1 (BSL).
 // See LICENSE in the project root for license information.
 
 // ─── OBSERVABILITY INIT — MUST BE FIRST ─────────────────────────────────────
@@ -175,7 +175,7 @@ function setupSwagger(
     .setTitle('ShopVerse API')
     .setDescription(
       'Multi-warehouse ecommerce platform API. ' +
-        'Source-available under the Elastic License 2.0. ' +
+        'Source-available under the Business Source License 1.1. ' +
         'See https://gitlab.com/aiexperts/ecommWeb for repo + docs.',
     )
     .setVersion(process.env.npm_package_version ?? '0.1.0')

@@ -1,4 +1,4 @@
-// Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+// Copyright 2026 Vivek Negi. Licensed under the Business Source License 1.1 (BSL).
 // See LICENSE in the project root for license information.
 
 /**
@@ -68,7 +68,7 @@ function backendFiles(name: string, pascal: string, withSchema: boolean): FileSp
     version: '0.1.0-alpha.1',
     private: true,
     description: `ShopVerse plugin — ${name}.`,
-    license: 'Elastic-2.0',
+    license: 'BUSL-1.1',
     main: 'dist/index.js',
     types: 'dist/index.d.ts',
     files: ['dist', 'README.md', 'LICENSE'],
@@ -111,7 +111,7 @@ function backendFiles(name: string, pascal: string, withSchema: boolean): FileSp
     exclude: ['node_modules', 'dist', '**/*.spec.ts'],
   };
 
-  const moduleSrc = `// Copyright 2026 <YOUR NAME>. Licensed under the Elastic License 2.0 (ELv2).
+  const moduleSrc = `// Copyright 2026 <YOUR NAME>. Licensed under the Business Source License 1.1 (BSL).
 
 import { Injectable, Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import { HookRunner } from '../../../src/common/hook-runner.service';
@@ -156,7 +156,7 @@ class ${pascal}Bootstrap implements OnApplicationBootstrap {
 export class ${pascal}PluginModule {}
 `;
 
-  const indexSrc = `// Copyright 2026 <YOUR NAME>. Licensed under the Elastic License 2.0 (ELv2).
+  const indexSrc = `// Copyright 2026 <YOUR NAME>. Licensed under the Business Source License 1.1 (BSL).
 
 export { ${pascal}PluginModule } from './${name}.module';
 `;
@@ -246,7 +246,7 @@ See \`docs/plugins/guide.md\` for the full author guide and
 }
 
 function frontendFiles(name: string, pascal: string): FileSpec[] {
-  const widgetSrc = `// Copyright 2026 <YOUR NAME>. Licensed under the Elastic License 2.0 (ELv2).
+  const widgetSrc = `// Copyright 2026 <YOUR NAME>. Licensed under the Business Source License 1.1 (BSL).
 
 import { t } from '@shopverse/sdk-frontend';
 
@@ -265,7 +265,7 @@ export function ${pascal}Widget({ productId }: { productId: number }) {
 export default ${pascal}Widget;
 `;
 
-  const indexSrc = `// Copyright 2026 <YOUR NAME>. Licensed under the Elastic License 2.0 (ELv2).
+  const indexSrc = `// Copyright 2026 <YOUR NAME>. Licensed under the Business Source License 1.1 (BSL).
 
 import type { SlotRegistration } from '@/lib/slots';
 import { ${pascal}Widget } from './${pascal}Widget';

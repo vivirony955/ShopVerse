@@ -16,7 +16,7 @@ compete, we say so too.
 
 | Dimension | Amazon | Shopify | Magento (Adobe) | WooCommerce | **ShopVerse** |
 |---|---|---|---|---|---|
-| **Source-available** | ❌ | ❌ | ⚠️ (Open Source ed. paused 2024) | ✅ | **✅ ELv2** |
+| **Source-available** | ❌ | ❌ | ⚠️ (Open Source ed. paused 2024) | ✅ | **✅ BSL** |
 | **Multi-warehouse routing** | ✅ (proprietary) | Add-on (Shopify Fulfillment Network) | ✅ (Adobe Commerce) | Plugin | **✅ kernel** |
 | **Financial invariants enforced in DB** | ✅ | partial (admin tooling) | partial | manual | **✅ I-1..I-13 + ledger** |
 | **Double-entry wallet ledger** | ✅ | ❌ | ❌ | ❌ | **✅** |
@@ -26,7 +26,7 @@ compete, we say so too.
 | **Bundle / hydration budgets** | n/a | partial (theme limits) | n/a | n/a | **✅ 50 kB / 80 kB per page** |
 | **Cohort analytics + funnel + finance** | ✅ | $$ ("Shopify Plus") | ✅ | plugin | **✅ kernel** |
 | **GDPR/DPDP cross-plugin erasure** | ✅ | ✅ | partial | manual | **✅ user.beforeDelete hook** |
-| **Self-host without licensing fees** | ❌ | ❌ | ❌ (Magento → Adobe Commerce paid) | ✅ | **✅ ELv2 non-managed** |
+| **Self-host without licensing fees** | ❌ | ❌ | ❌ (Magento → Adobe Commerce paid) | ✅ | **✅ BSL non-managed** |
 | **Open public-API spec** | partial | ✅ | ✅ | partial | **✅ OpenAPI + per-plugin OpenAPI** |
 
 Legend: ✅ supported · ⚠️ partial / caveats · ❌ not supported · $$ paid tier
@@ -76,7 +76,7 @@ the comparison most prospects will draw.**
 | UPI in India | via Stripe India only | direct |
 | Cash on Delivery | via paid app | kernel |
 | Custom plugins | App store (paid, reviewed) | source-available plugin model |
-| Code ownership | none — Shopify's | yours, ELv2 |
+| Code ownership | none — Shopify's | yours, BSL |
 | Bring your own DB | ❌ | ✅ (Postgres) |
 | OpenAPI spec | partial | full, per-plugin tagged |
 
@@ -108,7 +108,7 @@ it and paused the Open Source edition in late 2024.
 | What | Magento / Adobe Commerce | ShopVerse |
 |---|---|---|
 | Stack | PHP + MySQL | TypeScript + Postgres |
-| Licensing | Open Source paused; Adobe Commerce $$ | ELv2, source-available |
+| Licensing | Open Source paused; Adobe Commerce $$ | BSL, source-available |
 | Multi-warehouse | ✅ (Inventory MSI) | ✅ kernel |
 | Multi-store | ✅ (built for it) | single-tenant; multi-tenant deferred (plan §10 E14) |
 | Module ecosystem | thousands | starting (5 first-party + scaffolder) |

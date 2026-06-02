@@ -3,7 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "description": "Tutorial plugin. Exercises every contract type in <100 LOC: a sync hook, an event subscriber, a frontend slot. Paired with docs/plugins/tutorial.md (W6.T10).",
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

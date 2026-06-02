@@ -69,7 +69,7 @@ prompts for:
   `tsc/lint/jest/bundle/hydration` gate suite.
 - **Docs** — entry in `docs/plugins/<name>.md` + cross-link from
   [index.md](index.md).
-- **ELv2 sign-off** — `git commit -s`.
+- **BSL sign-off** — `git commit -s`.
 
 ## SemVer + deprecation policy
 

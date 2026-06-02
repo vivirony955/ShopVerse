@@ -35,7 +35,7 @@ mkdir -p frontend/src/plugins/hello-world
   "version": "0.1.0-alpha.1",
   "private": true,
   "description": "Tutorial plugin — exercises every contract type.",
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "peerDependencies": {

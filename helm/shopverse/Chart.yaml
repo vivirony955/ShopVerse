@@ -2,7 +2,7 @@ apiVersion: v2
 name: shopverse
 description: |
   ShopVerse — multi-warehouse ecommerce platform for India.
-  Source-available under the Elastic License 2.0.
+  Source-available under the Business Source License 1.1.
   See https://gitlab.com/aiexperts/ecommWeb for repo, docs, and CHANGELOG.
 type: application
 # Chart version follows its own SemVer (independent of app version).
@@ -24,5 +24,5 @@ maintainers:
   - name: Vivek Negi
     email: vivironycrazy@gmail.com
 annotations:
-  # ELv2 is not in the OSI list — SPDX expression used here.
-  artifacthub.io/license: "Elastic-2.0"
+  # BSL is not in the OSI list — SPDX expression used here.
+  artifacthub.io/license: "BUSL-1.1"

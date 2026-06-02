@@ -1,8 +1,8 @@
 # Contributing to ShopVerse
 
-ShopVerse is licensed under the **Elastic License 2.0 (ELv2)** — source available, free for non-commercial use, commercial use requires a paid license. See [COMMERCIAL_USAGE.md](COMMERCIAL_USAGE.md).
+ShopVerse is licensed under the **Business Source License 1.1 (BSL)** — source available, free for non-commercial use, commercial use requires a paid license. See [COMMERCIAL_USAGE.md](COMMERCIAL_USAGE.md).
 
-By contributing, you agree that your contributions will be licensed under ELv2 and that you have the right to submit them (DCO sign-off required — see below).
+By contributing, you agree that your contributions will be licensed under BSL and that you have the right to submit them (DCO sign-off required — see below).
 
 ---
 
@@ -25,7 +25,7 @@ git commit -s -m "your commit message"
 
 This adds `Signed-off-by: Your Name <your@email.com>` to the commit, certifying:
 
-> I certify that this contribution is my original work and I have the right to submit it under the Elastic License 2.0.
+> I certify that this contribution is my original work and I have the right to submit it under the Business Source License 1.1.
 
 PRs without signed-off commits will not be merged.
 

@@ -2,7 +2,7 @@
 
 Plugin tooling for the [ShopVerse](https://gitlab.com/aiexperts/ecommWeb)
 ecommerce platform. Source-available under
-[Elastic License 2.0](../../LICENSE).
+[Business Source License 1.1](../../LICENSE).
 
 > **Status:** v0.1.0-alpha. Pre-stable. CLI surface evolves until v0.2.0
 > ships in the main ShopVerse repo.
@@ -60,4 +60,4 @@ churn.
 
 ## License
 
-[Elastic License 2.0](../../LICENSE).
+[Business Source License 1.1](../../LICENSE).

@@ -1,7 +1,7 @@
 # @shopverse/sdk
 
 Typed contracts for ShopVerse plugins. Source-available under
-[Elastic License 2.0](../../LICENSE).
+[Business Source License 1.1](../../LICENSE).
 
 > **Status:** v0.1.0-alpha. Pre-stable. Contract surface evolves until
 > v0.2.0 ships in the main ShopVerse repo.
@@ -82,5 +82,5 @@ Full contract reference + tutorial lives in the main repo at:
 
 ## License
 
-Elastic License 2.0. Free for non-commercial use; commercial use
+Business Source License 1.1. Free for non-commercial use; commercial use
 requires a paid license from the maintainer.

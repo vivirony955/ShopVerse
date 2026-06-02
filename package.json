@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Production-grade ecommerce infrastructure for India — multi-warehouse, financially invariant, battle-tested.",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "private": true,
   "repository": {
     "type": "git",

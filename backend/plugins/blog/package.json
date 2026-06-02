@@ -3,7 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "description": "Lightweight CMS for product-marketing blog posts. Plain CRUD over a single BlogPost table. W4.T1 — first of four plugins migrated out of the kernel after the W2 pilot proved the model.",
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

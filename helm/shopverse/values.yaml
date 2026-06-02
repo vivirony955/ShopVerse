@@ -1,4 +1,4 @@
-# Copyright 2026 Vivek Negi. Licensed under the Elastic License 2.0 (ELv2).
+# Copyright 2026 Vivek Negi. Licensed under the Business Source License 1.1 (BSL).
 # Default values for the ShopVerse Helm chart.
 # This file is read for documentation and used as the base for overrides.
 

@@ -4,7 +4,7 @@
   "description": "ShopVerse backend — NestJS 11 + Prisma 6 + PostgreSQL 16. Multi-warehouse ecommerce API with double-entry ledger.",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
   "private": true,
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "repository": {
     "type": "git",
     "url": "https://gitlab.com/aiexperts/ecommWeb.git",

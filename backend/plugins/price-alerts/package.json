@@ -3,7 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "description": "Per-user price drop alerts. Pilot plugin proving the @shopverse/sdk + kernel runtime end-to-end (W2 of the plugin architecture evolution).",
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -28,7 +28,7 @@ The image must communicate three things at a glance:
 |                                                               |
 |    Multi-warehouse  ·  India-native  ·  687 tests             |
 |                                                               |
-|                                  Elastic License 2.0          |
+|                                  Business Source License 1.1          |
 +---------------------------------------------------------------+
        Left 60% = type     Right 40% = product/abstract visual
 ```
@@ -45,7 +45,7 @@ The image must communicate three things at a glance:
 
 - **Wordmark:** Sans-serif, weight 700+, large. Inter, Geist, or Söhne.
 - **Tagline:** Same family, weight 400, half the wordmark size.
-- **Microcopy ("Elastic License 2.0"):** weight 400, small, low-contrast.
+- **Microcopy ("Business Source License 1.1"):** weight 400, small, low-contrast.
 
 ## What to put in the right 40%
 

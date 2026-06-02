@@ -1,7 +1,7 @@
 # create-shopverse-plugin
 
 Scaffolder for ShopVerse plugins. Source-available under
-[Elastic License 2.0](./LICENSE).
+[Business Source License 1.1](./LICENSE).
 
 ## Usage
 
@@ -41,6 +41,6 @@ plugin actually does. The full contract surface lives at
 
 ## License
 
-[Elastic License 2.0](./LICENSE). You can build commercial products
+[Business Source License 1.1](./LICENSE). You can build commercial products
 on top of ShopVerse; you cannot host ShopVerse as a managed service
 to third parties.

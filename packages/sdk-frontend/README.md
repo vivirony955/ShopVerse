@@ -1,7 +1,7 @@
 # @shopverse/sdk-frontend
 
 Browser-safe SDK exports for ShopVerse frontend plugins.
-Source-available under [Elastic License 2.0](./LICENSE).
+Source-available under [Business Source License 1.1](./LICENSE).
 
 > **Status:** v0.1.0-alpha. Pre-stable. Contract surface evolves
 > alongside `@shopverse/sdk`.
@@ -49,6 +49,6 @@ export function PriceAlertCta() {
 
 ## License
 
-[Elastic License 2.0](./LICENSE). You can build commercial products
+[Business Source License 1.1](./LICENSE). You can build commercial products
 on top of ShopVerse; you cannot host ShopVerse as a managed service
 to third parties.

@@ -3,7 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "description": "Daily price snapshots per product, queried for the PDP price-trend chart (F3-12). W4.T5 — second of four plugins migrated out of the kernel.",
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

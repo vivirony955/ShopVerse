@@ -1,6 +1,6 @@
 # ShopVerse Helm Chart
 
-Source-available under the [Elastic License 2.0](../../LICENSE).
+Source-available under the [Business Source License 1.1](../../LICENSE).
 Repository: https://gitlab.com/aiexperts/ecommWeb
 
 ## TL;DR

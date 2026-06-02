@@ -2,7 +2,7 @@
 
 ESLint rules enforcing the [ShopVerse](https://gitlab.com/aiexperts/ecommWeb)
 plugin contract. Source-available under
-[Elastic License 2.0](../../LICENSE).
+[Business Source License 1.1](../../LICENSE).
 
 > **Status:** v0.1.0-alpha. Pre-stable. Rule set evolves through W6.
 
@@ -43,4 +43,4 @@ Each rule documents its detection signal in its source. RuleTester fixtures live
 
 ## License
 
-[Elastic License 2.0](../../LICENSE).
+[Business Source License 1.1](../../LICENSE).

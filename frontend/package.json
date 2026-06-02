@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "ShopVerse storefront and admin panel — Next.js 15 + React 19 + Tailwind CSS.",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "private": true,
   "repository": {
     "type": "git",

@@ -1,8 +1,8 @@
 {
   "name": "@shopverse/sdk-frontend",
   "version": "0.1.0-alpha.1",
-  "description": "ShopVerse frontend plugin SDK — slot registration shapes, i18n placeholder, and browser-safe contracts. Source-available under Elastic License 2.0.",
-  "license": "Elastic-2.0",
+  "description": "ShopVerse frontend plugin SDK — slot registration shapes, i18n placeholder, and browser-safe contracts. Source-available under Business Source License 1.1.",
+  "license": "BUSL-1.1",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
   "repository": {
     "type": "git",

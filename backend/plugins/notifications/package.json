@@ -3,7 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "description": "In-app notification center (F2-06). Per-user CRUD over a Notification table; today the producer side is empty — kernel modules call `notificationsService.create()` inline where they want a notification. W4.T13 — fourth and final W4 plugin migration.",
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

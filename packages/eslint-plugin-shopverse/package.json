@@ -2,7 +2,7 @@
   "name": "@shopverse/eslint-plugin-shopverse",
   "version": "0.1.0-alpha.1",
   "description": "ESLint rules enforcing the ShopVerse plugin contract — no hook handlers inside Prisma $transaction, mandatory route prefix, mandatory user.beforeDelete handler for plugins owning user-linked data.",
-  "license": "Elastic-2.0",
+  "license": "BUSL-1.1",
   "author": "Vivek Negi <vivironycrazy@gmail.com>",
   "repository": {
     "type": "git",

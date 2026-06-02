@@ -5,7 +5,7 @@
 [![Pipeline](https://gitlab.com/aiexperts/ecommWeb/badges/main/pipeline.svg)](https://gitlab.com/aiexperts/ecommWeb/-/pipelines)
 [![Coverage](https://gitlab.com/aiexperts/ecommWeb/badges/main/coverage.svg?job=test%3Acoverage)](https://gitlab.com/aiexperts/ecommWeb/-/jobs)
 ![Tests](https://img.shields.io/badge/tests-638%20passing-brightgreen)
-![License](https://img.shields.io/badge/license-Elastic--2.0-blue)
+![License](https://img.shields.io/badge/license-BUSL--1.1-blue)
 ![NestJS](https://img.shields.io/badge/NestJS-11-red)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
@@ -14,7 +14,7 @@ NestJS 11 · Next.js 15 · PostgreSQL 16 · Prisma 6 · React 19 · Stripe · Ta
 
 > **Not a Shopify clone. Not a demo.** ShopVerse is the operational infrastructure layer for warehouse-driven ecommerce — the difference between a storefront and an order management system.
 
-> Source available under [Elastic License 2.0](LICENSE). Free for non-commercial use. Commercial use requires a [paid license](COMMERCIAL_USAGE.md).
+> Source available under [Business Source License 1.1](LICENSE). Free for non-commercial use. Commercial use requires a [paid license](COMMERCIAL_USAGE.md).
 
 ---
 
@@ -537,13 +537,13 @@ evolution programme that delivered the plugin model is captured in
 
 ## License
 
-ShopVerse is **source available** under the [Elastic License 2.0 (ELv2)](LICENSE).
+ShopVerse is **source available** under the [Business Source License 1.1 (BSL)](LICENSE).
 
 | Use | License Required |
 |---|---|
-| Learning, studying, personal projects | ✅ Free under ELv2 |
-| Non-commercial self-hosting | ✅ Free under ELv2 |
-| Open source contributions | ✅ Free under ELv2 |
+| Learning, studying, personal projects | ✅ Free under BSL |
+| Non-commercial self-hosting | ✅ Free under BSL |
+| Open source contributions | ✅ Free under BSL |
 | Revenue-generating store | 💳 [Commercial license](COMMERCIAL_USAGE.md) |
 | Agency / client deployments | 💳 [Commercial license](COMMERCIAL_USAGE.md) |
 | SaaS / managed hosting for others | 💳 [Commercial license](COMMERCIAL_USAGE.md) |
