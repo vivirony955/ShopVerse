@@ -1,0 +1,28 @@
+{
+  "name": "@shopverse/plugin-india",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "ShopVerse India region pack — registers a flat-GST (18%) TaxStrategy. Enable in backend/plugins.config.ts for India deployments; a fresh global store ships without it and falls back to StoreSettings.taxRate.",
+  "license": "BUSL-1.1",
+  "author": "Vivek Negi <vivironycrazy@gmail.com>",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist"
+  },
+  "peerDependencies": {
+    "@shopverse/sdk": "^0.1.0-alpha.1"
+  },
+  "devDependencies": {
+    "@shopverse/sdk": "file:../../../packages/sdk",
+    "@types/node": "^22.10.7",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.3"
+  }
+}

@@ -64,6 +64,15 @@ const pluginsConfig: PluginManifest = {
       workspacePath: './plugins/hello-world/src',
       enabled: true,
     },
+    {
+      // Global relaunch Phase 2 — India region pack: registers a flat-GST
+      // TaxStrategy. Operators on other regions disable this and enable their
+      // own pack; with no region pack, orders fall back to StoreSettings.taxRate.
+      id: '@shopverse/plugin-india',
+      source: 'workspace',
+      workspacePath: './plugins/shopverse-india/src',
+      enabled: true,
+    },
   ],
 };
 
