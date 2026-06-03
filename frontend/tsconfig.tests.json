@@ -1,0 +1,27 @@
+{
+  // Type-checks the test files that the build `tsconfig.json` excludes (they
+  // import test-only deps — jest-axe, @testing-library/react — that aren't
+  // present in `next build` / Docker contexts). The `frontend:typecheck` CI job
+  // runs this in ADDITION to the build typecheck, with the root devDeps
+  // installed so those deps resolve. Jest runs tests via next/jest (SWC) and
+  // does not type-check, so this is the only place test type errors are caught.
+  //
+  // This mirrors the build tsconfig but KEEPS the test files in scope (it only
+  // re-drops the same legacy broken files the build also excludes).
+  "extends": "./tsconfig.json",
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "src/app/cartContext.tsx",
+    "src/app/CheckoutPage.tsx",
+    "src/app/OrderHistoryPage.tsx",
+    "src/app/ProductDetailPage.tsx",
+    "src/app/ProductListingPage.tsx",
+    "src/app/Footer.tsx",
+    "src/app/Header.tsx",
+    "src/app/ProductCard.tsx",
+    "src/app/ProductGrid.tsx",
+    "src/app/api/axiosInstance.ts",
+    "src/app/__tests__"
+  ]
+}

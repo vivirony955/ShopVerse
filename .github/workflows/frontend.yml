@@ -37,6 +37,10 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: TypeScript check
         run: cd frontend && npx tsc --noEmit
+      # Test files are excluded from the build tsconfig (so `next build` /
+      # Docker don't need jest-axe etc.); type-check them separately here.
+      - name: TypeScript check (tests)
+        run: cd frontend && npx tsc -p tsconfig.tests.json --noEmit
 
   lint:
     name: Frontend Lint

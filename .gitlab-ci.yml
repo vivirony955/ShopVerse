@@ -432,6 +432,9 @@ frontend:typecheck:
     - npm install --no-audit --no-fund --silent
   script:
     - cd frontend && npx tsc --noEmit
+    # Test files are excluded from the build tsconfig (so `next build` / Docker
+    # don't need jest-axe etc.); type-check them separately here.
+    - cd frontend && npx tsc -p tsconfig.tests.json --noEmit
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH

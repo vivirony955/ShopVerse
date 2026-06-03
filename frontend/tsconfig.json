@@ -34,7 +34,10 @@
     "src/app/Header.tsx",
     "src/app/ProductCard.tsx",
     "src/app/ProductGrid.tsx",
-    "src/app/__tests__",
-    "src/app/api/axiosInstance.ts"
+    "src/app/api/axiosInstance.ts",
+    "jest.setup.ts",
+    "src/**/__tests__/**",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
   ]
 }

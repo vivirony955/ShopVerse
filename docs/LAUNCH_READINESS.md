@@ -63,3 +63,30 @@ These cannot be done in-repo; they gate launch.
 | Entitlements endpoint (enterprise repo) | Read-only; exposes the operator's own org name. Consider admin-gating if treated as sensitive. | 🟢 optional |
 
 > CodeQL N/A (repo is on GitLab) — use GitLab SAST + secret scanning in CI instead.
+
+## CI status (GitHub Actions mirror of `vivirony955/ShopVerse`)
+
+- **Frontend workflow — FIXED.** The Bundle Size Budget gate's `next build` was
+  failing to *compile* (`Cannot find module 'jest-axe'`), not exceeding a budget:
+  `next build` type-checked the a11y test files, whose deps are root-hoisted and
+  absent in the bundle/Docker contexts. Fix: exclude test files from the build
+  `tsconfig.json` (so production `next build` never type-checks them) and add
+  `tsconfig.tests.json` so the typecheck job still covers them. Verified locally:
+  `bundle:check` / `hydration:check` / `plugin-memory:check` / lint / jest all green.
+
+- **E2E Stack workflow — DEFERRED (deeper, pre-existing prod-Docker break).** The
+  "Build images" step fails compiling the **backend** image:
+  `Cannot find module '../plugins.config'`. Root causes (all pre-existing, the
+  prod image has never built or booted — fine until now since there's no prod yet):
+  1. The root `Dockerfile` selectively COPYs `backend/src` + configs but **never
+     copies `backend/plugins.config.ts`** (it lives outside `src/`).
+  2. `nest build` emits **`dist/src/...`** (rootDir inferred to `backend/` because
+     `plugins.config.ts`/`plugins/` sit beside `src/`), but the Dockerfile CMD
+     (`node dist/main`), the e2e seed step (`node dist/prisma/seed.js`), and
+     `resolvePluginModules` (`__dirname/../..` ⇒ `dist`) all assume a `dist/`-root
+     layout. So even once it compiles, it won't boot or load plugins.
+  Correct fix = restructure the backend build to a coherent dist layout (src at
+  `dist/` root, `plugins/` at `dist/plugins`, `plugins.config.js` at `dist/`),
+  align CMD + seed paths + the resolver, and verify with an iterative `docker
+  build`. This belongs with the **prod infra / deploy** workstream (above) and
+  needs Docker-in-the-loop testing — not a blind edit.
