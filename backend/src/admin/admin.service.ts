@@ -546,11 +546,15 @@ export class AdminService {
 
   // ─── Maker-Checker: High-Value Refund Approval (ADM-RBAC §16.2) ─────────────
 
-  static readonly HIGH_VALUE_THRESHOLD = 5000; // ₹5000
+  // Refunds above this amount (store-currency units) need maker-checker approval.
+  // Configurable per deployment; global default 5000.
+  static readonly HIGH_VALUE_THRESHOLD =
+    Number(process.env.HIGH_VALUE_REFUND_THRESHOLD) || 5000;
 
   /**
-   * CS_AGENT requests a refund > ₹5000. Creates a RefundApproval row (PENDING).
-   * A FINANCE-role user must call approveRefundRequest() to execute it.
+   * CS_AGENT requests a refund above the high-value threshold. Creates a
+   * RefundApproval row (PENDING). A FINANCE-role user must call
+   * approveRefundRequest() to execute it.
    */
   async requestHighValueRefund(
     orderId: number,
@@ -564,7 +568,8 @@ export class AdminService {
     if (!order) throw new NotFoundException(`Order ${orderId} not found`);
     if (amount <= AdminService.HIGH_VALUE_THRESHOLD) {
       throw new BadRequestException(
-        `Amount ₹${amount} is ≤ threshold ₹${AdminService.HIGH_VALUE_THRESHOLD} — process directly`,
+        `Amount ${amount} is at or below the high-value threshold ` +
+          `${AdminService.HIGH_VALUE_THRESHOLD} — process directly`,
       );
     }
 

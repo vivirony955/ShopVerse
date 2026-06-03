@@ -3,8 +3,12 @@
 
 import Link from "next/link";
 import { ShoppingBag, Camera, MessageCircle, Users, PlayCircle, Mail } from "lucide-react";
+import { canHideBadge } from "@/lib/entitlements";
 
-export default function Footer() {
+export default async function Footer() {
+  // Badge removal is license-gated (see lib/entitlements). Community installs —
+  // which don't mount the enterprise module — always show it (k-factor loop).
+  const hideBadge = await canHideBadge();
   const links = {
     Shop: [
       { label: "New Arrivals", href: "/products?sort=createdAt&order=desc" },
@@ -121,10 +125,11 @@ export default function Footer() {
             <span className="text-slate-500 text-xs">↩️ Easy Returns</span>
             {/*
               "Powered by ShopVerse" attribution — the adoption / k-factor loop.
-              Required on the free tier (BSL); removable only via a commercial
-              white-label license, which sets NEXT_PUBLIC_HIDE_POWERED_BY=true.
+              Required on the free tier (BSL); removable only via a valid
+              commercial WHITE_LABEL license (resolved through the enterprise
+              module's entitlements endpoint — see lib/entitlements).
             */}
-            {process.env.NEXT_PUBLIC_HIDE_POWERED_BY !== "true" && (
+            {!hideBadge && (
               <a
                 href="https://github.com/vivironycrazy/shopverse"
                 target="_blank"

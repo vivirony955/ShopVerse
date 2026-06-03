@@ -194,7 +194,7 @@ export class AdminController {
 
   // ─── Maker-Checker: High-Value Refund Approval ────────────────────────────
 
-  /** CS_AGENT: request a high-value refund (> ₹5000) for FINANCE approval. */
+  /** CS_AGENT: request a high-value refund (above the configured threshold) for FINANCE approval. */
   @Post('refund-approvals')
   @Roles(Role.ADMIN, Role.CS_AGENT, Role.SUPER_ADMIN)
   requestHighValueRefund(
