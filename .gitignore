@@ -97,3 +97,6 @@ cross-cutting/
 .turbo/
 *.tsbuildinfo
 junit-e2e.xml
+
+# Anonymous telemetry install id (opt-out; see docs/TELEMETRY.md)
+.shopverse/

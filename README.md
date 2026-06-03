@@ -345,6 +345,16 @@ per layer:
 Enable each by setting its env var — see [`QUICKSTART.md`](QUICKSTART.md#observability-optional)
 for the local Jaeger one-liner and the full config matrix.
 
+### Telemetry
+
+ShopVerse sends **anonymous, opt-out** usage telemetry: a daily heartbeat with a
+random install id, version, store *config* (currency/country/region/locale), and a
+coarse revenue *band* — no personal data, no exact numbers, no customer records.
+It exists to count active installs and to warn stores approaching the $100k/yr
+license threshold. Turn it off with `SHOPVERSE_TELEMETRY_DISABLED=1` (or the
+universal `DO_NOT_TRACK=1`). The full payload and guarantees are documented in
+[`docs/TELEMETRY.md`](docs/TELEMETRY.md).
+
 ---
 
 ## Testing

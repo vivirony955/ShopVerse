@@ -53,6 +53,7 @@ import pluginsConfig from '../plugins.config';
 // W4.T5 — PriceHistoryModule extracted to @shopverse/plugin-price-history.
 // W4.T9 — VolumeDiscountsModule extracted to @shopverse/plugin-volume-discounts.
 import { ObservabilityModule } from './observability/observability.module';
+import { TelemetryModule } from './telemetry/telemetry.module';
 
 @Module({
   imports: [
@@ -136,6 +137,11 @@ import { ObservabilityModule } from './observability/observability.module';
     // Hosts /api/metrics. OTel SDK + Sentry initialise in main.ts before
     // any NestJS import is evaluated (see observability/tracing.ts).
     ObservabilityModule,
+
+    // ─── Telemetry (Phase 4 capture layer) ────────────────────────────────────
+    // Opt-out, anonymous usage heartbeat. Fully inert under NODE_ENV=test and
+    // when DO_NOT_TRACK / SHOPVERSE_TELEMETRY_DISABLED is set. See docs/TELEMETRY.md.
+    TelemetryModule,
   ],
   controllers: [AppController],
   providers: [
