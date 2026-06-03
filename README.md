@@ -324,6 +324,20 @@ cd backend && npm run start:dev
 cd frontend && npm run dev
 ```
 
+### Migrating from Shopify or WooCommerce
+
+Already running a store elsewhere? [`shopverse-migrate`](packages/shopverse-migrate)
+converts a Shopify / WooCommerce **product CSV export** into ShopVerse JSON, and
+estimates what you'd save by switching:
+
+```bash
+# Convert your catalogue (auto-detects the platform)
+npx shopverse-migrate import products_export.csv
+
+# Estimate annual savings vs your current platform
+npx shopverse-migrate savings --gmv=250000 --plan=advanced
+```
+
 ---
 
 ## Observability
