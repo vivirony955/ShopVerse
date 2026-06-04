@@ -135,7 +135,7 @@
 
 - name: Start backend with PM2
   shell: >
-    pm2 start {{ app_dir }}/backend/dist/main.js
+    pm2 start {{ app_dir }}/backend/dist/src/main.js
     --name shopverse-backend
     --env production
     --max-memory-restart 512M

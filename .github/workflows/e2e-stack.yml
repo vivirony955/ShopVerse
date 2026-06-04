@@ -54,8 +54,8 @@ jobs:
       - name: Seed admin + e2e products
         run: |
           set -e
-          docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/seed.js
-          docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/e2e-seed.js
+          docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/seed.js"
+          docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/e2e-seed.js"
 
       - name: Wait for frontend healthy
         run: |
@@ -74,7 +74,7 @@ jobs:
       - name: Smoke test
         run: |
           set -e
-          curl -fsS http://localhost:3001/health | tee /tmp/health.json
+          curl -fsS http://localhost:3001/api/health | tee /tmp/health.json
           grep -q '"status":"ok"' /tmp/health.json || (echo "::error::health payload mismatch"; exit 1)
           curl -fsSI http://localhost:3000 | head -1 | grep -q '200' || (echo "::error::frontend did not return 200"; exit 1)
 
@@ -84,8 +84,8 @@ jobs:
           # Re-running seeds must not error; this validates the upsert/
           # find-then-create pattern in seed.ts + e2e-seed.ts. Output of
           # both scripts already logs "already exists" on idempotent paths.
-          docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/seed.js
-          docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/e2e-seed.js
+          docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/seed.js"
+          docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/e2e-seed.js"
 
       # ─── Playwright (Task 2 / POST_W6 §1.4) ──────────────────────────────
       # Runs the 222-test suite against the running stack. Config:

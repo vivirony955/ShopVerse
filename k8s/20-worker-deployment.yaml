@@ -32,7 +32,7 @@ spec:
           image: ${BACKEND_IMAGE}
           imagePullPolicy: IfNotPresent
           command: ["sh", "-c"]
-          args: ["cd backend && node dist/worker"]
+          args: ["cd backend && node dist/src/worker"]
           ports:
             - name: worker-http
               containerPort: 9091

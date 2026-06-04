@@ -45,7 +45,7 @@ spec:
           # Same image as backend, different entrypoint.
           command: ["sh", "-c"]
           args:
-            - "cd backend && node dist/worker"
+            - "cd backend && node dist/src/worker"
           ports:
             - name: worker-http
               containerPort: {{ .Values.workers.containerPort }}

@@ -74,19 +74,23 @@ These cannot be done in-repo; they gate launch.
   `tsconfig.tests.json` so the typecheck job still covers them. Verified locally:
   `bundle:check` / `hydration:check` / `plugin-memory:check` / lint / jest all green.
 
-- **E2E Stack workflow — DEFERRED (deeper, pre-existing prod-Docker break).** The
-  "Build images" step fails compiling the **backend** image:
-  `Cannot find module '../plugins.config'`. Root causes (all pre-existing, the
-  prod image has never built or booted — fine until now since there's no prod yet):
-  1. The root `Dockerfile` selectively COPYs `backend/src` + configs but **never
-     copies `backend/plugins.config.ts`** (it lives outside `src/`).
-  2. `nest build` emits **`dist/src/...`** (rootDir inferred to `backend/` because
-     `plugins.config.ts`/`plugins/` sit beside `src/`), but the Dockerfile CMD
-     (`node dist/main`), the e2e seed step (`node dist/prisma/seed.js`), and
-     `resolvePluginModules` (`__dirname/../..` ⇒ `dist`) all assume a `dist/`-root
-     layout. So even once it compiles, it won't boot or load plugins.
-  Correct fix = restructure the backend build to a coherent dist layout (src at
-  `dist/` root, `plugins/` at `dist/plugins`, `plugins.config.js` at `dist/`),
-  align CMD + seed paths + the resolver, and verify with an iterative `docker
-  build`. This belongs with the **prod infra / deploy** workstream (above) and
-  needs Docker-in-the-loop testing — not a blind edit.
+- **E2E Stack / prod Docker — FIXED + verified end-to-end with local Docker.** The
+  prod image had never built or booted; several stacked pre-existing bugs, all now
+  resolved (the `dist/src/` layout turned out to be self-consistent — every relative
+  import + `resolvePluginModules` already expect it, so the runtime refs were the bug):
+  1. `Dockerfile` now COPYs `backend/plugins.config.ts` + `backend/plugins/` so
+     `nest build` compiles (was `Cannot find module '../plugins.config'`).
+  2. `.dockerignore` excludes nested `**/node_modules` (plugin `file:` symlinks broke
+     the build-context tar).
+  3. Prod stage copies `prisma/schema` **before** `npm ci` (its postinstall runs
+     `prisma generate`).
+  4. Runtime paths aligned to the real `dist/src/` layout: Dockerfile CMD, package.json
+     `start:prod`/`start:worker:prod`, helm/k8s/ansible args → `dist/src/main` (+`worker`);
+     CI seed steps → `sh -c "cd backend && node dist/src/prisma/seed.js"` (exec runs from
+     `/app`, app is at `/app/backend`).
+  5. Health probes → `/api/health` (global prefix `api`; `/health` 404'd) and
+     `127.0.0.1` instead of `localhost` (Next standalone binds IPv4 0.0.0.0; alpine
+     `localhost`→IPv6 `::1` refused).
+  Verified locally: both images build; backend boots with **all 8 plugins registered**
+  (India GST TaxStrategy, hooks, crons) + healthy; frontend healthy; seeds run; smoke
+  `/api/health` = `{"status":"ok"}`.

@@ -23,6 +23,12 @@ RUN cd backend && npm ci
 COPY backend/src ./backend/src
 COPY backend/tsconfig*.json ./backend/
 COPY backend/nest-cli.json ./backend/
+# The plugin manifest lives OUTSIDE src/ (it's a build-time artifact, like
+# next.config.js) and the first-party plugin sources sit beside src/. Both are
+# imported by the kernel (app.module → `../plugins.config`; resolvePluginModules
+# requires the compiled plugins), so `nest build` needs them in the context.
+COPY backend/plugins.config.ts ./backend/
+COPY backend/plugins ./backend/plugins
 
 # Generate Prisma client
 RUN cd backend && npx prisma generate --schema=../prisma/schema
@@ -39,13 +45,15 @@ ENV NODE_ENV=production
 
 # Install production deps only. The SDK is a `file:` dep so it needs to
 # be on disk at the same relative path before backend's npm ci runs.
+# The Prisma schema must ALSO be present before `npm ci` — backend's
+# postinstall runs `prisma generate --schema ../prisma/schema`.
 COPY packages/sdk ./packages/sdk
 COPY --from=builder /app/packages/sdk/dist ./packages/sdk/dist
+COPY prisma/schema ./prisma/schema
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --omit=dev
 
-# Copy Prisma schema (includes migrations subfolder) and generated client
-COPY prisma/schema ./prisma/schema
+# Generated Prisma client from the builder stage (overwrites the postinstall one).
 COPY --from=builder /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
 
 # Copy built app
@@ -60,4 +68,8 @@ EXPOSE 9091
 # time: `command: ["node", "dist/worker"]` in docker-compose / k8s.
 # Migrations are run by the API on boot for single-pod compose deployments;
 # in K8s the Helm chart runs them as a pre-install Job instead.
-CMD ["sh", "-c", "cd backend && npx prisma migrate deploy --schema=../prisma/schema && node dist/main"]
+# `nest build` emits to dist/src/** because plugins.config.ts + plugins/ sit
+# beside src/ (so the inferred rootDir is backend/, not src/). The compiled
+# manifest (dist/plugins.config.js) + plugins (dist/plugins/**) land beside
+# dist/src so every relative import + resolvePluginModules still resolve.
+CMD ["sh", "-c", "cd backend && npx prisma migrate deploy --schema=../prisma/schema && node dist/src/main"]

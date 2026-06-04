@@ -29,7 +29,7 @@ spec:
           image: ${BACKEND_IMAGE}
           imagePullPolicy: IfNotPresent
           command: ["sh", "-c"]
-          args: ["cd backend && node dist/main"]
+          args: ["cd backend && node dist/src/main"]
           ports:
             - name: http
               containerPort: 3001

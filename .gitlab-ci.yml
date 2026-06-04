@@ -576,8 +576,8 @@ e2e:stack:
         sleep 2
       done
     # Seed admin + e2e products
-    - docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/seed.js
-    - docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/e2e-seed.js
+    - docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/seed.js"
+    - docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/e2e-seed.js"
     # Wait for frontend healthy
     - |
       for i in $(seq 1 60); do
@@ -593,12 +593,12 @@ e2e:stack:
         sleep 2
       done
     # Smoke test
-    - curl -fsS "http://${STACK_HOST}:3001/health" | tee /tmp/health.json
+    - curl -fsS "http://${STACK_HOST}:3001/api/health" | tee /tmp/health.json
     - grep -q '"status":"ok"' /tmp/health.json
     - curl -fsSI "http://${STACK_HOST}:3000" | head -1 | grep -q '200'
     # Idempotent seed re-run — proves upserts don't double-create.
-    - docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/seed.js
-    - docker compose -f docker-compose.ci.yml exec -T backend node dist/prisma/e2e-seed.js
+    - docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/seed.js"
+    - docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/e2e-seed.js"
     # ─── Lighthouse (Task 3) ──────────────────────────────────────────────
     # check-lighthouse.js spawns headless chromium — alpine image needs
     # extra packages (nss, freetype, harfbuzz, etc.). Reuse the node image

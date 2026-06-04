@@ -39,11 +39,11 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          # CMD is set in the Dockerfile (node dist/main). Explicit here so
+          # CMD is set in the Dockerfile (node dist/src/main). Explicit here so
           # operators can see what runs without reading the image.
           command: ["sh", "-c"]
           args:
-            - "cd backend && node dist/main"
+            - "cd backend && node dist/src/main"
           ports:
             - name: http
               containerPort: {{ .Values.backend.containerPort }}

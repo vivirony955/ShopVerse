@@ -27,6 +27,11 @@ test/junit.xml
 backend/node_modules
 backend/dist
 backend/.env*
+# First-party plugin install/build artifacts — deps are reinstalled via npm ci,
+# and plugin node_modules contain `file:` symlinks that break the build-context
+# tar. Bare imports in plugin sources resolve from backend/node_modules.
+**/node_modules
+backend/plugins/*/dist
 
 # Secrets
 .env
