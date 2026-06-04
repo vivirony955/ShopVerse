@@ -72,6 +72,9 @@ services:
       SMTP_PASS: ci-pass
       SMTP_FROM: ci@shopverse.dev
       CORS_ORIGIN: http://localhost:3000
+      # The Playwright suite makes many logins from a single runner IP; raise
+      # the strict 5/min auth limiter so it doesn't 401 mid-run (prod keeps 5).
+      AUTH_THROTTLE_LIMIT: "1000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,13 +94,23 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        NEXT_PUBLIC_BACKEND_URL: http://localhost:3001
+        # BROWSER-reachable URLs baked into the client bundle. The browser runs
+        # on the runner host, so it reaches the backend via the mapped host
+        # port (localhost:3001), NOT the Docker-network hostname. Both carry the
+        # /api global prefix.
+        NEXT_PUBLIC_API_URL: http://localhost:3001/api
+        NEXT_PUBLIC_BACKEND_URL: http://localhost:3001/api
     ports:
       - "3000:3000"
     environment:
       NODE_ENV: production
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: ci-jwt-secret-32-chars-minimum-ok
+      # SERVER-side calls (NextAuth authorize, SSR/SEO fetches, entitlements)
+      # run inside this container → reach the backend over the Docker network
+      # at the service hostname, not the host port. Runtime (non-public) so it
+      # overrides the build-time NEXT_PUBLIC_* for server code only.
+      BACKEND_INTERNAL_URL: http://backend:3001/api
     depends_on:
       backend:
         condition: service_healthy

@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import { useState, useEffect } from "react";
 import CartSidebar from "@/components/cart/CartSidebar";
+import { HideBadgeProvider } from "@/components/layout/BadgeContext";
 
 // PostHog is loaded dynamically and not in lib.dom — describe the
 // minimal surface we put on `window` so the rest of the codebase
@@ -16,7 +17,15 @@ interface WindowWithPostHog {
   __posthog_init?: boolean;
 }
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({
+  children,
+  hideBadge = false,
+}: {
+  children: React.ReactNode;
+  // Server-resolved (root layout) license flag; broadcast via context so no
+  // client component ever fetches entitlements itself.
+  hideBadge?: boolean;
+}) {
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
     if (!key || typeof window === "undefined") return;
@@ -52,7 +61,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <HideBadgeProvider value={hideBadge}>
+          {children}
+        </HideBadgeProvider>
         <CartSidebar />
         <Toaster
           position="top-right"

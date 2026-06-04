@@ -16,7 +16,13 @@
 # fails with "Can't resolve '@shopverse/sdk-frontend'".
 #
 # Build-time ARGs (pass via --build-arg or docker-compose args:):
-#   NEXT_PUBLIC_BACKEND_URL — backend API URL baked into the client bundle
+#   NEXT_PUBLIC_API_URL     — backend base URL (incl. /api) baked into the
+#                             browser bundle for the src/lib/api.ts client
+#   NEXT_PUBLIC_BACKEND_URL — backend base URL (incl. /api) for the legacy
+#                             axiosInstance client (checkout / order pages)
+# NOTE: both are BROWSER-reachable URLs. Server-side code (NextAuth authorize,
+# SSR/SEO fetches) instead reads the runtime, non-public BACKEND_INTERNAL_URL —
+# see frontend/src/lib/server-api.ts.
 
 # ─── STAGE 1: deps ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS deps
@@ -39,6 +45,8 @@ RUN cd frontend && npm ci --ignore-scripts
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_BACKEND_URL=/api
 ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 

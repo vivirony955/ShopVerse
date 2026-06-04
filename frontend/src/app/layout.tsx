@@ -6,6 +6,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers/Providers";
 import { OrganizationJsonLd } from "@/components/seo/JsonLd";
+import { canHideBadge } from "@/lib/entitlements";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
@@ -29,12 +30,17 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Resolve the license badge flag once, server-side, for the whole app. The
+  // value is broadcast to client components via context (see BadgeContext) so
+  // nothing fetches entitlements in the browser. Degrades to "badge shown"
+  // (community) on any failure.
+  const hideBadge = await canHideBadge();
   return (
     <html lang="en" className={geist.variable}>
       <body className="min-h-screen bg-[#fafafa] font-sans antialiased">
         <OrganizationJsonLd />
-        <Providers>{children}</Providers>
+        <Providers hideBadge={hideBadge}>{children}</Providers>
       </body>
     </html>
   );

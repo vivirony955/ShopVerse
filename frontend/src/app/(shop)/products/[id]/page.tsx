@@ -3,8 +3,11 @@
 
 import type { Metadata } from "next";
 import ProductDetailClient from "./ProductDetailClient";
+import { SERVER_API_BASE } from "@/lib/server-api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+// SSR metadata fetch runs in the Next server process → server-reachable URL
+// (includes the /api prefix). Browser hydration uses NEXT_PUBLIC_API_URL.
+const API_URL = SERVER_API_BASE;
 const STORE_CURRENCY = process.env.NEXT_PUBLIC_STORE_CURRENCY ?? "USD";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shopverse.dev";
 

@@ -2,6 +2,7 @@
 // See LICENSE in the project root for license information.
 
 import { ImageResponse } from "next/og";
+import { SERVER_API_BASE } from "@/lib/server-api";
 
 // Dynamic per-product social card. Branded + text-only (product name +
 // store-currency price) so it always renders even if the product image is
@@ -11,7 +12,8 @@ export const alt = "Product on ShopVerse";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+// Generated server-side → server-reachable backend URL (includes /api).
+const API_URL = SERVER_API_BASE;
 const STORE_CURRENCY = process.env.NEXT_PUBLIC_STORE_CURRENCY ?? "USD";
 const STORE_LOCALE = process.env.NEXT_PUBLIC_STORE_LOCALE ?? "en-US";
 

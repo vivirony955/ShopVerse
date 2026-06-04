@@ -19,13 +19,23 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { AuthenticatedRequest } from '../common/types';
 
+// Strict per-IP auth rate limit. Env-configurable so test / CI environments
+// (the e2e suite makes far more than 5 logins per minute from a single runner
+// IP, tripping the limiter mid-run) can raise it. Production keeps the strict
+// 5-per-minute default.
+const AUTH_THROTTLE = {
+  default: {
+    ttl: Number(process.env.AUTH_THROTTLE_TTL) || 60_000,
+    limit: Number(process.env.AUTH_THROTTLE_LIMIT) || 5,
+  },
+};
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // Strict rate limit: 5 attempts per minute on auth endpoints
-  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Throttle(AUTH_THROTTLE)
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(
@@ -36,7 +46,7 @@ export class AuthController {
     );
   }
 
-  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Throttle(AUTH_THROTTLE)
   @Post('login')
   @HttpCode(200)
   async login(@Body() dto: LoginDto) {

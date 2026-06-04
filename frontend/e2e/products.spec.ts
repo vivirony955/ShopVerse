@@ -52,8 +52,11 @@ test.describe("Product Listing & Detail", () => {
     await firstCard.waitFor({ timeout: 15_000 });
     const href = await firstCard.getAttribute("href");
     await page.goto(href!);
-    // Price should contain ₹ symbol
-    await expect(page.getByText(/₹|Rs|INR/).first()).toBeVisible({ timeout: 10_000 });
+    // Price should render with a currency symbol/code. Currency-neutral so the
+    // assertion holds for any store/region pack (default store is USD → "$").
+    await expect(
+      page.getByText(/[$₹€£¥]|USD|EUR|GBP|INR|JPY/).first()
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test("flash sales page loads", async ({ page }) => {

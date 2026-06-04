@@ -12,7 +12,10 @@
  * cryptographically valid WHITE_LABEL license.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { SERVER_API_BASE } from "@/lib/server-api";
+
+// Called from server components (Footer) → server-reachable backend URL.
+const API_BASE = SERVER_API_BASE;
 
 export interface Branding {
   brandName?: string;
@@ -39,6 +42,9 @@ export async function getEntitlements(): Promise<Entitlements | null> {
   try {
     const res = await fetch(`${API_BASE}/enterprise/entitlements`, {
       next: { revalidate: 300 },
+      // This call now runs in the root layout, gating every page's render.
+      // Cap it so an unreachable / slow backend can't block the whole app.
+      signal: AbortSignal.timeout(2000),
     });
     if (!res.ok) return null;
     return (await res.json()) as Entitlements;

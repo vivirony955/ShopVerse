@@ -4,12 +4,16 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import axios from "axios";
+import { SERVER_API_BASE } from "@/lib/server-api";
 
 // Custom field augmentations on User / Session / JWT live in
 // src/types/next-auth.d.ts so they're visible to every callsite, not
 // only this file.
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+// authorize() runs server-side (in the Next server process), so it uses the
+// server-reachable backend URL — in a split-host/Docker stack the browser's
+// NEXT_PUBLIC_API_URL (e.g. localhost:3001) is NOT reachable from here.
+const BASE = SERVER_API_BASE;
 
 interface JwtPayloadShape {
   sub?: number | string;

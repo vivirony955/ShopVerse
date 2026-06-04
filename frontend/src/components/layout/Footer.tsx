@@ -1,14 +1,17 @@
 // Copyright 2026 Vivek Negi. Licensed under the Business Source License 1.1 (BSL).
 // See LICENSE in the project root for license information.
 
+"use client";
 import Link from "next/link";
 import { ShoppingBag, Camera, MessageCircle, Users, PlayCircle, Mail } from "lucide-react";
-import { canHideBadge } from "@/lib/entitlements";
+import { useHideBadge } from "@/components/layout/BadgeContext";
 
-export default async function Footer() {
-  // Badge removal is license-gated (see lib/entitlements). Community installs —
-  // which don't mount the enterprise module — always show it (k-factor loop).
-  const hideBadge = await canHideBadge();
+export default function Footer() {
+  // Badge removal is license-gated. The flag is resolved server-side in the
+  // root layout and read here via context (see BadgeContext) — Footer must stay
+  // synchronous because the homepage renders it inside a client tree. Community
+  // installs (no enterprise module) always show the badge (k-factor loop).
+  const hideBadge = useHideBadge();
   const links = {
     Shop: [
       { label: "New Arrivals", href: "/products?sort=createdAt&order=desc" },
