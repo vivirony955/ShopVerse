@@ -94,3 +94,31 @@ These cannot be done in-repo; they gate launch.
   Verified locally: both images build; backend boots with **all 8 plugins registered**
   (India GST TaxStrategy, hooks, crons) + healthy; frontend healthy; seeds run; smoke
   `/api/health` = `{"status":"ok"}`.
+
+- **E2E Stack / Playwright suite — FIXED (218/218 passing on the prod stack).** The
+  build fix unblocked the suite, which had never run against the prod image; first run
+  was 19 failed + 164 "did not run". Three root causes, all fixed + verified locally
+  end-to-end (all projects incl. chromium-admin):
+  1. **Browser vs. server backend-URL split.** NextAuth `authorize()` / SSR / SEO fetches
+     run inside the frontend container and must reach `backend:3001`; the browser uses the
+     host port `localhost:3001`. `NEXT_PUBLIC_*` is build-time-inlined and can't carry both.
+     Added a server-only runtime `BACKEND_INTERNAL_URL` (`src/lib/server-api.ts`) for
+     server code; bake `NEXT_PUBLIC_API_URL` (+ `/api`-correct `NEXT_PUBLIC_BACKEND_URL`)
+     into the browser bundle. Without it, login POSTed to a dead `:4000`.
+  2. **Entitlements fetch loop stalled post-login nav.** `Footer` was an async server
+     component awaiting `canHideBadge()`, but the `"use client"` homepage imports it → it
+     ran client-side and re-fetched `/enterprise/entitlements` every render (infinite loop),
+     so `router.push("/")` never settled. Now resolved once in the server root layout and
+     broadcast via context (`BadgeContext`) to a synchronous client `Footer`.
+  3. **Auth rate-limit tripped mid-suite.** `/auth/login` is throttled 5/min per IP; the
+     suite far exceeds that from one runner IP → 401. Made the auth throttle
+     env-configurable (`AUTH_THROTTLE_LIMIT`, prod default 5) and raised it to 1000 in the
+     CI compose. Also de-India'd the one hard currency assertion (`₹` → currency-neutral).
+  Commit `321a032`. **Latent prod note:** the same browser/server URL split applies to real
+  multi-container deploys — helm/k8s frontend needs `BACKEND_INTERNAL_URL` set for SSR/login
+  (folded into the "Production infra" blocker).
+
+- **Lighthouse + k6 (E2E Stack, post-Playwright)** — not yet validated on real CI. k6 is
+  `continue-on-error` (soft-fail). **Lighthouse `lighthouse:check` is NOT soft-fail** and
+  compares against a placeholder baseline (±3 / CLS≤0.02) — its first real run may need a
+  rebaseline. Next fast-follow if it blocks the job.
