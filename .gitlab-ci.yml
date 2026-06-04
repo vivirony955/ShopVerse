@@ -604,12 +604,14 @@ e2e:stack:
     # extra packages (nss, freetype, harfbuzz, etc.). Reuse the node image
     # from the runner where possible; otherwise the runner exits with
     # a clear "chromium not found" and the script self-skips on missing
-    # deps. Lighthouse placeholders are conservative — real scores should
-    # exceed them, so this passes by default.
+    # deps. First-activation, soft-fail (mirrors k6 below): the baseline is the
+    # W5.T10 placeholder and check-lighthouse.js uses a SYMMETRIC ±3 cap, so a
+    # real run that beats it by >3 (or a throttled runner's lower perf) trips it
+    # either way. Rebaseline against a CI-representative run, then drop the `||`.
     - apk add --no-cache nodejs npm chromium nss freetype freetype-dev harfbuzz ca-certificates ttf-freefont
     - export LIGHTHOUSE_BASE_URL="http://${STACK_HOST}:3000"
     - export CHROME_PATH=/usr/bin/chromium-browser
-    - cd frontend && npm ci --prefer-offline --silent && npm install --no-save lighthouse chrome-launcher && npm run lighthouse:check && cd ..
+    - cd frontend && npm ci --prefer-offline --silent && npm install --no-save lighthouse chrome-launcher && (npm run lighthouse:check || echo "::warning::lighthouse delta vs placeholder baseline (symmetric ±3); rebaseline needed") && cd ..
     # ─── k6 perf regression (Task 4) ──────────────────────────────────────
     # k6 binary install from official releases. First-activation:
     # baseline values are placeholders; real CI runs likely regress.
