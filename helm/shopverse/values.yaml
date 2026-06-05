@@ -135,8 +135,13 @@ frontend:
       port: http
     initialDelaySeconds: 10
     periodSeconds: 10
-  # Required at build time, baked into the JS bundle.
+  # Required at build time, baked into the JS bundle (browser-reachable).
   publicBackendUrl: ""    # e.g. "https://shopverse.example.com"
+  # Server-side (SSR / NextAuth authorize) backend URL, reachable from INSIDE the
+  # frontend pod. Runtime env. Empty -> defaults to the in-cluster backend
+  # Service (correct for the standard single-cluster deploy). Override only for
+  # split-cluster / external-backend topologies. Must include the /api prefix.
+  backendInternalUrl: ""  # e.g. "http://shopverse-backend:80/api"
 
 # ─── Ingress ─────────────────────────────────────────────────────────────────
 ingress:

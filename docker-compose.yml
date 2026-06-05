@@ -144,7 +144,10 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:3001}
+        # BROWSER-reachable URLs, baked into the JS bundle at build time (carry
+        # the /api global prefix). Override per environment at build/release.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:3001/api}
     container_name: shopverse-frontend
     restart: unless-stopped
     ports:
@@ -153,11 +156,18 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${JWT_SECRET}}
+      # SERVER-side (SSR / NextAuth authorize / SEO) reaches the backend over the
+      # compose network — NOT the browser URL. Runtime, non-public; see
+      # frontend/src/lib/server-api.ts. Without it, server-side login/SSR fall
+      # back to the browser URL and break in a split-host deploy.
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:3001/api}
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      # 127.0.0.1 (not localhost): Next standalone binds IPv4 0.0.0.0 only;
+      # alpine `localhost` resolves to IPv6 ::1 -> connection refused.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

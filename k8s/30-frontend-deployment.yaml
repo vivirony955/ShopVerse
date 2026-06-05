@@ -37,6 +37,11 @@ spec:
               value: production
             - name: NEXT_PUBLIC_BACKEND_URL
               value: "https://${INGRESS_HOST}"
+            # Server-reachable backend URL for SSR / NextAuth authorize (NOT the
+            # browser URL above). In-cluster Service DNS; must include /api.
+            # See frontend/src/lib/server-api.ts.
+            - name: BACKEND_INTERNAL_URL
+              value: "http://shopverse-backend/api"
           livenessProbe:
             httpGet:
               path: /

@@ -48,6 +48,11 @@ spec:
             - name: NEXT_PUBLIC_BACKEND_URL
               value: {{ .Values.frontend.publicBackendUrl | quote }}
             {{- end }}
+            # Server-reachable backend URL for SSR / NextAuth authorize (NOT the
+            # browser URL). Defaults to the in-cluster backend Service so login +
+            # SSR work out of the box. See frontend/src/lib/server-api.ts.
+            - name: BACKEND_INTERNAL_URL
+              value: {{ .Values.frontend.backendInternalUrl | default (printf "http://%s-backend:%v/api" (include "shopverse.fullname" .) .Values.backend.service.port) | quote }}
           {{- with .Values.frontend.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
