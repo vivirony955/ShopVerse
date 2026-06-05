@@ -41,11 +41,9 @@ These cannot be done in-repo; they gate launch.
 - **Perf live gates**: Lighthouse + k6 against a staging URL (budget *checks*
   via `next build` still run locally).
 - **Real one-click-deploy boot** verification (`railway.json` / `render.yaml`).
-- **e2e hardening + shift-left guards** — full plan in
-  [`docs/E2E_HARDENING.md`](E2E_HARDENING.md) (tracker): kill ~8.8 min of
-  hardcoded sleeps, seed deterministic fixtures so the ~238 `.catch(()=>false)`
-  "soft" tests become real assertions, shard + early-gate for fast feedback,
-  re-harden Lighthouse/k6, and the deferred `Footer`/`server-api` unit guards.
+- **e2e correctness polish**: seed `StoreSettings` in `e2e-seed.ts`; de-India the
+  `frontend/e2e/pincode.spec.ts` literals (kept as-is now to avoid destabilizing
+  the e2e suite pre-launch).
 - **White-label branding application** in the storefront (apply `branding.*` from
   entitlements — today only `canHideBadge` is wired).
 - **Scaffolder cleanup**: `create-shopverse-store` still writes the now-vestigial
