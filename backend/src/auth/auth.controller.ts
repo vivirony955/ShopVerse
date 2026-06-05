@@ -23,10 +23,15 @@ import { AuthenticatedRequest } from '../common/types';
 // (the e2e suite makes far more than 5 logins per minute from a single runner
 // IP, tripping the limiter mid-run) can raise it. Production keeps the strict
 // 5-per-minute default.
-const AUTH_THROTTLE = {
+/** Positive-integer env override, else the fallback (rejects 0 / negative / NaN). */
+export function positiveIntEnv(name: string, fallback: number): number {
+  const n = Number(process.env[name]);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+export const AUTH_THROTTLE = {
   default: {
-    ttl: Number(process.env.AUTH_THROTTLE_TTL) || 60_000,
-    limit: Number(process.env.AUTH_THROTTLE_LIMIT) || 5,
+    ttl: positiveIntEnv('AUTH_THROTTLE_TTL', 60_000),
+    limit: positiveIntEnv('AUTH_THROTTLE_LIMIT', 5),
   },
 };
 

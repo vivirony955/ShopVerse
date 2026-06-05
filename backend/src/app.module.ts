@@ -8,6 +8,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -61,7 +62,24 @@ import { TelemetryModule } from './telemetry/telemetry.module';
     ConfigModule.forRoot({ isGlobal: true }),
 
     // ─── Rate limiting — 100 requests per 60 seconds per IP by default ─────────
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    // Redis-backed storage so the per-IP limit is SHARED across instances in a
+    // horizontally-scaled deploy. In-memory (the default) would make the limit
+    // effectively `limit × N pods` and let one pod's bucket diverge from another
+    // — a real weakening of the strict auth limit (auth.controller @Throttle 5).
+    // Falls back to in-memory when REDIS_URL is unset (dev / tests / single node).
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const redisUrl = config.get<string>('REDIS_URL');
+        return {
+          throttlers: [{ ttl: 60_000, limit: 100 }],
+          storage: redisUrl
+            ? new ThrottlerStorageRedisService(redisUrl)
+            : undefined,
+        };
+      },
+    }),
 
     // ─── Scheduler — enables @Cron decorators ───────────────────────────────────
     ScheduleModule.forRoot(),
