@@ -34,6 +34,10 @@ function LoginContent() {
         toast.success("Welcome back!");
         router.push(callbackUrl);
         router.refresh();
+      } else if (res?.error === "service_unavailable") {
+        // Backend unreachable / 5xx / timeout (see lib/auth-credentials.ts) —
+        // don't tell a user with valid creds that their password is wrong.
+        toast.error("Service temporarily unavailable. Please try again.");
       } else {
         toast.error("Invalid email or password");
       }

@@ -3,39 +3,13 @@
 
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import axios from "axios";
-import { SERVER_API_BASE } from "@/lib/server-api";
+import { authorizeCredentials } from "@/lib/auth-credentials";
 
 // Custom field augmentations on User / Session / JWT live in
 // src/types/next-auth.d.ts so they're visible to every callsite, not
-// only this file.
-
-// authorize() runs server-side (in the Next server process), so it uses the
-// server-reachable backend URL — in a split-host/Docker stack the browser's
-// NEXT_PUBLIC_API_URL (e.g. localhost:3001) is NOT reachable from here.
-const BASE = SERVER_API_BASE;
-
-interface JwtPayloadShape {
-  sub?: number | string;
-  username?: string;
-  role?: string;
-}
-
-/**
- * Decode the unverified JWT body so we can pull `sub` / `username` /
- * `role` out at sign-in time — the backend's login response carries
- * only `access_token` + `refresh_token`, not a user object.
- */
-function decodeJwtPayload(token: string): JwtPayloadShape | null {
-  const [, b64] = token.split(".");
-  if (!b64) return null;
-  try {
-    const json = Buffer.from(b64, "base64").toString("utf8");
-    return JSON.parse(json) as JwtPayloadShape;
-  } catch {
-    return null;
-  }
-}
+// only this file. The credential-authorization logic (server-reachable URL,
+// timeout, bad-creds vs backend-down distinction) lives in
+// src/lib/auth-credentials.ts so it can be unit-tested.
 
 const handler = NextAuth({
   providers: [
@@ -46,26 +20,7 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        try {
-          const res = await axios.post(`${BASE}/auth/login`, {
-            email:    credentials?.email,
-            password: credentials?.password,
-          });
-          if (res.data?.access_token) {
-            const payload = decodeJwtPayload(res.data.access_token);
-            return {
-              id:            String(payload?.sub ?? payload?.username ?? credentials?.email ?? ""),
-              email:         payload?.username ?? credentials?.email ?? null,
-              name:          null,
-              access_token:  res.data.access_token,
-              refresh_token: res.data.refresh_token,
-              role:          payload?.role,
-            };
-          }
-          return null;
-        } catch {
-          return null;
-        }
+        return authorizeCredentials(credentials?.email, credentials?.password);
       },
     }),
   ],
