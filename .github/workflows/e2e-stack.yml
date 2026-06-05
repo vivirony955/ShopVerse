@@ -51,6 +51,20 @@ jobs:
           docker compose -f docker-compose.ci.yml logs --tail=200 backend
           exit 1
 
+      - name: Wait for worker healthy
+        run: |
+          set -e
+          for i in $(seq 1 60); do
+            CID=$(docker compose -f docker-compose.ci.yml ps -q worker)
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CID" 2>/dev/null || echo "starting")
+            echo "[$i/60] worker health: $STATUS"
+            if [ "$STATUS" = "healthy" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::worker did not become healthy within 120s"
+          docker compose -f docker-compose.ci.yml logs --tail=200 worker
+          exit 1
+
       - name: Seed admin + e2e products
         run: |
           set -e

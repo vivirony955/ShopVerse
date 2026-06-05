@@ -575,6 +575,20 @@ e2e:stack:
         fi
         sleep 2
       done
+    # Wait for worker healthy (verifies the dist/src/worker entrypoint boots)
+    - |
+      for i in $(seq 1 60); do
+        CID=$(docker compose -f docker-compose.ci.yml ps -q worker)
+        STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CID" 2>/dev/null || echo "starting")
+        echo "[$i/60] worker health: $STATUS"
+        if [ "$STATUS" = "healthy" ]; then break; fi
+        if [ "$i" = "60" ]; then
+          echo "worker did not become healthy within 120s"
+          docker compose -f docker-compose.ci.yml logs --tail=200 worker
+          exit 1
+        fi
+        sleep 2
+      done
     # Seed admin + e2e products
     - docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/seed.js"
     - docker compose -f docker-compose.ci.yml exec -T backend sh -c "cd backend && node dist/src/prisma/e2e-seed.js"
