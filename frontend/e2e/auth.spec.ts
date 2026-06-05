@@ -31,13 +31,10 @@ test.describe("Authentication", () => {
   });
 
   test("login redirects to home/products", async ({ page }) => {
-    // Backend throttle is 5 req/60s per IP. auth-extended (A-01..A-08) makes 6 login calls,
-    // with the last one at ~63s into the suite. Wait 70s to clear the rolling 60s window.
-    test.setTimeout(100_000);
-    await page.waitForTimeout(70000);
+    // (The 70s rate-limit window-wait is gone: the CI stack raises the auth
+    // throttle via AUTH_THROTTLE_LIMIT, so the suite no longer self-throttles.)
     await loginAs(page, TEST_USER.email, TEST_USER.password);
-    const url = page.url();
-    expect(url).not.toContain("/login");
+    await expect(page).not.toHaveURL(/\/login/);
   });
 
   test("protected page (/orders) shows sign-in prompt when not authenticated", async ({ page }) => {

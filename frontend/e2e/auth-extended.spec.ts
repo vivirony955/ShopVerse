@@ -39,21 +39,16 @@ test.describe("Authentication — Extended", () => {
     await page.locator("#reg-email").fill(`e2e_short_${Date.now()}@shopverse.local`);
     await page.locator("#reg-password").fill("abc12");
     await page.locator('button[type="submit"]').click();
-    // Either stays on /register (client-side validation) or shows error toast
-    await page.waitForTimeout(1500);
-    const onRegisterPage = page.url().includes("/register");
-    const errorVisible = await page.getByText(/8 characters|password.*short|too short/i).isVisible().catch(() => false);
-    expect(onRegisterPage || errorVisible).toBeTruthy();
+    // A password < 8 chars must be rejected — we never leave /register
+    // (web-first: auto-waits instead of a fixed sleep).
+    await expect(page).toHaveURL(/\/register/);
   });
 
   // A-04: Login persists session on reload
   test("A-04: login session persists across page reload", async ({ page }) => {
-    // Wait to avoid rate-limiting from prior auth tests (A-01 register triggers login)
-    await page.waitForTimeout(8000);
     await loginAs(page, TEST_USER.email, TEST_USER.password);
     await page.reload();
-    await page.waitForTimeout(1500);
-    // After reload, should NOT show sign-in prompt on /orders
+    // After reload the JWT session must persist → /orders is not gated.
     await page.goto("/orders");
     await expect(page.getByText(/please sign in/i)).not.toBeVisible({ timeout: 5_000 }).catch(() => {
       // If still visible, check we're at least not on /login
@@ -65,7 +60,6 @@ test.describe("Authentication — Extended", () => {
   test("A-05: accessing protected page while logged out shows sign-in prompt", async ({ page }) => {
     // Don't login — go directly to protected page
     await page.goto("/wallet");
-    await page.waitForTimeout(2000);
     // Either redirects to login, shows sign-in prompt, or shows auth-required state
     const onLogin = page.url().includes("/login");
     const signInVisible = await page.getByText(/sign in|please sign in|login|sign-in/i).isVisible({ timeout: 5_000 }).catch(() => false);
@@ -80,7 +74,6 @@ test.describe("Authentication — Extended", () => {
 
   // A-06: Logout clears session
   test("A-06: logout clears session", async ({ page }) => {
-    await page.waitForTimeout(5000); // space from A-05
     await loginAs(page, TEST_USER.email, TEST_USER.password);
     // Open account dropdown and click Sign Out
     await page.goto("/");
@@ -104,9 +97,8 @@ test.describe("Authentication — Extended", () => {
   test("A-07: submitting empty login form triggers required validation", async ({ page }) => {
     await page.goto("/login");
     await page.locator('button[type="submit"]').click();
-    // Email is required — browser prevents submit or page stays on /login
-    await page.waitForTimeout(500);
-    expect(page.url()).toContain("/login");
+    // Email is required — the browser blocks submit, so we stay on /login.
+    await expect(page).toHaveURL(/\/login/);
   });
 
   // A-08: Rate limiting on repeated failed logins
