@@ -33,12 +33,26 @@ export interface Entitlements {
   plan: string | null;
 }
 
+// Next's fetch cache only stores 2xx responses, so a community 404 (or any
+// error/timeout) would NOT be cached — and since getEntitlements() now runs in
+// the root layout, that means a backend round-trip on EVERY page render of a
+// community install. Short-circuit a recent negative for a small TTL; positives
+// stay on Next's ISR cache (revalidate below). The flag changes rarely.
+const NEGATIVE_TTL_MS = 60_000;
+let negativeUntil = 0;
+
+/** Test-only: clear the negative-result short-circuit between cases. */
+export function __resetEntitlementsCache(): void {
+  negativeUntil = 0;
+}
+
 /**
  * Fetch entitlements (cached 5 min — they change rarely). Returns null when the
  * enterprise module isn't present or the request fails; callers MUST treat
  * null / !canHideBadge as community mode.
  */
 export async function getEntitlements(): Promise<Entitlements | null> {
+  if (Date.now() < negativeUntil) return null;
   try {
     const res = await fetch(`${API_BASE}/enterprise/entitlements`, {
       next: { revalidate: 300 },
@@ -46,9 +60,15 @@ export async function getEntitlements(): Promise<Entitlements | null> {
       // Cap it so an unreachable / slow backend can't block the whole app.
       signal: AbortSignal.timeout(2000),
     });
-    if (!res.ok) return null;
-    return (await res.json()) as Entitlements;
+    if (!res.ok) {
+      negativeUntil = Date.now() + NEGATIVE_TTL_MS;
+      return null;
+    }
+    const data = (await res.json()) as Entitlements;
+    negativeUntil = 0; // a live positive clears the negative short-circuit
+    return data;
   } catch {
+    negativeUntil = Date.now() + NEGATIVE_TTL_MS;
     return null;
   }
 }
