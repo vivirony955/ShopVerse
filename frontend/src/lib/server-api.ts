@@ -18,8 +18,18 @@
  *
  * Browser-side code keeps reading `NEXT_PUBLIC_API_URL` directly (see
  * `src/lib/api.ts`); do NOT use this constant in client components.
+ *
+ * Any trailing slash is stripped so callers can safely concatenate
+ * `${SERVER_API_BASE}/auth/login` without producing a `//`.
  */
-export const SERVER_API_BASE =
-  process.env.BACKEND_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+export function resolveServerApiBase(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const base =
+    env.BACKEND_INTERNAL_URL ||
+    env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000/api";
+  return base.replace(/\/+$/, "");
+}
+
+export const SERVER_API_BASE = resolveServerApiBase();
