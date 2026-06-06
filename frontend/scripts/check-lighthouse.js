@@ -31,6 +31,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { findFailures } = require('./lighthouse-delta');
 
 const ROOT = path.resolve(__dirname, '..');
 const BASELINE_PATH = path.join(ROOT, 'lighthouse-baseline.json');
@@ -130,37 +131,18 @@ async function main() {
   }
   const baseline = JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf8'));
 
-  const failures = [];
   for (const r of results) {
     const pth = new URL(r.url).pathname;
-    const priorRun = baseline.runs.find((x) => x.path === pth);
-    if (!priorRun) {
+    if (!baseline.runs.some((x) => x.path === pth)) {
       console.log(`[lighthouse] no baseline for ${pth} — recording as new`);
-      continue;
-    }
-    for (const cat of ['performance', 'accessibility', 'bestPractices', 'seo']) {
-      const delta = r.scores[cat] - priorRun.scores[cat];
-      if (Math.abs(delta) > CATEGORY_DELTA_CAP) {
-        failures.push({
-          path: pth,
-          category: cat,
-          prior: priorRun.scores[cat],
-          current: r.scores[cat],
-          delta,
-        });
-      }
-    }
-    const clsDelta = r.cls - priorRun.cls;
-    if (clsDelta > CLS_DELTA_CAP) {
-      failures.push({
-        path: pth,
-        category: 'CLS',
-        prior: priorRun.cls,
-        current: r.cls,
-        delta: clsDelta,
-      });
     }
   }
+
+  // Regression-only gate (G-11): improvements never fail; see lighthouse-delta.js.
+  const failures = findFailures(results, baseline, {
+    categoryDeltaCap: CATEGORY_DELTA_CAP,
+    clsDeltaCap: CLS_DELTA_CAP,
+  });
 
   if (failures.length > 0) {
     console.error('\n[lighthouse] FAIL — these regressions exceeded the cap:');
@@ -169,7 +151,7 @@ async function main() {
     }
     process.exit(1);
   }
-  console.log(`[lighthouse] OK — all categories within ± ${CATEGORY_DELTA_CAP} points, CLS within ${CLS_DELTA_CAP}`);
+  console.log(`[lighthouse] OK — no category regressed > ${CATEGORY_DELTA_CAP} points, CLS within ${CLS_DELTA_CAP}`);
 }
 
 main().catch((err) => {
