@@ -52,10 +52,12 @@ test.describe("Product Listing & Detail", () => {
     await firstCard.waitFor({ timeout: 15_000 });
     const href = await firstCard.getAttribute("href");
     await page.goto(href!);
-    // Price should render with a currency symbol/code. Currency-neutral so the
-    // assertion holds for any store/region pack (default store is USD → "$").
+    // Assert the DEFAULT store's actual currency renders (USD → "$" adjacent to
+    // digits), not just any currency glyph on the page — the old broad alternation
+    // would pass even if a USD store mis-rendered "¥". When StoreSettings-driven
+    // currency lands (EH-1.1) this should read the seeded currency instead.
     await expect(
-      page.getByText(/[$₹€£¥]|USD|EUR|GBP|INR|JPY/).first()
+      page.getByText(/\$\s?[\d,]+(\.\d{2})?/).first()
     ).toBeVisible({ timeout: 10_000 });
   });
 

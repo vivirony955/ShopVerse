@@ -21,8 +21,15 @@ export async function loginAs(page: Page, email: string, password: string) {
   await page.locator("#login-email").fill(email);
   await page.locator("#login-password").fill(password);
   await page.locator('button[type="submit"]').click();
-  // Wait until we're no longer on the login page
+  // Wait for a concrete post-login signal, not just the URL: the router pushes
+  // away from /login on a successful signIn, then the login form detaches.
+  // Confirming the form is gone guards callers from racing a half-rendered
+  // destination (the URL can flip a beat before the new page is interactive).
   await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 15_000 });
+  await page
+    .locator("#login-email")
+    .waitFor({ state: "detached", timeout: 5_000 })
+    .catch(() => {});
 }
 
 /**
