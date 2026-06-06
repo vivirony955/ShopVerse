@@ -71,7 +71,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-lcov
           path: |
@@ -116,7 +116,7 @@ jobs:
           # so we control the retention window.
           upload-artifact: false
       - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: shopverse-sbom
           path: shopverse-sbom.cyclonedx.json
