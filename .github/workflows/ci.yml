@@ -185,6 +185,13 @@ jobs:
             --set image.backend.tag=test \
             --set image.frontend.tag=test \
             | kubeconform -strict -summary -kubernetes-version "${KUBERNETES_VERSION}"
+      - name: Deploy-config contract — BACKEND_INTERNAL_URL wired everywhere (T-7)
+        run: |
+          set -euo pipefail
+          node scripts/check-deploy-config.mjs
+          # Strongest helm check: the RENDERED chart must carry the server URL.
+          helm template shopverse helm/shopverse | grep -q "BACKEND_INTERNAL_URL" \
+            || { echo "::error::helm render is missing BACKEND_INTERNAL_URL (G-1)"; exit 1; }
 
   k8s-validate:
     # A3: validate the raw K8s manifests render cleanly with envsubst, then
