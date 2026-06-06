@@ -89,7 +89,7 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_dummy
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -269,7 +269,7 @@ jobs:
           fi
       - uses: actions/checkout@v4
         if: steps.gate.outputs.skip == 'false'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: steps.gate.outputs.skip == 'false'
         with:
           node-version: '20'

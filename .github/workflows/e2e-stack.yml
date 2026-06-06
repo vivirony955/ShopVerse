@@ -106,7 +106,7 @@ jobs:
       #   workers: 1, retries: 1 (per frontend/playwright.config.ts).
       # Browser cache keyed on the frontend lockfile — invalidates when
       # @playwright/test bumps and the browser bundle changes.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
